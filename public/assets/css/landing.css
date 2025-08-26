@@ -1,3 +1,8 @@
+/* 
+   :root define variables globales de CSS que se pueden usar 
+   en todo el proyecto. Aquí se configuran colores y estilos base 
+   para mantener una apariencia uniforme y fácil de actualizar.
+*/
 :root {
   --color-primary: #14b8a6;
   --color-primary-600: #0d9488;
@@ -9,6 +14,13 @@
   --radius: 12px;
 }
 
+
+/* 
+   El selector universal (*) aplica estilos a todos los elementos de la página.
+   box-sizing: border-box hace que el ancho y alto incluyan 
+   padding y bordes, facilitando el control del diseño y evitando 
+   cálculos adicionales de espacio.
+*/
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
@@ -18,8 +30,25 @@ body {
   color: var(--color-text);
 }
 
+
+/* 
+   Clase .container para estructurar el contenido principal.
+   - width: 100%;        Hace que ocupe todo el ancho disponible.
+   - max-width: 1100px;  Limita el ancho máximo para evitar que se vea demasiado extendido.
+   - margin: 0 auto;     Centra el contenedor horizontalmente.
+   - padding: 0 20px;    Agrega espacio interno lateral para que el contenido no quede pegado a los bordes.
+*/
 .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 20px; }
 
+
+/* 
+   Estilos para la cabecera del sitio y su navegación:
+   - .site-header: Hace que la cabecera permanezca fija en la parte superior 
+     mientras se hace scroll, con un fondo semitransparente y un ligero desenfoque.
+   - .header-inner: Organiza el contenido interno en fila y lo separa con espacio entre elementos.
+   - .brand y .brand-mark: Controlan la apariencia del logotipo y el nombre del sitio.
+   - .main-nav: Define el estilo del menú de navegación, incluyendo enlaces y su efecto hover.
+*/
 .site-header { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(6px); background: rgba(11,18,32,0.6); border-bottom: 1px solid rgba(255,255,255,0.06); }
 .header-inner { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--color-text); text-decoration: none; font-weight: 700; letter-spacing: .2px; }
@@ -47,6 +76,13 @@ body {
 .input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(20,184,166,0.22); }
 .demo-help { color: var(--color-muted); font-size: .9rem; }
 
+
+/* 
+   Estilo para el contenedor de la ilustración QR.
+   - display: grid;        Utiliza un sistema de cuadrícula para alinear contenido.
+   - place-items: center;  Centra el contenido tanto vertical como horizontalmente.
+   - height: 260px;        Define una altura fija para el área de la ilustración.
+*/
 .qr-illustration { display: grid; place-items: center; height: 260px; }
 .qr-tag { width: 160px; height: 160px; background: #111827; border: 2px solid rgba(255,255,255,0.1); border-radius: var(--radius); position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.04); }
 .qr-square { position: absolute; inset: 16px; background: conic-gradient(from 90deg, #0ea5e9, #14b8a6, #22c55e, #0ea5e9); -webkit-mask: radial-gradient(circle at 12px 12px, transparent 10px, #000 11px) top left,
@@ -78,6 +114,11 @@ body {
 .footer-nav a { color: var(--color-muted); text-decoration: none; margin-right: 12px; }
 .footer-nav a:hover { color: var(--color-text); }
 
+/* 
+   Media query para pantallas pequeñas (máximo 900px de ancho).
+   Ajusta la distribución de columnas para que los elementos se 
+   muestren en una sola columna, mejorando la visualización en dispositivos móviles.
+*/
 @media (max-width: 900px) {
   .hero-inner { grid-template-columns: 1fr; }
   .features-grid { grid-template-columns: 1fr; }
