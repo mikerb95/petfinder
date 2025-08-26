@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Escanear QR — Petfinder</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+    <style>
+      body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
+      .wrap { display:grid; gap:14px; }
+      video { width:100%; max-width: 640px; border-radius: 12px; border:1px solid rgba(255,255,255,0.12); }
+      .hint { color: var(--color-muted); }
+      .card { background:#fff; color:#111; border-radius:12px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+      .error { color:#ef4444; }
+      .button { background: var(--color-primary); border-color: var(--color-primary); color: #041410; }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/">
+          <span class="brand-mark">🐾</span>
+          <span class="brand-name">Petfinder</span>
+        </a>
+      </div>
+    </header>
+    <main class="section">
+      <div class="container" style="max-width:900px;">
+        <h1>Escanear código QR</h1>
+        <p class="hero-subtitle">Apunta la cámara hacia el QR de la mascota. Te llevaremos a su ficha automáticamente.</p>
+        <div id="warn" class="feature-item" style="display:none; border-left:4px solid #c00; background:#fff5f5; color:#111;">No se pudo acceder a la cámara. Verifica permisos.</div>
+        <div class="wrap">
+          <video id="video" playsinline autoplay muted></video>
+          <div class="hint">Si tu dispositivo no soporta escaneo, puedes abrir el enlace del QR manualmente.</div>
+          <div id="result" class="card" style="display:none;"></div>
+          <div>
+            <button id="startBtn" class="button">Iniciar escaneo</button>
+            <button id="stopBtn" class="button" style="display:none;">Detener</button>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script>
+      (function(){
+        if (window.__scanInit) return; window.__scanInit = true;
+        const video = document.getElementById('video');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const warn = document.getElementById('warn');
+        const result = document.getElementById('result');
+        let stream = null;
+        let rafId = null;
+        let detecting = false;
+
+        function stop(){
+          detecting = false;
+          if (rafId) cancelAnimationFrame(rafId);
+          rafId = null;
+          if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+          stopBtn.style.display = 'none';
+          startBtn.style.display = 'inline-flex';
+        }
+
+        async function start(){
+          try {
+            warn.style.display = 'none';
+            result.style.display = 'none';
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+            video.srcObject = stream;
+            await video.play();
+            stopBtn.style.display = 'inline-flex';
+            startBtn.style.display = 'none';
+            if ('BarcodeDetector' in window) {
+              const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+              detecting = true;
+              const loop = async () => {
+                if (!detecting) return;
+                try {
+                  const codes = await detector.detect(video);
+                  if (codes && codes.length) {
+                    handleCode(codes[0].rawValue || codes[0].rawValue || '');
+                    return;
+                  }
+                } catch {}
+                rafId = requestAnimationFrame(loop);
+              };
+              rafId = requestAnimationFrame(loop);
+            } else {
+              // Fallback: try simple canvas scanning with jsQR if available
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              detecting = true;
+              const loop = () => {
+                if (!detecting) return;
+                try {
+                  const w = video.videoWidth, h = video.videoHeight;
+                  if (w && h) {
+                    canvas.width = w; canvas.height = h;
+                    ctx.drawImage(video, 0, 0, w, h);
+                    if (window.jsQR) {
+                      const imageData = ctx.getImageData(0, 0, w, h);
+                      const qr = window.jsQR(imageData.data, w, h);
+                      if (qr && qr.data) { handleCode(qr.data); return; }
+                    }
+                  }
+                } catch {}
+                rafId = requestAnimationFrame(loop);
+              };
+              rafId = requestAnimationFrame(loop);
+            }
+          } catch (e) {
+            warn.style.display = 'block';
+          }
+        }
+
+        function handleCode(text){
+          stop();
+          try {
+            result.style.display = 'block';
+            result.textContent = 'Código detectado: ' + text;
+            // If it contains /p/:qrId or a qrId-like token, redirect
+            const url = new URL(text, window.location.origin);
+            const path = url.pathname;
+            const matchPet = path.match(/^\/p\/([A-Za-z0-9_-]{6,})$/);
+            if (matchPet) {
+              window.location.href = path; return;
+            }
+            // Try to extract token from plain text
+            const tokenMatch = text.match(/\b([A-Za-z0-9_-]{6,})\b/);
+            if (tokenMatch) { window.location.href = '/p/' + tokenMatch[1]; return; }
+          } catch {
+            // non-URL text; try fallback
+            const tokenMatch = (text || '').match(/\b([A-Za-z0-9_-]{6,})\b/);
+            if (tokenMatch) { window.location.href = '/p/' + tokenMatch[1]; return; }
+          }
+        }
+
+        startBtn.addEventListener('click', start);
+        stopBtn.addEventListener('click', stop);
+      })();
+    </script>
+    <script src="https://unpkg.com/jsqr/dist/jsQR.js" async></script>
+  </body>
+  </html>

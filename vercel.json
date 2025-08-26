@@ -5,7 +5,7 @@
     { "src": "^/assets/(.*)$", "dest": "/public/assets/$1" },
     { "src": "^/api/(.*)$", "dest": "/api/index.js" },
     { "src": "^/p/(.*)$", "dest": "/api/index.js" },
-    { "src": "^/(login|register)$", "dest": "/api/index.js" },
+  { "src": "^/(login|register|scan)$", "dest": "/api/index.js" },
     { "src": ".*", "status": 404, "dest": "/public/404.html" }
   ]
 }
