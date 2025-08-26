@@ -30,6 +30,17 @@ body {
   color: var(--color-text);
 }
 
+/*
+    Patrón sutil de huellas para el fondo del <main> en la landing.
+    Usamos un SVG embebido como patrón repetido con baja opacidad para no
+    interferir con la legibilidad del contenido.
+*/
+main {
+   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><g fill='%23ffffff' fill-opacity='0.035' transform='rotate(-12 60 60)'><circle cx='52' cy='44' r='6'/><circle cx='70' cy='42' r='5'/><circle cx='64' cy='60' r='5'/><circle cx='48' cy='58' r='5'/><ellipse cx='62' cy='80' rx='18' ry='12'/></g></svg>");
+   background-repeat: repeat;
+   background-size: 120px 120px; /* ajusta densidad del patrón */
+}
+
 
 /* 
    Clase .container para estructurar el contenido principal.
