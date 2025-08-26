@@ -26,7 +26,21 @@
           <input class="input" id="name" name="name" type="text" required placeholder="Tu nombre" />
 
           <label class="demo-label" for="email">Correo electrónico</label>
-          <input class="input" id="email" pattern=".+@example\.com" size="30" required name="email" type="email" required placeholder="tu@correo.com" />
+          <input class="input" id="email" name="email" type="email" required placeholder="tu@correo.com" />
+          <div id="emailError" class="demo-help" style="color:#fca5a5;display:none;margin-bottom:8px"></div>
+          <script>
+            const emailInput = document.getElementById('email');
+            const emailError = document.getElementById('emailError');
+            emailInput.addEventListener('input', function () {
+              if (!emailInput.validity.valid) {
+                emailError.textContent = 'Ingresa un correo electrónico válido';
+                emailError.style.display = 'block';
+              } else {
+                emailError.textContent = '';
+                emailError.style.display = 'none';
+              }
+            });
+          </script>
 
           <label class="demo-label" for="phone">Teléfono (opcional)</label>
           <input class="input" id="phone" name="phone" type="tel" placeholder="300 000 0000" />
