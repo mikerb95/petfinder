@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Petfinder — Iniciar sesión</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/">
+          <span class="brand-mark">🐾</span>
+          <span class="brand-name">Petfinder</span>
+        </a>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container" style="max-width:720px;">
+        <h1>Inicia sesión</h1>
+        <p class="hero-subtitle">Accede a tu panel para administrar tus mascotas y códigos QR.</p>
+
+        <form id="loginForm" class="demo-form" novalidate>
+          <label class="demo-label" for="email">Correo electrónico</label>
+          <input class="input" id="email" name="email" type="email" required placeholder="tu@correo.com" />
+
+          <label class="demo-label" for="password">Contraseña</label>
+          <input class="input" id="password" name="password" type="password" required placeholder="Tu contraseña" />
+
+          <button class="button button-primary" id="submitBtn" type="submit">Entrar</button>
+          <p style="margin-top:8px">¿No tienes cuenta? <a href="/register">Crea una</a></p>
+
+          <div id="message" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
+        </form>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        const form = document.getElementById('loginForm');
+        const msg = document.getElementById('message');
+        const btn = document.getElementById('submitBtn');
+        function setMessage(text, ok) {
+          msg.textContent = text;
+          msg.style.color = ok ? '#22c55e' : '#fca5a5';
+        }
+        form.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          setMessage('', true);
+          btn.disabled = true; btn.textContent = 'Ingresando…';
+          const payload = {
+            email: document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value
+          };
+          try {
+            const res = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              const err = data && data.error ? data.error : 'Credenciales inválidas';
+              throw new Error(err);
+            }
+            if (data && data.token) localStorage.setItem('auth_token', data.token);
+            setMessage('Inicio de sesión exitoso. Redirigiendo…', true);
+            setTimeout(() => { window.location.href = '/'; }, 900);
+          } catch (err) {
+            setMessage(err.message || 'Error al iniciar sesión', false);
+          } finally {
+            btn.disabled = false; btn.textContent = 'Entrar';
+          }
+        });
+      })();
+    </script>
+  </body>
+  </html>

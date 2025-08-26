@@ -20,12 +20,12 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', env: config.env });
 });
 
-// Placeholder pages referenced by landing
+// Static pages for login/register
 app.get('/login', (req, res) => {
-  res.send('<!doctype html><html><body><p>Login placeholder. <a href="/">Volver</a></p></body></html>');
+  res.sendFile(path.join(publicDir, 'login.html'));
 });
 app.get('/register', (req, res) => {
-  res.send('<!doctype html><html><body><p>Register placeholder. <a href="/">Volver</a></p></body></html>');
+  res.sendFile(path.join(publicDir, 'register.html'));
 });
 app.get('/p/:qrId', (req, res) => {
   const { qrId } = req.params;

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Petfinder — Registro</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/">
+          <span class="brand-mark">🐾</span>
+          <span class="brand-name">Petfinder</span>
+        </a>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container" style="max-width:720px;">
+        <h1>Crear cuenta</h1>
+        <p class="hero-subtitle">Regístrate para administrar tus mascotas y generar códigos QR.</p>
+
+        <form id="registerForm" class="demo-form" novalidate>
+          <label class="demo-label" for="name">Nombre completo</label>
+          <input class="input" id="name" name="name" type="text" required placeholder="Tu nombre" />
+
+          <label class="demo-label" for="email">Correo electrónico</label>
+          <input class="input" id="email" name="email" type="email" required placeholder="tu@correo.com" />
+
+          <label class="demo-label" for="phone">Teléfono (opcional)</label>
+          <input class="input" id="phone" name="phone" type="tel" placeholder="300 000 0000" />
+
+          <label class="demo-label" for="password">Contraseña</label>
+          <input class="input" id="password" name="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" />
+
+          <button class="button button-primary" id="submitBtn" type="submit">Crear cuenta</button>
+          <p style="margin-top:8px">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
+
+          <div id="message" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
+        </form>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        const form = document.getElementById('registerForm');
+        const msg = document.getElementById('message');
+        const btn = document.getElementById('submitBtn');
+        function setMessage(text, ok) {
+          msg.textContent = text;
+          msg.style.color = ok ? '#22c55e' : '#fca5a5';
+        }
+        form.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          setMessage('', true);
+          btn.disabled = true; btn.textContent = 'Creando…';
+          const payload = {
+            name: document.getElementById('name').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            phone: document.getElementById('phone').value.trim() || undefined,
+            password: document.getElementById('password').value
+          };
+          try {
+            const res = await fetch('/api/auth/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              const err = data && data.error ? data.error : 'Error al registrar';
+              throw new Error(err);
+            }
+            // Store token for future authenticated requests
+            if (data && data.token) localStorage.setItem('auth_token', data.token);
+            setMessage('Cuenta creada correctamente. Redirigiendo…', true);
+            setTimeout(() => { window.location.href = '/'; }, 900);
+          } catch (err) {
+            setMessage(err.message || 'Error al registrar', false);
+          } finally {
+            btn.disabled = false; btn.textContent = 'Crear cuenta';
+          }
+        });
+      })();
+    </script>
+  </body>
+  </html>
