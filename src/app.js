@@ -254,9 +254,6 @@ app.get('/register', (req, res) => {
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(publicDir, 'dashboard.html'));
 });
-app.get('/faq', (req, res) => {
-  res.sendFile(path.join(publicDir, 'faq.html'));
-});
 // Public pet page by qrId (serves static page, which fetches JSON)
 app.get('/p/:qrId', (req, res) => {
   res.sendFile(path.join(publicDir, 'pet.html'));
