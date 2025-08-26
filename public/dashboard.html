@@ -45,7 +45,11 @@
           <h3>Mascotas</h3>
           <form id="petForm" style="display:grid; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr));">
             <input type="text" id="petName" placeholder="Nombre de la mascota" required />
-            <input type="text" id="petSpecies" placeholder="Especie (ej. perro, gato)" />
+            <select id="petSpecies">
+              <option value="">Especie…</option>
+              <option value="perro">Perro</option>
+              <option value="gato">Gato</option>
+            </select>
             <input type="text" id="petBreed" placeholder="Raza" />
             <input type="text" id="petColor" placeholder="Color" />
             <input type="text" id="petNotes" placeholder="Notas" />
