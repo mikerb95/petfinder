@@ -228,6 +228,10 @@ app.get('/kickoff', (req, res) => {
 app.get('/terms', (req, res) => {
   res.sendFile(path.join(publicDir, 'terms.html'));
 });
+// Privacy page
+app.get('/privacy', (req, res) => {
+  res.sendFile(path.join(publicDir, 'privacy.html'));
+});
 // Public pet page by qrId (serves static page, which fetches JSON)
 app.get('/p/:qrId', (req, res) => {
   res.sendFile(path.join(publicDir, 'pet.html'));
