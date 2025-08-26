@@ -140,6 +140,144 @@
         </div>
       </section>
 
+      <!-- Escena 4: Arquitectura general -->
+      <section class="ko-stage" data-anim="arch">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="archCard" class="anim-el" style="width:min(80vw,900px);">
+              <svg viewBox="0 0 900 420" role="img" aria-label="Diagrama de arquitectura general" style="width:100%; height:auto;">
+                <defs>
+                  <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#0ea5e9" /><stop offset="100%" stop-color="#14b8a6" />
+                  </linearGradient>
+                </defs>
+                <rect x="0" y="0" width="900" height="420" rx="16" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" />
+                <!-- Browser -->
+                <rect x="30" y="40" width="210" height="120" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="135" y="85" text-anchor="middle" fill="#e5e7eb" font-size="16">Navegador</text>
+                <text x="135" y="110" text-anchor="middle" fill="#9ca3af" font-size="12">HTML/CSS/JS</text>
+                <!-- Static -->
+                <rect x="330" y="30" width="240" height="80" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="450" y="70" text-anchor="middle" fill="#e5e7eb" font-size="14">Assets estáticos /public</text>
+                <!-- Serverless -->
+                <rect x="330" y="140" width="240" height="120" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="450" y="185" text-anchor="middle" fill="#e5e7eb" font-size="14">Express (Serverless)</text>
+                <text x="450" y="210" text-anchor="middle" fill="#9ca3af" font-size="12">API REST / páginas</text>
+                <!-- DB -->
+                <rect x="650" y="140" width="220" height="120" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="760" y="185" text-anchor="middle" fill="#e5e7eb" font-size="14">MySQL</text>
+                <text x="760" y="210" text-anchor="middle" fill="#9ca3af" font-size="12">mysql2/promise</text>
+                <!-- Arrows -->
+                <path d="M240,100 C290,100 310,70 330,70" stroke="url(#g1)" stroke-width="3" fill="none" marker-end="url(#arrow)" />
+                <path d="M240,120 C290,120 310,180 330,200" stroke="url(#g1)" stroke-width="3" fill="none" marker-end="url(#arrow)" />
+                <path d="M570,200 L650,200" stroke="url(#g1)" stroke-width="3" fill="none" marker-end="url(#arrow)" />
+                <defs>
+                  <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#14b8a6" />
+                  </marker>
+                </defs>
+                <!-- Legend -->
+                <text x="450" y="300" text-anchor="middle" fill="#9ca3af" font-size="12">Vercel enruta /assets a estáticos y /api|/dashboard|/p/:id a Express</text>
+              </svg>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Arquitectura general</h2>
+            <p class="anim-text">Frontend estático servido desde /public, backend en Express desplegado como función serverless y persistencia en MySQL. Los QR apuntan a URL públicas /p/:qrId.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Escena 5: Modelo de datos -->
+      <section class="ko-stage" data-anim="data">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="dataCard" class="anim-el" style="width:min(80vw,900px);">
+              <svg viewBox="0 0 900 340" role="img" aria-label="Modelo de datos" style="width:100%; height:auto;">
+                <rect x="0" y="0" width="900" height="340" rx="16" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" />
+                <!-- Users -->
+                <rect x="80" y="60" width="300" height="180" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="230" y="88" text-anchor="middle" fill="#e5e7eb" font-size="16">users</text>
+                <text x="100" y="112" fill="#9ca3af" font-size="12">id (PK)</text>
+                <text x="100" y="130" fill="#9ca3af" font-size="12">name, email (unique)</text>
+                <text x="100" y="148" fill="#9ca3af" font-size="12">password_hash, phone</text>
+                <text x="100" y="166" fill="#9ca3af" font-size="12">created_at</text>
+                <!-- Pets -->
+                <rect x="520" y="60" width="300" height="200" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="670" y="88" text-anchor="middle" fill="#e5e7eb" font-size="16">pets</text>
+                <text x="540" y="112" fill="#9ca3af" font-size="12">id (PK), owner_id (FK users.id)</text>
+                <text x="540" y="130" fill="#9ca3af" font-size="12">name, species, breed, color</text>
+                <text x="540" y="148" fill="#9ca3af" font-size="12">notes, status ('home'|'lost')</text>
+                <text x="540" y="166" fill="#9ca3af" font-size="12">photo_url, qr_id (unique)</text>
+                <text x="540" y="184" fill="#9ca3af" font-size="12">created_at, updated_at</text>
+                <!-- Relation -->
+                <line x1="380" y1="150" x2="520" y2="150" stroke="#14b8a6" stroke-width="3" />
+                <text x="450" y="140" text-anchor="middle" fill="#9ca3af" font-size="12">1 : N</text>
+              </svg>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Modelo de datos</h2>
+            <p class="anim-text">Relación 1:N entre usuarios y mascotas. Cada mascota tiene un <code>qr_id</code> único que resuelve su ficha pública y la imagen del QR (PNG/SVG).</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Escena 6: Despliegue y routing -->
+      <section class="ko-stage" data-anim="deploy">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="deployCard" class="anim-el" style="width:min(80vw,900px);">
+              <svg viewBox="0 0 900 300" role="img" aria-label="Despliegue y enrutamiento" style="width:100%; height:auto;">
+                <rect x="0" y="0" width="900" height="300" rx="16" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" />
+                <rect x="60" y="60" width="240" height="180" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="180" y="100" text-anchor="middle" fill="#e5e7eb" font-size="14">Vercel Router</text>
+                <text x="180" y="125" text-anchor="middle" fill="#9ca3af" font-size="12">vercel.json</text>
+                <rect x="360" y="50" width="220" height="80" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="470" y="90" text-anchor="middle" fill="#e5e7eb" font-size="14">/public estático</text>
+                <rect x="360" y="160" width="220" height="80" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="470" y="200" text-anchor="middle" fill="#e5e7eb" font-size="14">/api/index.js → Express</text>
+                <line x1="300" y1="120" x2="360" y2="90" stroke="#14b8a6" stroke-width="3" />
+                <line x1="300" y1="180" x2="360" y2="200" stroke="#14b8a6" stroke-width="3" />
+                <text x="180" y="165" text-anchor="middle" fill="#9ca3af" font-size="12">^/assets → estático | ^/api, /dashboard, /p/:id, /login… → serverless</text>
+              </svg>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Despliegue y enrutamiento</h2>
+            <p class="anim-text">Vercel sirve los assets estáticos desde /public y enruta las páginas dinámicas y API a la función serverless que reusa la app de Express.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Escena 7: Seguridad y JWT -->
+      <section class="ko-stage" data-anim="security">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="securityCard" class="anim-el" style="width:min(80vw,900px);">
+              <svg viewBox="0 0 900 300" role="img" aria-label="Seguridad y JWT" style="width:100%; height:auto;">
+                <rect x="0" y="0" width="900" height="300" rx="16" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" />
+                <rect x="80" y="60" width="200" height="180" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="180" y="100" text-anchor="middle" fill="#e5e7eb" font-size="14">Login/Register</text>
+                <rect x="350" y="60" width="200" height="180" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="450" y="100" text-anchor="middle" fill="#e5e7eb" font-size="14">JWT</text>
+                <text x="450" y="125" text-anchor="middle" fill="#9ca3af" font-size="12">exp: 7 días</text>
+                <rect x="620" y="60" width="200" height="180" rx="12" fill="#0f172a" stroke="rgba(255,255,255,0.12)" />
+                <text x="720" y="100" text-anchor="middle" fill="#e5e7eb" font-size="14">Rutas protegidas</text>
+                <text x="720" y="125" text-anchor="middle" fill="#9ca3af" font-size="12">/api/pets, /api/me</text>
+                <line x1="280" y1="150" x2="350" y2="150" stroke="#14b8a6" stroke-width="3" />
+                <line x1="550" y1="150" x2="620" y2="150" stroke="#14b8a6" stroke-width="3" />
+                <text x="450" y="220" text-anchor="middle" fill="#9ca3af" font-size="12">Header Authorization: Bearer &lt;token&gt;</text>
+              </svg>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Seguridad</h2>
+            <p class="anim-text">Contraseñas con bcrypt, autenticación con JWT y middleware para proteger endpoints. Datos públicos mínimos en la ficha; resto bajo login.</p>
+          </div>
+        </div>
+      </section>
+
       <section class="ko-cta">
         <div class="container" style="max-width:1100px;">
           <h2>Listo para probar</h2>
@@ -208,6 +346,20 @@
             t.style.opacity = String(lerp(0,1,p));
           });
         }
+        function animCard(cardKey, textKey, p){
+          const card = els.get(cardKey);
+          const texts = els.get(textKey);
+          if (card) {
+            const s = lerp(0.9, 1.0, p);
+            const y = lerp(60, 0, p);
+            card.style.transform = `translateY(${y}px) scale(${s})`;
+            card.style.opacity = String(lerp(0,1,p));
+          }
+          if (texts) texts.forEach(t => {
+            t.style.transform = `translateY(${lerp(18,0,p)}px)`;
+            t.style.opacity = String(lerp(0,1,p));
+          });
+        }
         function animPublic(p){
           const card = els.get('publicCard');
           const texts = els.get('publicText');
@@ -232,6 +384,10 @@
             if (type === 'qr') animQr(p);
             else if (type === 'dashboard') animDash(p);
             else if (type === 'public') animPublic(p);
+            else if (type === 'arch') animCard('archCard','archText', p);
+            else if (type === 'data') animCard('dataCard','dataText', p);
+            else if (type === 'deploy') animCard('deployCard','deployText', p);
+            else if (type === 'security') animCard('securityCard','securityText', p);
           });
           rafId = requestAnimationFrame(onFrame);
         }
@@ -239,10 +395,18 @@
         // Cache refs
         els.set('qrBox', document.getElementById('qrBox'));
         els.set('qrText', sectionTexts('[data-anim="qr"]'));
-        els.set('dashCard', document.getElementById('dashCard'));
+  els.set('dashCard', document.getElementById('dashCard'));
         els.set('dashText', sectionTexts('[data-anim="dashboard"]'));
         els.set('publicCard', document.getElementById('publicCard'));
         els.set('publicText', sectionTexts('[data-anim="public"]'));
+  els.set('archCard', document.getElementById('archCard'));
+  els.set('archText', sectionTexts('[data-anim="arch"]'));
+  els.set('dataCard', document.getElementById('dataCard'));
+  els.set('dataText', sectionTexts('[data-anim="data"]'));
+  els.set('deployCard', document.getElementById('deployCard'));
+  els.set('deployText', sectionTexts('[data-anim="deploy"]'));
+  els.set('securityCard', document.getElementById('securityCard'));
+  els.set('securityText', sectionTexts('[data-anim="security"]'));
 
         function sectionTexts(sel){
           const s = document.querySelector(sel);
