@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Petfinder — Panel</title>
     <link rel="stylesheet" href="/assets/css/landing.css" />
+    <style>
+      /* Use default system font for the panel */
+      body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
+      .profile-card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+      .kv { display:grid; grid-template-columns: 160px 1fr; gap:8px 12px; align-items:baseline; }
+      .kv dt { color:#555; }
+      .kv dd { margin:0; color:#111; }
+    </style>
   </head>
   <body>
     <header class="site-header">
@@ -30,7 +38,18 @@
 
         <section class="feature-item" style="margin:16px 0;">
           <h3>Tu perfil</h3>
-          <pre id="profile" style="white-space:pre-wrap"></pre>
+          <div class="profile-card">
+            <dl class="kv">
+              <dt>Nombre</dt>
+              <dd id="profileName">—</dd>
+              <dt>Correo</dt>
+              <dd id="profileEmail">—</dd>
+              <dt>Teléfono</dt>
+              <dd id="profilePhone">—</dd>
+              <dt>Miembro desde</dt>
+              <dd id="profileSince">—</dd>
+            </dl>
+          </div>
         </section>
 
         <section class="feature-item" style="margin:16px 0;">
@@ -72,7 +91,10 @@
     <script>
       (function () {
         const token = localStorage.getItem('auth_token');
-        const profileEl = document.getElementById('profile');
+  const profileName = document.getElementById('profileName');
+  const profileEmail = document.getElementById('profileEmail');
+  const profilePhone = document.getElementById('profilePhone');
+  const profileSince = document.getElementById('profileSince');
         const logout = document.getElementById('logoutLink');
 
         if (!token) {
@@ -89,7 +111,16 @@
           .then(async (res) => {
             if (!res.ok) throw new Error('No autorizado');
             const data = await res.json();
-            profileEl.textContent = JSON.stringify(data.user, null, 2);
+            const u = data.user || {};
+            if (profileName) profileName.textContent = u.name || '—';
+            if (profileEmail) profileEmail.textContent = u.email || '—';
+            if (profilePhone) profilePhone.textContent = u.phone || '—';
+            if (profileSince) {
+              try {
+                const d = u.created_at ? new Date(u.created_at) : null;
+                profileSince.textContent = d ? d.toLocaleDateString() : '—';
+              } catch { profileSince.textContent = '—'; }
+            }
             const hdrName = document.getElementById('hdrName');
             if (hdrName && data.user?.name) hdrName.textContent = 'Hola, ' + data.user.name;
       // Load QR once authenticated
