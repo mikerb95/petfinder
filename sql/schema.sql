@@ -22,10 +22,9 @@ CREATE TABLE IF NOT EXISTS pets (
   photo_url VARCHAR(255) DEFAULT NULL,
   qr_id VARCHAR(32) NOT NULL UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
   CONSTRAINT fk_pets_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Optional migrations if the table already existed
-ALTER TABLE pets ADD COLUMN IF NOT EXISTS status ENUM('home','lost') NOT NULL DEFAULT 'home';
-ALTER TABLE pets ADD COLUMN IF NOT EXISTS photo_url VARCHAR(255) DEFAULT NULL;
+-- Note: For maximum compatibility with older MySQL versions, we avoid
+-- USING ON UPDATE on updated_at and manage it from the application layer.

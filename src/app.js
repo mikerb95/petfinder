@@ -124,7 +124,7 @@ app.post('/api/pets', requireAuth, async (req, res) => {
       qrId = randomId(12);
       try {
         const [result] = await pool.query(
-          'INSERT INTO pets (owner_id, name, species, breed, color, notes, status, photo_url, qr_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO pets (owner_id, name, species, breed, color, notes, status, photo_url, qr_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
           [userId, name, species || null, breed || null, color || null, notes || null, status || 'home', photo_url || null, qrId]
         );
         return res.status(201).json({ id: result.insertId, qr_id: qrId });
@@ -157,7 +157,7 @@ app.put('/api/pets/:id', requireAuth, async (req, res) => {
     if (status && !['home', 'lost'].includes(status)) return res.status(400).json({ error: 'invalid status' });
 
     await pool.query(
-      'UPDATE pets SET name = COALESCE(?, name), species = COALESCE(?, species), breed = COALESCE(?, breed), color = COALESCE(?, color), notes = COALESCE(?, notes), status = COALESCE(?, status), photo_url = COALESCE(?, photo_url) WHERE id = ?',
+      'UPDATE pets SET name = COALESCE(?, name), species = COALESCE(?, species), breed = COALESCE(?, breed), color = COALESCE(?, color), notes = COALESCE(?, notes), status = COALESCE(?, status), photo_url = COALESCE(?, photo_url), updated_at = NOW() WHERE id = ?',
       [name ?? null, species ?? null, breed ?? null, color ?? null, notes ?? null, status ?? null, photo_url ?? null, id]
     );
     res.json({ ok: true });
