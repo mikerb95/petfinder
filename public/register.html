@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Petfinder — Registro</title>
     <link rel="stylesheet" href="/assets/css/landing.css" />
+    <style>
+      /* Improve legibility for the country dropdown on light option popups */
+      #countryCode { background:#ffffff; color:#111111; border:1px solid #d1d5db; }
+      #countryCode:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.25); border-color:#93c5fd; }
+      /* Many browsers render option lists with a white popup; enforce dark text */
+      #countryCode option { color:#111111; background:#ffffff; }
+    </style>
   </head>
   <body>
     <header class="site-header">
