@@ -144,6 +144,16 @@
 
     <script>
       (function () {
+        // If user is logged in, make dashboard the main page
+        try {
+          const token = localStorage.getItem('auth_token');
+          if (token) {
+            fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + token } })
+              .then(res => { if (res.ok) window.location.replace('/dashboard'); })
+              .catch(() => {});
+          }
+        } catch (_) {}
+
         const form = document.getElementById('demoForm');
         const input = document.getElementById('qrIdInput');
         form?.addEventListener('submit', function (e) {
