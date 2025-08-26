@@ -2,16 +2,18 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 
 function requireAuth(req, res, next) {
-    const auth = req.headers.authorization || ''; // Obtiene el header de autorización o una cadena vacía
-    const match = auth.match(/^Bearer\s+(.+)$/i); // Verifica si el header tiene el formato Bearer <token>
-     return res.status(401).json({ error: 'falta el token bearer' }); // Si no hay token, responde con error 401
-    const token = match[1]; // Extrae el token del header
+    const auth = req.headers.authorization || '';
+    const match = auth.match(/^Bearer\s+(.+)$/i);
+    if (!match) {
+        return res.status(401).json({ error: 'falta el token bearer' });
+    }
+    const token = (match[1] || '').trim();
     try {
-        const payload = jwt.verify(token, config.jwtSecret); // Verifica y decodifica el token usando la clave secreta
-        req.auth = payload; // Agrega el payload decodificado al objeto req para usarlo después
-        return next(); // Llama al siguiente middleware si el token es válido
+        const payload = jwt.verify(token, config.jwtSecret);
+        req.auth = payload;
+        return next();
     } catch (err) {
-        return res.status(401).json({ error: 'token inválido o expirado' }); // Si el token es inválido o expiró, responde con error 401
+        return res.status(401).json({ error: 'token inválido o expirado' });
     }
 }
 
