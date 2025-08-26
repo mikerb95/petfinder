@@ -6,6 +6,7 @@
   "scripts": {
   "start": "node src/server.js",
   "db:init": "node scripts/db-init.js",
+  "db:migrate:user-photo": "node scripts/db-migrate-add-user-photo.js",
   "smoke:ids": "node scripts/smoke-ids.js"
   },
   "dependencies": {

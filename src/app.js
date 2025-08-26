@@ -24,6 +24,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', env: config.env });
 });
 
+// Public config for client-side features (safe subset only)
+app.get('/api/public-config', (req, res) => {
+  const { cloudName, uploadPreset } = config.cloudinary || {};
+  res.json({
+    cloudinary: {
+      cloudName: cloudName || null,
+      uploadPreset: uploadPreset || null,
+    }
+  });
+});
+
 // DB health check
 app.get('/api/db/health', async (req, res) => {
   try {
@@ -41,11 +52,25 @@ app.get('/api/me', requireAuth, async (req, res) => {
     const userId = req.auth?.sub;
     const pool = getPool();
     const [rows] = await pool.query(
-      'SELECT id, name, email, phone, created_at FROM users WHERE id = ?',
+      'SELECT id, name, email, phone, photo_url, created_at FROM users WHERE id = ?',
       [userId]
     );
     if (!rows.length) return res.status(404).json({ error: 'user not found' });
     res.json({ user: rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+// Update current user photo_url
+app.put('/api/me/photo', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const { photo_url } = req.body || {};
+    if (photo_url && typeof photo_url !== 'string') return res.status(400).json({ error: 'photo_url inválida' });
+    const pool = getPool();
+    await pool.query('UPDATE users SET photo_url = ? WHERE id = ?', [photo_url || null, userId]);
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'internal server error' });
   }
@@ -155,6 +180,23 @@ app.get('/api/qr/pet/:qrId.svg', async (req, res) => {
     res.status(500).json({ error: 'qr generation failed' });
   }
 });
+
+  // Update pet photo by id (owner only)
+  app.put('/api/pets/:id/photo', requireAuth, async (req, res) => {
+    try {
+      const userId = req.auth?.sub;
+      const { id } = req.params;
+      const { photo_url } = req.body || {};
+      if (photo_url && typeof photo_url !== 'string') return res.status(400).json({ error: 'photo_url inválida' });
+      const pool = getPool();
+      const [rows] = await pool.query('SELECT id FROM pets WHERE id = ? AND owner_id = ?', [id, userId]);
+      if (!rows.length) return res.status(404).json({ error: 'pet not found' });
+      await pool.query('UPDATE pets SET photo_url = ?, updated_at = NOW() WHERE id = ?', [photo_url || null, id]);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: 'internal server error' });
+    }
+  });
 
 // Pet QR (PNG)
 app.get('/api/qr/pet/:qrId.png', async (req, res) => {
