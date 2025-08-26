@@ -15,6 +15,11 @@ app.use(express.json());
 // API routes
 app.use('/api/auth', authRoutes);
 
+// Health check (no DB)
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', env: config.env });
+});
+
 // Placeholder pages referenced by landing
 app.get('/login', (req, res) => {
   res.send('<!doctype html><html><body><p>Login placeholder. <a href="/">Volver</a></p></body></html>');

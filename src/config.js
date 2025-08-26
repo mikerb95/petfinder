@@ -12,6 +12,7 @@ const config = {
     user: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || '',
     database: process.env.MYSQL_DATABASE || 'petfinder',
+  ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   },
 };
 

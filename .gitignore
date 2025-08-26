@@ -1,2 +1,6 @@
 # Ignore legacy folder
 old/
+
+# Node and local env
+node_modules/
+.env
