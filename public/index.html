@@ -25,8 +25,8 @@
           <a href="#how-it-works">Cómo funciona</a>
           <a href="#features">Características</a>
           <span id="hdrName" style="margin-right:12px; opacity:.9;"></span>
-          <a class="link" href="/login">Iniciar sesión</a>
-          <a class="button button-primary" href="/register">Registrarse</a>
+          <a id="hdrLogin" class="link" href="/login">Iniciar sesión</a>
+          <a id="hdrRegister" class="button button-primary" href="/register">Registrarse</a>
         </nav>
       </div>
     </header>
@@ -153,6 +153,11 @@
                 const data = await res.json().catch(() => ({}));
                 const hdrName = document.getElementById('hdrName');
                 if (data?.user?.name && hdrName) hdrName.textContent = 'Hola, ' + data.user.name;
+                // Hide login/register in header when logged in
+                const hdrLogin = document.getElementById('hdrLogin');
+                const hdrRegister = document.getElementById('hdrRegister');
+                if (hdrLogin) hdrLogin.style.display = 'none';
+                if (hdrRegister) hdrRegister.style.display = 'none';
                 // Optionally keep redirect to dashboard
                 // window.location.replace('/dashboard');
               })
