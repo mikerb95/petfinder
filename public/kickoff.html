@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kickoff — Petfinder</title>
+    <meta name="description" content="Recorrido interactivo del proyecto Petfinder para exposición en clase." />
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+    <style>
+      /* Escenario de scrollytelling tipo Apple */
+      .ko-hero { min-height: 90vh; display: grid; place-items: center; text-align: center; padding: 40px 0; }
+      .ko-hero h1 { font-size: clamp(32px, 6vw, 64px); line-height: 1.05; margin: 0 0 10px; }
+      .ko-hero p { color: var(--color-muted); font-size: 1.1rem; }
+
+      .ko-stage { position: relative; height: 180vh; }
+      .ko-sticky { position: sticky; top: 0; min-height: 100vh; display: grid; grid-template-columns: 1.1fr 0.9fr; align-items: center; gap: 28px; padding: 24px 0; }
+      .ko-art { min-height: 50vh; display: grid; place-items: center; }
+      .ko-copy h2 { font-size: clamp(24px, 4vw, 40px); margin: 0 0 12px; }
+      .ko-copy p { color: var(--color-muted); font-size: 1.05rem; }
+
+      /* Arte: QR animado */
+      .qr-wrap { width: min(70vw, 520px); aspect-ratio: 1/1; border-radius: 24px; background: #0b1220; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.06); overflow: hidden; position: relative; }
+      .qr-core { position: absolute; inset: 16px; border-radius: 16px; background:
+        radial-gradient(circle at 16px 16px, transparent 14px, #0ea5e9 15px) top left,
+        radial-gradient(circle at 16px 16px, transparent 14px, #22c55e 15px) top right,
+        radial-gradient(circle at 16px 16px, transparent 14px, #14b8a6 15px) bottom left,
+        radial-gradient(circle at 16px 16px, transparent 14px, #0ea5e9 15px) bottom right,
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 8px, transparent 8px 16px);
+      background-size: 50% 50%, 50% 50%, 50% 50%, 50% 50%, auto; background-position: top left, top right, bottom left, bottom right, center; background-repeat: no-repeat; filter: saturate(0.9) brightness(0.95);
+      }
+
+      /* Arte: tarjeta de panel */
+      .card-demo { width: min(70vw, 540px); border-radius: 16px; background:#ffffff10; border: 1px solid rgba(255,255,255,0.12); padding: 16px; }
+      .card-demo .row { display: grid; grid-template-columns: 140px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      .card-demo .row:last-child { border-bottom: none; }
+      .tag { display:inline-block; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); font-size: 12px; opacity: 0.9; }
+
+      /* Arte: ficha pública */
+      .public-demo { width: min(70vw, 520px); background:#fff; color:#111; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.25); overflow: hidden; }
+      .public-demo header { padding: 12px 16px; border-bottom: 1px solid #eee; }
+      .public-demo .content { padding: 16px; }
+      .public-demo .btns { display:flex; gap:8px; flex-wrap:wrap; }
+      .public-demo .button { color:#111; background:#fff; border:1px solid #cfcfcf; }
+
+      /* CTA */
+      .ko-cta { padding: 60px 0 80px; text-align:center; }
+
+      /* Animación: estados iniciales */
+      .anim-el { transform: translateY(60px) scale(0.92); opacity: 0; will-change: transform, opacity; }
+      .anim-text { opacity: 0; transform: translateY(20px); }
+
+      /* Accesibilidad: reducir movimiento */
+      @media (prefers-reduced-motion: reduce) {
+        .ko-stage { height: auto; }
+        .ko-sticky { position: static; display:block; }
+        .anim-el, .anim-text { transform: none !important; opacity: 1 !important; }
+      }
+
+      @media (max-width: 900px) {
+        .ko-sticky { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner" style="max-width:1100px;">
+        <a class="brand" href="/">
+          <span class="brand-mark">🐾</span>
+          <span class="brand-name">Petfinder</span>
+        </a>
+        <nav class="main-nav">
+          <a class="link" href="/">Inicio</a>
+          <a class="link" href="/dashboard">Panel</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="ko-hero">
+        <div class="container" style="max-width:1100px;">
+          <h1>Kickoff del proyecto Petfinder</h1>
+          <p>Un recorrido interactivo por las funcionalidades clave: QR, ficha pública y panel del propietario. Desplázate para explorar.</p>
+        </div>
+      </section>
+
+      <!-- Escena 1: QR -->
+      <section class="ko-stage" data-anim="qr">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="qrBox" class="qr-wrap anim-el">
+              <div class="qr-core"></div>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Códigos QR por mascota</h2>
+            <p class="anim-text">Cada mascota tiene un QR único que apunta a <code>/p/&lt;qrId&gt;</code>. Cualquiera puede escanearlo con su cámara y ver cómo contactarte, sin iniciar sesión.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Escena 2: Panel del dueño -->
+      <section class="ko-stage" data-anim="dashboard">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="dashCard" class="card-demo anim-el">
+              <div class="row"><strong>Nombre</strong><span>Mike Rodríguez</span></div>
+              <div class="row"><strong>Correo</strong><span>mike@example.com</span></div>
+              <div class="row"><strong>Mascota</strong><span>“Rocky” <span class="tag">En casa</span></span></div>
+              <div class="row"><strong>QR</strong><span>Generado en PNG / SVG</span></div>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Panel del propietario</h2>
+            <p class="anim-text">Administra tus mascotas, genera/descarga el QR y edita datos de forma segura. Acceso protegido con JWT y MySQL en el backend.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Escena 3: Ficha pública -->
+      <section class="ko-stage" data-anim="public">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="publicCard" class="public-demo anim-el">
+              <header><strong>Rocky</strong> — Ficha pública</header>
+              <div class="content">
+                <p>Especie: Perro • Color: Marrón</p>
+                <p>Contacto: <strong>Mike</strong> — <span>+57 300 000 0000</span> — mike@example.com</p>
+                <div class="btns">
+                  <a class="button" href="#">Llamar</a>
+                  <a class="button" href="#">SMS</a>
+                  <a class="button" href="#">Correo</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Ficha pública de la mascota</h2>
+            <p class="anim-text">Quien encuentre a la mascota accede a esta vista con lo esencial para contactarte. No necesita registrarse ni instalar apps.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="ko-cta">
+        <div class="container" style="max-width:1100px;">
+          <h2>Listo para probar</h2>
+          <p class="hero-subtitle">Escanea desde la página principal o crea tu cuenta para generar el QR de tu mascota.</p>
+          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:12px;">
+            <a class="button button-primary" href="/register">Crear cuenta</a>
+            <a class="button" href="/">Ir al inicio</a>
+            <a class="button" href="/scan">Escanear QR</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner" style="max-width:1100px;">
+        <div class="footer-credit">Creado por Mike Rodríguez</div>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/terms">Términos</a>
+          <a href="#">Privacidad</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      (function(){
+        const stages = Array.from(document.querySelectorAll('.ko-stage'));
+        const els = new Map();
+        const lerp = (a,b,t) => a + (b-a) * t;
+        const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+        function getProgressFor(el){
+          const rect = el.getBoundingClientRect();
+          const vh = window.innerHeight || 1;
+          const total = rect.height - vh;
+          if (total <= 0) return rect.top <= 0 ? 1 : 0;
+          const passed = -rect.top;
+          return clamp01(passed / total);
+        }
+
+        function animQr(p){
+          const box = els.get('qrBox');
+          const texts = els.get('qrText');
+          if (box) {
+            const s = lerp(0.85, 1.1, p);
+            const r = lerp(-8, 6, p);
+            const y = lerp(60, 0, p);
+            box.style.transform = `translateY(${y}px) scale(${s}) rotate(${r}deg)`;
+            box.style.opacity = String(lerp(0,1,p));
+          }
+          if (texts) texts.forEach(t => {
+            t.style.transform = `translateY(${lerp(20,0,p)}px)`;
+            t.style.opacity = String(lerp(0,1,p));
+          });
+        }
+        function animDash(p){
+          const card = els.get('dashCard');
+          const texts = els.get('dashText');
+          if (card) {
+            const s = lerp(0.9, 1.0, p);
+            const y = lerp(60, 0, p);
+            card.style.transform = `translateY(${y}px) scale(${s})`;
+            card.style.opacity = String(lerp(0,1,p));
+          }
+          if (texts) texts.forEach(t => {
+            t.style.transform = `translateY(${lerp(18,0,p)}px)`;
+            t.style.opacity = String(lerp(0,1,p));
+          });
+        }
+        function animPublic(p){
+          const card = els.get('publicCard');
+          const texts = els.get('publicText');
+          if (card) {
+            const s = lerp(0.92, 1.0, p);
+            const y = lerp(60, 0, p);
+            const sh = lerp(0.15, 0.35, p);
+            card.style.transform = `translateY(${y}px) scale(${s})`;
+            card.style.opacity = String(lerp(0,1,p));
+            card.style.boxShadow = `0 12px ${Math.round(60*sh)}px rgba(0,0,0,0.25)`;
+          }
+          if (texts) texts.forEach(t => {
+            t.style.transform = `translateY(${lerp(16,0,p)}px)`;
+            t.style.opacity = String(lerp(0,1,p));
+          });
+        }
+
+        function onFrame(){
+          stages.forEach(section => {
+            const p = getProgressFor(section);
+            const type = section.dataset.anim;
+            if (type === 'qr') animQr(p);
+            else if (type === 'dashboard') animDash(p);
+            else if (type === 'public') animPublic(p);
+          });
+          rafId = requestAnimationFrame(onFrame);
+        }
+
+        // Cache refs
+        els.set('qrBox', document.getElementById('qrBox'));
+        els.set('qrText', sectionTexts('[data-anim="qr"]'));
+        els.set('dashCard', document.getElementById('dashCard'));
+        els.set('dashText', sectionTexts('[data-anim="dashboard"]'));
+        els.set('publicCard', document.getElementById('publicCard'));
+        els.set('publicText', sectionTexts('[data-anim="public"]'));
+
+        function sectionTexts(sel){
+          const s = document.querySelector(sel);
+          return s ? Array.from(s.querySelectorAll('.anim-text')) : [];
+        }
+
+        let rafId = requestAnimationFrame(onFrame);
+        window.addEventListener('beforeunload', () => cancelAnimationFrame(rafId));
+      })();
+    </script>
+  </body>
+</html>

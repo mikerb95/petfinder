@@ -220,6 +220,10 @@ app.get('/dashboard', (req, res) => {
 app.get('/scan', (req, res) => {
   res.sendFile(path.join(publicDir, 'scan.html'));
 });
+// Kickoff showcase page
+app.get('/kickoff', (req, res) => {
+  res.sendFile(path.join(publicDir, 'kickoff.html'));
+});
 // Terms page
 app.get('/terms', (req, res) => {
   res.sendFile(path.join(publicDir, 'terms.html'));
