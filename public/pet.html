@@ -3,6 +3,132 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mascota — Petfinder</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+    <style>
+      body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
+      .card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+      .badge { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; font-weight:600; }
+      .badge.lost { background:#ffe6e6; color:#a40000; border:1px solid #ffb3b3; }
+      .badge.home { background:#e6fff2; color:#046d36; border:1px solid #b3ffd7; }
+      .kv { display:grid; grid-template-columns: 160px 1fr; gap:8px 12px; align-items:baseline; }
+      .kv dt { color:#555; }
+      .kv dd { margin:0; color:#111; }
+      .actions a { text-decoration:none; }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/">
+          <span class="brand-mark">🐾</span>
+          <span class="brand-name">Petfinder</span>
+        </a>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container" style="max-width:900px;">
+        <div id="alert" class="feature-item" style="display:none; border-left:4px solid #c00; background:#fff5f5;"></div>
+        <h1 id="title">Mascota</h1>
+        <p class="hero-subtitle">Detalles de la mascota y contacto del propietario.</p>
+
+        <div id="content" class="card" style="display:none;">
+          <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+            <img id="petPhoto" alt="Foto de la mascota" style="display:none; width:260px; height:260px; object-fit:cover; border-radius:12px; background:#f3f3f3;" />
+            <div style="flex:1 1 300px;">
+              <h2 id="petName" style="margin:0 0 8px 0;">—</h2>
+              <div id="statusWrap" style="margin-bottom:12px;"></div>
+              <dl class="kv">
+                <dt>Especie</dt><dd id="petSpecies">—</dd>
+                <dt>Raza</dt><dd id="petBreed">—</dd>
+                <dt>Color</dt><dd id="petColor">—</dd>
+                <dt>Notas</dt><dd id="petNotes">—</dd>
+              </dl>
+            </div>
+          </div>
+          <hr style="margin:16px 0; border:none; border-top:1px solid #eee;" />
+          <h3>Contacto del propietario</h3>
+          <dl class="kv">
+            <dt>Nombre</dt><dd id="ownerName">—</dd>
+            <dt>Teléfono</dt><dd id="ownerPhone">—</dd>
+            <dt>Correo</dt><dd id="ownerEmail">—</dd>
+          </dl>
+          <div class="actions" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+            <a id="callBtn" class="button" href="#" style="display:none;">Llamar</a>
+            <a id="smsBtn" class="button" href="#" style="display:none;">Enviar SMS</a>
+            <a id="mailBtn" class="button" href="#" style="display:none;">Enviar correo</a>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        function $(id){ return document.getElementById(id); }
+        function setText(id, val){ const el=$(id); if (el) el.textContent = val || '—'; }
+        function showAlert(msg){ const a=$('alert'); a.textContent = msg; a.style.display='block'; }
+
+        // Get qrId from URL: /p/:qrId
+        var qrId = (location.pathname.split('/')[2] || '').trim();
+        if (!qrId) {
+          showAlert('No se proporcionó un identificador de mascota.');
+          return;
+        }
+
+        fetch('/api/pets/public/' + encodeURIComponent(qrId))
+          .then(async (res) => {
+            if (!res.ok) {
+              if (res.status === 404) throw new Error('No se encontró esta mascota.');
+              let msg = 'No se pudo cargar la información.';
+              try { const e = await res.json(); if (e && e.error) msg += ' ' + e.error; } catch {}
+              throw new Error(msg);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            $('content').style.display = 'block';
+            // Pet
+            setText('petName', data.pet?.name || '—');
+            setText('title', data.pet?.name ? ('Mascota: ' + data.pet.name) : 'Mascota');
+            setText('petSpecies', data.pet?.species || '—');
+            setText('petBreed', data.pet?.breed || '—');
+            setText('petColor', data.pet?.color || '—');
+            setText('petNotes', data.pet?.notes || '—');
+            if (data.pet?.photo_url) {
+              var img = $('petPhoto'); img.src = data.pet.photo_url; img.style.display='block';
+            }
+            var statusWrap = $('statusWrap');
+            if (data.pet?.status) {
+              var badge = document.createElement('span');
+              badge.className = 'badge ' + (data.pet.status === 'lost' ? 'lost' : 'home');
+              badge.textContent = data.pet.status === 'lost' ? 'Perdida' : 'En casa';
+              statusWrap.appendChild(badge);
+            }
+            // Owner
+            setText('ownerName', data.owner?.name || '—');
+            setText('ownerPhone', data.owner?.phone || '—');
+            setText('ownerEmail', data.owner?.email || '—');
+            if (data.owner?.phone) {
+              $('callBtn').href = 'tel:' + data.owner.phone; $('callBtn').style.display='inline-block';
+              $('smsBtn').href = 'sms:' + data.owner.phone; $('smsBtn').style.display='inline-block';
+            }
+            if (data.owner?.email) {
+              $('mailBtn').href = 'mailto:' + data.owner.email + '?subject=Mascota%20encontrada'; $('mailBtn').style.display='inline-block';
+            }
+          })
+          .catch((err) => {
+            showAlert(err.message || 'No se pudo cargar la información.');
+          });
+      })();
+    </script>
+  </body>
+  </html>
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mascota encontrada — Petfinder</title>
     <link rel="stylesheet" href="/assets/css/landing.css" />
     <style>
