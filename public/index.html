@@ -40,7 +40,7 @@
             <p class="hero-subtitle">Coloca un código QR en el collar de tu mascota. Si alguien la encuentra, un escaneo muestra tus datos de contacto al instante — sin cuentas para visitantes.</p>
             <div class="hero-ctas">
               <a class="button button-primary" href="/register">Registrar mi mascota</a>
-              <a class="button button-secondary" href="/login">Ya tengo cuenta</a>
+              <a id="heroLogin" class="button button-secondary" href="/login">Ya tengo cuenta</a>
               <a class="button" href="/dashboard">Ir al panel</a>
             </div>
             <form id="demoForm" class="demo-form" aria-label="Demo de escaneo">
@@ -160,6 +160,8 @@
                 const hdrLogout = document.getElementById('hdrLogout');
                 if (hdrLogin) hdrLogin.style.display = 'none';
                 if (hdrRegister) hdrRegister.style.display = 'none';
+                const heroLogin = document.getElementById('heroLogin');
+                if (heroLogin) heroLogin.style.display = 'none';
                 if (hdrLogout) hdrLogout.style.display = '';
                 // Optionally keep redirect to dashboard
                 // window.location.replace('/dashboard');
