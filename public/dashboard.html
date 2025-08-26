@@ -66,7 +66,8 @@
 
         <section class="feature-item" style="margin:16px 0;">
           <h3>Mascotas</h3>
-          <form id="petForm" style="display:grid; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr));">
+          <p><button class="button" id="showPetFormBtn" type="button">Agregar nueva mascota</button></p>
+          <form id="petForm" style="display:none; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr));">
             <input type="text" id="petName" placeholder="Nombre de la mascota" required />
             <select id="petSpecies">
               <option value="">Especie…</option>
@@ -81,7 +82,10 @@
               <option value="lost">Perdida</option>
             </select>
             <input type="url" id="petPhoto" placeholder="URL de foto (opcional)" />
-            <button class="button" type="submit">Agregar mascota</button>
+            <div style="grid-column: 1 / -1; display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="button" type="submit">Guardar mascota</button>
+              <button class="button" type="button" id="cancelPetFormBtn" style="background:#eee; color:#333;">Cancelar</button>
+            </div>
           </form>
           <div id="pets" style="margin-top:16px; display:grid; gap:12px;"></div>
         </section>
@@ -142,6 +146,21 @@
         });
 
         const petForm = document.getElementById('petForm');
+        const showPetFormBtn = document.getElementById('showPetFormBtn');
+        const cancelPetFormBtn = document.getElementById('cancelPetFormBtn');
+
+        function showPetForm() {
+          petForm.style.display = 'grid';
+          if (showPetFormBtn) showPetFormBtn.style.display = 'none';
+          const nameEl = document.getElementById('petName');
+          if (nameEl) nameEl.focus();
+        }
+        function hidePetForm() {
+          petForm.style.display = 'none';
+          if (showPetFormBtn) showPetFormBtn.style.display = '';
+        }
+        if (showPetFormBtn) showPetFormBtn.addEventListener('click', showPetForm);
+        if (cancelPetFormBtn) cancelPetFormBtn.addEventListener('click', () => { petForm.reset(); hidePetForm(); });
         petForm.addEventListener('submit', async (e) => {
           e.preventDefault();
           const body = {
@@ -168,6 +187,7 @@
             return alert(msg);
           }
           petForm.reset();
+          hidePetForm();
           loadPets();
         });
 
