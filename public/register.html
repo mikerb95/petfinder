@@ -66,16 +66,16 @@
               <option value="+507">🇵🇦 +507 (Panamá)</option>
               <option value="+58">🇻🇪 +58 (Venezuela)</option>
             </select>
-            <input class="input" id="phone" name="phone" type="tel" required pattern="[0-9]{6,15}" minlength="6" maxlength="15" placeholder="3000000000" />
+            <input class="input" id="phone" name="phone" type="tel" required placeholder="3000000000" />
           </div>
           <div id="phoneError" class="demo-help" style="color:#fca5a5;display:none;margin-bottom:8px"></div>
           <script>
             const phoneInput = document.getElementById('phone');
             const phoneError = document.getElementById('phoneError');
             phoneInput.addEventListener('input', function () {
-              const onlyDigits = /^\d{6,15}$/.test(phoneInput.value.trim());
-              if (!onlyDigits) {
-                phoneError.textContent = 'Ingresa solo dígitos (6 a 15 caracteres)';
+              const digits = phoneInput.value.replace(/\D/g, '');
+              if (!digits.length) {
+                phoneError.textContent = 'Ingresa el número usando solo dígitos';
                 phoneError.style.display = 'block';
                 return;
               }
@@ -126,10 +126,12 @@
           setMessage('', true);
           btn.disabled = true; btn.textContent = 'Creando…';
           const cc = document.getElementById('countryCode');
+          const localDigits = document.getElementById('phone').value.replace(/\D/g, '');
+          if (!localDigits) { setMessage('Ingresa un teléfono válido', false); btn.disabled = false; btn.textContent = 'Crear cuenta'; return; }
           const payload = {
             name: document.getElementById('name').value.trim(),
             email: document.getElementById('email').value.trim(),
-            phone: (cc && cc.value ? cc.value : '') + (document.getElementById('phone').value.trim() || '' ) || undefined,
+            phone: (cc && cc.value ? cc.value : '') + localDigits || undefined,
             password: document.getElementById('password').value
           };
           try {
