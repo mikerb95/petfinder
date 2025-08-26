@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/index.js": { "runtime": "@vercel/node@latest" }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "src": "/p/(.*)", "dest": "/api/index.js" },
+    { "src": "/(login|register)", "dest": "/api/index.js" }
+  ]
+}
