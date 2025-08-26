@@ -4,7 +4,8 @@
   "description": "Petfinder - SENA Software Architecture project",
   "private": true,
   "scripts": {
-    "start": "node src/server.js"
+  "start": "node src/server.js",
+  "db:init": "node scripts/db-init.js"
   },
   "dependencies": {
   "bcryptjs": "^2.4.3",

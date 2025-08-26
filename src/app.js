@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const config = require('./config');
+const { getPool } = require('./db');
 const authRoutes = require('./routes/auth');
 
 const app = express();
@@ -18,6 +19,17 @@ app.use('/api/auth', authRoutes);
 // Health check (no DB)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', env: config.env });
+});
+
+// DB health check
+app.get('/api/db/health', async (req, res) => {
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query('SELECT 1 AS ok');
+    return res.json({ status: 'ok', db: 'mysql', ok: rows?.[0]?.ok === 1 });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', error: err.message });
+  }
 });
 
 // Static pages for login/register
