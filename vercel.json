@@ -1,10 +1,9 @@
 {
-  "functions": {
-    "api/index.js": { "runtime": "@vercel/node@latest" }
-  },
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/index.js" },
-    { "src": "/p/(.*)", "dest": "/api/index.js" },
-    { "src": "/(login|register)", "dest": "/api/index.js" }
+  "_comment": "Explicacion: Este archivo configura las 'rewrites' en vercel. Motivo: permitir que una sola funcion serverless (api/index.js) maneje tanto las rutas de API (/api/...) como rutas dinamicas del sitio (/p/:qrId, /login, /register) usando Express. Logica: Vercel redirige las URLs indicadas a /api/index.js, donde Express decide que responder. Nota: JSON no admite comentarios; por eso usamos la clave _comment, que vercel ignora.",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index.js" },
+    { "source": "/p/:path*", "destination": "/api/index.js" },
+    { "source": "/login", "destination": "/api/index.js" },
+    { "source": "/register", "destination": "/api/index.js" }
   ]
 }
