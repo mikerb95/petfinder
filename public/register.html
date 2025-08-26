@@ -44,19 +44,36 @@
           </script>
 
           <label class="demo-label" for="phone">Teléfono</label>
-          <input class="input" id="phone" name="phone" type="tel" required pattern="\d{10}" minlength="10" maxlength="10" placeholder="3000000000" />
+          <div class="demo-inputs">
+            <select class="input" id="countryCode" name="countryCode" aria-label="Código de país">
+              <option value="+57">🇨🇴 +57 (Colombia)</option>
+              <option value="+52">🇲🇽 +52 (México)</option>
+              <option value="+54">🇦🇷 +54 (Argentina)</option>
+              <option value="+56">🇨🇱 +56 (Chile)</option>
+              <option value="+51">🇵🇪 +51 (Perú)</option>
+              <option value="+34">🇪🇸 +34 (España)</option>
+              <option value="+1">🇺🇸 +1 (Estados Unidos)</option>
+              <option value="+593">🇪🇨 +593 (Ecuador)</option>
+              <option value="+598">🇺🇾 +598 (Uruguay)</option>
+              <option value="+505">🇳🇮 +505 (Nicaragua)</option>
+              <option value="+507">🇵🇦 +507 (Panamá)</option>
+              <option value="+58">🇻🇪 +58 (Venezuela)</option>
+            </select>
+            <input class="input" id="phone" name="phone" type="tel" required pattern="[0-9]{6,15}" minlength="6" maxlength="15" placeholder="3000000000" />
+          </div>
           <div id="phoneError" class="demo-help" style="color:#fca5a5;display:none;margin-bottom:8px"></div>
           <script>
             const phoneInput = document.getElementById('phone');
             const phoneError = document.getElementById('phoneError');
             phoneInput.addEventListener('input', function () {
-              if (!phoneInput.validity.valid) {
-                phoneError.textContent = 'Ingresa un número de teléfono válido de 10 dígitos';
+              const onlyDigits = /^\d{6,15}$/.test(phoneInput.value.trim());
+              if (!onlyDigits) {
+                phoneError.textContent = 'Ingresa solo dígitos (6 a 15 caracteres)';
                 phoneError.style.display = 'block';
-              } else {
-                phoneError.textContent = '';
-                phoneError.style.display = 'none';
+                return;
               }
+              phoneError.textContent = '';
+              phoneError.style.display = 'none';
             });
           </script>
 
@@ -101,10 +118,11 @@
           e.preventDefault();
           setMessage('', true);
           btn.disabled = true; btn.textContent = 'Creando…';
+          const cc = document.getElementById('countryCode');
           const payload = {
             name: document.getElementById('name').value.trim(),
             email: document.getElementById('email').value.trim(),
-            phone: document.getElementById('phone').value.trim() || undefined,
+            phone: (cc && cc.value ? cc.value : '') + (document.getElementById('phone').value.trim() || '' ) || undefined,
             password: document.getElementById('password').value
           };
           try {
