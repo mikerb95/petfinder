@@ -204,18 +204,8 @@ app.get('/api/qr/pet/:qrId.png', async (req, res) => {
   }
 });
 
-// Static pages for login/register
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(publicDir, 'login.html'));
-});
-app.get('/register', (req, res) => {
-  res.sendFile(path.join(publicDir, 'register.html'));
-});
-app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(publicDir, 'dashboard.html'));
-});
-// Public pet page by qrId
-app.get('/p/:qrId', async (req, res) => {
+// Public JSON: pet details by qrId
+app.get('/api/pets/public/:qrId', async (req, res) => {
   try {
     const { qrId } = req.params;
     const pool = getPool();
@@ -228,33 +218,42 @@ app.get('/p/:qrId', async (req, res) => {
         LIMIT 1`,
       [qrId]
     );
-    if (!rows.length) return res.status(404).send('<h1>No encontrado</h1>');
+    if (!rows.length) return res.status(404).json({ error: 'not found' });
     const r = rows[0];
-  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Mascota encontrada</title><link rel="stylesheet" href="/assets/css/landing.css"></head><body><main class="section"><div class="container" style="max-width:720px;">
-      <h1>Mascota encontrada</h1>
-      <p>¡Gracias por escanear el código! Aquí están los datos para contactar al propietario.</p>
-      <section class="feature-item">
-        <h3>Datos de la mascota</h3>
-        <p><strong>Nombre:</strong> ${r.pet_name || ''}</p>
-        <p><strong>Especie:</strong> ${r.species || '—'}</p>
-        <p><strong>Raza:</strong> ${r.breed || '—'}</p>
-        <p><strong>Color:</strong> ${r.color || '—'}</p>
-        <p><strong>Notas:</strong> ${r.notes || '—'}</p>
-    <p><strong>Estado:</strong> ${r.status === 'lost' ? 'Perdida' : 'En casa'}</p>
-    ${r.photo_url ? `<img src="${r.photo_url}" alt="${r.pet_name}" style="max-width:100%; border-radius:8px;"/>` : ''}
-      </section>
-      <section class="feature-item">
-        <h3>Contacto del propietario</h3>
-        <p><strong>Nombre:</strong> ${r.owner_name || ''}</p>
-        <p><strong>Teléfono:</strong> ${r.owner_phone || 'No disponible'}</p>
-        <p><strong>Correo:</strong> ${r.owner_email || 'No disponible'}</p>
-      </section>
-      <p><a class="button" href="/">Volver al inicio</a></p>
-    </div></main></body></html>`;
-    res.send(html);
+    res.json({
+      pet: {
+        name: r.pet_name || '',
+        species: r.species || null,
+        breed: r.breed || null,
+        color: r.color || null,
+        notes: r.notes || null,
+        status: r.status || 'home',
+        photo_url: r.photo_url || null,
+      },
+      owner: {
+        name: r.owner_name || '',
+        phone: r.owner_phone || null,
+        email: r.owner_email || null,
+      }
+    });
   } catch (err) {
-    res.status(500).send('Error del servidor');
+    res.status(500).json({ error: 'internal server error' });
   }
+});
+
+// Static pages for login/register
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(publicDir, 'login.html'));
+});
+app.get('/register', (req, res) => {
+  res.sendFile(path.join(publicDir, 'register.html'));
+});
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(publicDir, 'dashboard.html'));
+});
+// Public pet page by qrId (serves static page, which fetches JSON)
+app.get('/p/:qrId', (req, res) => {
+  res.sendFile(path.join(publicDir, 'pet.html'));
 });
 
 // Root
