@@ -30,6 +30,18 @@
         </section>
 
         <section class="feature-item" style="margin:16px 0;">
+          <h3>QR del propietario</h3>
+          <p>Escanéalo para abrir tu página pública de contacto.</p>
+          <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+            <img id="ownerQr" alt="QR del propietario" style="background:#fff; padding:8px; border-radius:8px; width:180px; height:180px; object-fit:contain" />
+            <div>
+              <a class="button" id="downloadPng" href="#">Descargar PNG</a>
+              <a class="button" id="openSvg" href="#" target="_blank" rel="noopener">Abrir SVG</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="feature-item" style="margin:16px 0;">
           <h3>Mascotas</h3>
           <p>(Próximamente: listado y gestión de mascotas)</p>
         </section>
@@ -47,11 +59,15 @@
           return;
         }
 
-        fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + token } })
+    fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + token } })
           .then(async (res) => {
             if (!res.ok) throw new Error('No autorizado');
             const data = await res.json();
             profileEl.textContent = JSON.stringify(data.user, null, 2);
+      // Load QR once authenticated
+      document.getElementById('ownerQr').src = '/api/qr/owner.png';
+      document.getElementById('downloadPng').href = '/api/qr/owner.png';
+      document.getElementById('openSvg').href = '/api/qr/owner.svg';
           })
           .catch(() => {
             localStorage.removeItem('auth_token');
