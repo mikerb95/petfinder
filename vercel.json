@@ -1,14 +1,14 @@
 {
   "routes": [
     { "src": "^/$", "dest": "/public/index.html" },
-  { "src": "^/dashboard$", "dest": "/api/index.js" },
-  { "src": "^/faqs$", "status": 308, "headers": { "Location": "/faq" } },
-  { "src": "^/faq$", "dest": "/public/faqs.html" },
+    { "src": "^/dashboard$", "dest": "/api/index.js" },
+    { "src": "^/faq$", "dest": "/public/faqs.html" },
+    { "src": "^/faqs$", "status": 308, "headers": { "Location": "/faq" } },
     { "src": "^/assets/(.*)$", "dest": "/public/assets/$1" },
     { "src": "^/api/(.*)$", "dest": "/api/index.js" },
     { "src": "^/p/(.*)$", "dest": "/api/index.js" },
-  { "src": "^/o/(.*)$", "dest": "/api/index.js" },
-  { "src": "^/(login|register)$", "dest": "/api/index.js" },
-  { "src": ".*", "status": 404, "dest": "/public/404.html" }
+    { "src": "^/o/(.*)$", "dest": "/api/index.js" },
+    { "src": "^/(login|register)$", "dest": "/api/index.js" },
+    { "src": ".*", "status": 404, "dest": "/public/404.html" }
   ]
 }
