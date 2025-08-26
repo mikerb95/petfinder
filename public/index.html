@@ -24,6 +24,7 @@
         <nav class="main-nav" aria-label="Primary">
           <a href="#how-it-works">Cómo funciona</a>
           <a href="#features">Características</a>
+          <span id="hdrName" style="margin-right:12px; opacity:.9;"></span>
           <a class="link" href="/login">Iniciar sesión</a>
           <a class="button button-primary" href="/register">Registrarse</a>
         </nav>
@@ -147,7 +148,14 @@
           const token = localStorage.getItem('auth_token');
           if (token) {
             fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + token } })
-              .then(res => { if (res.ok) window.location.replace('/dashboard'); })
+              .then(async res => {
+                if (!res.ok) return;
+                const data = await res.json().catch(() => ({}));
+                const hdrName = document.getElementById('hdrName');
+                if (data?.user?.name && hdrName) hdrName.textContent = 'Hola, ' + data.user.name;
+                // Optionally keep redirect to dashboard
+                // window.location.replace('/dashboard');
+              })
               .catch(() => {});
           }
         } catch (_) {}

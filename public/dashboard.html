@@ -14,6 +14,7 @@
           <span class="brand-name">Petfinder</span>
         </a>
         <nav class="main-nav">
+          <span id="hdrName" style="margin-right:12px; opacity:.9;"></span>
           <a id="logoutLink" href="#">Cerrar sesión</a>
         </nav>
       </div>
@@ -89,6 +90,8 @@
             if (!res.ok) throw new Error('No autorizado');
             const data = await res.json();
             profileEl.textContent = JSON.stringify(data.user, null, 2);
+            const hdrName = document.getElementById('hdrName');
+            if (hdrName && data.user?.name) hdrName.textContent = 'Hola, ' + data.user.name;
       // Load QR once authenticated
       document.getElementById('ownerQr').src = '/api/qr/owner.png';
       document.getElementById('downloadPng').href = '/api/qr/owner.png';
