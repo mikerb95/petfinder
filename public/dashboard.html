@@ -43,7 +43,20 @@
 
         <section class="feature-item" style="margin:16px 0;">
           <h3>Mascotas</h3>
-          <p>(Próximamente: listado y gestión de mascotas)</p>
+          <form id="petForm" style="display:grid; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr));">
+            <input type="text" id="petName" placeholder="Nombre de la mascota" required />
+            <input type="text" id="petSpecies" placeholder="Especie (ej. perro, gato)" />
+            <input type="text" id="petBreed" placeholder="Raza" />
+            <input type="text" id="petColor" placeholder="Color" />
+            <input type="text" id="petNotes" placeholder="Notas" />
+            <select id="petStatus">
+              <option value="home">En casa</option>
+              <option value="lost">Perdida</option>
+            </select>
+            <input type="url" id="petPhoto" placeholder="URL de foto (opcional)" />
+            <button class="button" type="submit">Agregar mascota</button>
+          </form>
+          <div id="pets" style="margin-top:16px; display:grid; gap:12px;"></div>
         </section>
       </div>
     </main>
@@ -68,6 +81,8 @@
       document.getElementById('ownerQr').src = '/api/qr/owner.png';
       document.getElementById('downloadPng').href = '/api/qr/owner.png';
       document.getElementById('openSvg').href = '/api/qr/owner.svg';
+      // Load pets
+      loadPets();
           })
           .catch(() => {
             localStorage.removeItem('auth_token');
@@ -79,6 +94,95 @@
           localStorage.removeItem('auth_token');
           window.location.href = '/';
         });
+
+        const petForm = document.getElementById('petForm');
+        petForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const body = {
+            name: document.getElementById('petName').value.trim(),
+            species: document.getElementById('petSpecies').value.trim() || undefined,
+            breed: document.getElementById('petBreed').value.trim() || undefined,
+            color: document.getElementById('petColor').value.trim() || undefined,
+            notes: document.getElementById('petNotes').value.trim() || undefined,
+            status: document.getElementById('petStatus').value,
+            photo_url: document.getElementById('petPhoto').value.trim() || undefined,
+          };
+          if (!body.name) return alert('El nombre es obligatorio');
+          const res = await fetch('/api/pets', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + token,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+          });
+          if (!res.ok) return alert('No se pudo crear la mascota');
+          petForm.reset();
+          loadPets();
+        });
+
+        async function loadPets() {
+          const listEl = document.getElementById('pets');
+          listEl.innerHTML = 'Cargando...';
+          const res = await fetch('/api/pets', { headers: { 'Authorization': 'Bearer ' + token } });
+          if (!res.ok) { listEl.textContent = 'Error al cargar'; return; }
+          const data = await res.json();
+          if (!data.pets.length) { listEl.textContent = 'Aún no tienes mascotas registradas.'; return; }
+          listEl.innerHTML = '';
+          for (const p of data.pets) {
+            const card = document.createElement('div');
+            card.className = 'feature-item';
+            card.innerHTML = `
+              <h4>${p.name}</h4>
+              <p><strong>Especie:</strong> ${p.species || '—'} | <strong>Raza:</strong> ${p.breed || '—'} | <strong>Color:</strong> ${p.color || '—'}</p>
+              <p><strong>Notas:</strong> ${p.notes || '—'}</p>
+              <p><strong>Estado:</strong> ${p.status === 'lost' ? 'Perdida' : 'En casa'}</p>
+              ${p.photo_url ? `<img src="${p.photo_url}" alt="${p.name}" style="max-width:200px; border-radius:8px;"/>` : ''}
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <img src="/api/qr/pet/${p.qr_id}.png" alt="QR ${p.name}" style="background:#fff; padding:4px; border-radius:6px; width:120px; height:120px; object-fit:contain" />
+                <a class="button" href="/api/qr/pet/${p.qr_id}.png" download>PNG</a>
+                <a class="button" href="/api/qr/pet/${p.qr_id}.svg" target="_blank">SVG</a>
+                <a class="button" href="/p/${p.qr_id}" target="_blank">Ver pública</a>
+                <button class="button" data-edit="${p.id}">Editar</button>
+                <button class="button" data-del="${p.id}">Eliminar</button>
+              </div>
+            `;
+            listEl.appendChild(card);
+          }
+          // bind delete buttons
+          listEl.querySelectorAll('button[data-del]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              if (!confirm('¿Eliminar esta mascota?')) return;
+              const id = btn.getAttribute('data-del');
+              const res = await fetch('/api/pets/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+              if (!res.ok) return alert('No se pudo eliminar');
+              loadPets();
+            });
+          });
+          // bind edit buttons
+          listEl.querySelectorAll('button[data-edit]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const id = btn.getAttribute('data-edit');
+              const p = data.pets.find(x => String(x.id) === String(id));
+              if (!p) return;
+              const name = prompt('Nombre', p.name);
+              if (name == null) return;
+              const species = prompt('Especie', p.species || '');
+              const breed = prompt('Raza', p.breed || '');
+              const color = prompt('Color', p.color || '');
+              const notes = prompt('Notas', p.notes || '');
+              const status = prompt('Estado (home|lost)', p.status || 'home');
+              const photo_url = prompt('URL de foto', p.photo_url || '');
+              const res = await fetch('/api/pets/' + id, {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, species, breed, color, notes, status, photo_url })
+              });
+              if (!res.ok) return alert('No se pudo actualizar');
+              loadPets();
+            });
+          });
+        }
       })();
     </script>
   </body>
