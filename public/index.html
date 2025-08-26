@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Petfinder — Encuentra mascotas perdidas con códigos QR</title>
+    <meta name="description" content="Proyecto SENA: Encuentra mascotas perdidas usando códigos QR en su collar. Propietarios registran mascotas; visitantes escanean y ven contacto sin registrarse." />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+    <meta property="og:title" content="Petfinder — Encuentra mascotas perdidas con QR" />
+    <meta property="og:description" content="Escanea el código QR del collar y contacta al propietario al instante. Propietarios registran sus mascotas; visitantes no necesitan cuenta." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%2314b8a6'/><text x='50' y='58' font-size='44' text-anchor='middle' fill='white'>🐾</text></svg>">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="#" aria-label="Petfinder home">
+          <span class="brand-mark" aria-hidden="true">🐾</span>
+          <span class="brand-name">Petfinder</span>
+        </a>
+        <nav class="main-nav" aria-label="Primary">
+          <a href="#how-it-works">Cómo funciona</a>
+          <a href="#features">Características</a>
+          <a href="#faq">Preguntas frecuentes</a>
+          <a class="link" href="/login">Iniciar sesión</a>
+          <a class="button button-primary" href="/register">Registrarse</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-inner">
+          <div class="hero-copy">
+            <h1 class="hero-title">Encuentra mascotas perdidas con códigos QR</h1>
+            <p class="hero-subtitle">Coloca un código QR en el collar de tu mascota. Si alguien la encuentra, un escaneo muestra tus datos de contacto al instante — sin cuentas para visitantes.</p>
+            <div class="hero-ctas">
+              <a class="button button-primary" href="/register">Registrar mi mascota</a>
+              <a class="button button-secondary" href="/login">Ya tengo cuenta</a>
+            </div>
+            <form id="demoForm" class="demo-form" aria-label="Demo de escaneo">
+              <label for="qrIdInput" class="demo-label">Prueba la vista pública:</label>
+              <div class="demo-inputs">
+                <input id="qrIdInput" name="qrId" class="input" type="text" inputmode="latin" placeholder="Ingresa un QR ID (ej. abc123)" aria-describedby="demoHelp" />
+                <button class="button" id="viewPetButton" type="submit">Ver página pública</button>
+              </div>
+              <div id="demoHelp" class="demo-help">Te redirigiremos a <code>/p/&lt;qrId&gt;</code> si existe.</div>
+            </form>
+          </div>
+          <div class="hero-visual" aria-hidden="true">
+            <div class="qr-illustration">
+              <div class="qr-tag">
+                <div class="qr-square"></div>
+                <div class="qr-lines"></div>
+              </div>
+              <div class="collar"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" class="section section-alt">
+        <div class="container">
+          <h2>Cómo funciona</h2>
+          <div class="steps">
+            <div class="step">
+              <h3>Para propietarios</h3>
+              <ol>
+                <li>Regístrate y crea tu cuenta.</li>
+                <li>Registra tus mascotas.</li>
+                <li>Genera e imprime el código QR para el collar.</li>
+              </ol>
+            </div>
+            <div class="step">
+              <h3>Para quienes encuentran</h3>
+              <ol>
+                <li>Escanea el código QR del collar.</li>
+                <li>Visualiza los datos de contacto del propietario.</li>
+                <li>Contacta de inmediato por llamada o mensaje.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="section">
+        <div class="container">
+          <h2>Características</h2>
+          <div class="features-grid">
+            <div class="feature-item">
+              <h3>Códigos QR por mascota</h3>
+              <p>Cada mascota obtiene un identificador único que apunta a su página pública segura.</p>
+            </div>
+            <div class="feature-item">
+              <h3>Privacidad por diseño</h3>
+              <p>Mostramos sólo la información esencial para el contacto; el resto permanece privado.</p>
+            </div>
+            <div class="feature-item">
+              <h3>Sin apps, listo para móvil</h3>
+              <p>Funciona en cualquier teléfono con cámara y navegador; no necesitas instalar nada.</p>
+            </div>
+            <div class="feature-item">
+              <h3>Abierto y desplegable</h3>
+              <p>Generación de QR con librería open source y despliegue sencillo en Vercel.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-alt">
+        <div class="container">
+          <h2>Privacidad y seguridad</h2>
+          <ul class="bullets">
+            <li>Los visitantes no necesitan cuentas para ver el contacto del propietario.</li>
+            <li>Los propietarios controlan qué datos compartir en la vista pública.</li>
+            <li>Autenticación con JWT para gestionar mascotas y datos personales.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="faq" class="section">
+        <div class="container">
+          <h2>Preguntas frecuentes</h2>
+          <details>
+            <summary>¿Las personas que encuentran una mascota necesitan cuenta?</summary>
+            <p>No. Con solo escanear el QR podrán ver la información de contacto del propietario.</p>
+          </details>
+          <details>
+            <summary>¿Qué pasa si cambio de número telefónico?</summary>
+            <p>Puedes actualizar tus datos desde el panel y se reflejarán al instante en la vista pública.</p>
+          </details>
+          <details>
+            <summary>¿Tiene costo?</summary>
+            <p>El proyecto es académico (SENA) y la generación de QR usa librería open source. Los costos de impresión del tag corren por tu cuenta.</p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>Proyecto académico SENA — Asignatura de Arquitectura de Software.</p>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+          <a href="#">Términos</a>
+          <a href="#">Privacidad</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        const form = document.getElementById('demoForm');
+        const input = document.getElementById('qrIdInput');
+        form?.addEventListener('submit', function (e) {
+          e.preventDefault();
+          const raw = (input?.value || '').trim();
+          if (!raw) return input?.focus();
+          const qrId = raw.replace(/[^a-zA-Z0-9-_]/g, '');
+          window.location.href = '/p/' + encodeURIComponent(qrId);
+        });
+      })();
+    </script>
+  </body>
+  </html>
