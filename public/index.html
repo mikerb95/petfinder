@@ -13,6 +13,17 @@
     <meta property="og:url" content="/" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%2314b8a6'/><text x='50' y='58' font-size='44' text-anchor='middle' fill='white'>🐾</text></svg>">
+    <style>
+      .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
+      .modal { background: #fff; color: #111; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); width: 100%; max-width: 760px; }
+      .modal header { padding: 14px 16px; border-bottom: 1px solid #eee; display:flex; align-items:center; justify-content: space-between; }
+      .modal .body { padding: 16px; }
+      .modal .footer { padding: 12px 16px; border-top: 1px solid #eee; display:flex; gap:8px; justify-content: flex-end; }
+      .modal .button.secondary { background:#eee; color:#333; border:1px solid #d1d5db; }
+      .modal video { width: 100%; border-radius: 12px; border:1px solid #e5e7eb; max-height: 70vh; object-fit: cover; background:#000; }
+      .modal .hint { color:#555; margin-top:8px; }
+      .modal .warn { display:none; background:#fff5f5; color:#111; border-left:4px solid #c00; padding:10px 12px; border-radius:8px; }
+    </style>
   </head>
   <body>
     <header class="site-header">
@@ -42,6 +53,7 @@
               <a class="button button-primary" href="/register">Registrar mi mascota</a>
               <a id="heroLogin" class="button button-secondary" href="/login">Ya tengo cuenta</a>
               <a class="button" href="/dashboard">Ir al panel</a>
+              <button id="openScanner" class="button" type="button">Escanear QR</button>
             </div>
             <form id="demoForm" class="demo-form" aria-label="Demo de escaneo">
               <label for="qrIdInput" class="demo-label">Prueba la vista pública:</label>
@@ -131,6 +143,26 @@
       </section>
     </main>
 
+    <!-- QR Scanner Modal -->
+    <div id="scannerModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="scannerTitle">
+      <div class="modal">
+        <header>
+          <h3 id="scannerTitle" style="margin:0;">Escanear código QR</h3>
+          <button id="scannerClose" class="button secondary" type="button" aria-label="Cerrar">Cerrar</button>
+        </header>
+        <div class="body">
+          <div id="scanWarn" class="warn">No se pudo acceder a la cámara. Verifica permisos y que estés usando HTTPS.</div>
+          <video id="scanVideo" playsinline autoplay muted></video>
+          <p class="hint">Apunta la cámara hacia el QR del collar de la mascota. Al detectarlo, te llevaremos a su ficha.</p>
+          <div id="scanResult" class="hint" style="display:none;"></div>
+        </div>
+        <div class="footer">
+          <button id="scanStop" class="button secondary" type="button" style="display:none;">Detener</button>
+          <button id="scanStart" class="button" type="button">Iniciar escaneo</button>
+        </div>
+      </div>
+    </div>
+
     <footer class="site-footer">
       <div class="container footer-inner">
         <p>Proyecto académico SENA — Asignatura de Arquitectura de Software.</p>
@@ -190,7 +222,96 @@
           const qrId = raw.replace(/[^a-zA-Z0-9-_]/g, '');
           window.location.href = '/p/' + encodeURIComponent(qrId);
         });
+
+        // QR Scanner Modal Logic
+        if (!window.__scannerInit) {
+          window.__scannerInit = true;
+          const modal = document.getElementById('scannerModal');
+          const openBtn = document.getElementById('openScanner');
+          const closeBtn = document.getElementById('scannerClose');
+          const startBtn = document.getElementById('scanStart');
+          const stopBtn = document.getElementById('scanStop');
+          const video = document.getElementById('scanVideo');
+          const warn = document.getElementById('scanWarn');
+          const result = document.getElementById('scanResult');
+          let stream = null; let rafId = null; let detecting = false;
+
+          function showModal(){ modal.style.display='flex'; result.style.display='none'; warn.style.display='none'; }
+          function hideModal(){ modal.style.display='none'; stop(); }
+
+          async function start(){
+            try {
+              warn.style.display = 'none'; result.style.display = 'none';
+              stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+              video.srcObject = stream; await video.play();
+              stopBtn.style.display='inline-flex'; startBtn.style.display='none';
+              if ('BarcodeDetector' in window) {
+                const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                detecting = true;
+                const loop = async () => {
+                  if (!detecting) return;
+                  try {
+                    const codes = await detector.detect(video);
+                    if (codes && codes.length) { handleCode(codes[0].rawValue || ''); return; }
+                  } catch {}
+                  rafId = requestAnimationFrame(loop);
+                };
+                rafId = requestAnimationFrame(loop);
+              } else {
+                const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+                detecting = true;
+                const loop = () => {
+                  if (!detecting) return;
+                  try {
+                    const w = video.videoWidth, h = video.videoHeight;
+                    if (w && h) {
+                      canvas.width = w; canvas.height = h; ctx.drawImage(video, 0, 0, w, h);
+                      if (window.jsQR) {
+                        const imageData = ctx.getImageData(0, 0, w, h);
+                        const qr = window.jsQR(imageData.data, w, h);
+                        if (qr && qr.data) { handleCode(qr.data); return; }
+                      }
+                    }
+                  } catch {}
+                  rafId = requestAnimationFrame(loop);
+                };
+                rafId = requestAnimationFrame(loop);
+              }
+            } catch (e) { warn.style.display='block'; }
+          }
+
+          function stop(){
+            detecting = false;
+            if (rafId) cancelAnimationFrame(rafId); rafId = null;
+            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+            stopBtn.style.display='none'; startBtn.style.display='inline-flex';
+          }
+
+          function handleCode(text){
+            stop();
+            try {
+              result.style.display='block'; result.textContent='Código detectado: ' + text;
+              const url = new URL(text, window.location.origin);
+              const path = url.pathname;
+              const matchPet = path.match(/^\/p\/([A-Za-z0-9_-]{6,})$/);
+              if (matchPet) { window.location.href = path; return; }
+              const tokenMatch = text.match(/\b([A-Za-z0-9_-]{6,})\b/);
+              if (tokenMatch) { window.location.href = '/p/' + tokenMatch[1]; return; }
+            } catch {
+              const tokenMatch = (text || '').match(/\b([A-Za-z0-9_-]{6,})\b/);
+              if (tokenMatch) { window.location.href = '/p/' + tokenMatch[1]; return; }
+            }
+          }
+
+          openBtn?.addEventListener('click', () => { showModal(); start(); });
+          closeBtn?.addEventListener('click', hideModal);
+          startBtn?.addEventListener('click', start);
+          stopBtn?.addEventListener('click', stop);
+          modal?.addEventListener('click', (ev) => { if (ev.target === modal) hideModal(); });
+          document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && modal.style.display === 'flex') hideModal(); });
+        }
       })();
     </script>
+    <script src="https://unpkg.com/jsqr/dist/jsQR.js" async></script>
   </body>
   </html>
