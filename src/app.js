@@ -220,6 +220,10 @@ app.get('/dashboard', (req, res) => {
 app.get('/scan', (req, res) => {
   res.sendFile(path.join(publicDir, 'scan.html'));
 });
+// Terms page
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(publicDir, 'terms.html'));
+});
 // Public pet page by qrId (serves static page, which fetches JSON)
 app.get('/p/:qrId', (req, res) => {
   res.sendFile(path.join(publicDir, 'pet.html'));
