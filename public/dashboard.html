@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Petfinder — Panel</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/">
+          <span class="brand-mark">🐾</span>
+          <span class="brand-name">Petfinder</span>
+        </a>
+        <nav class="main-nav">
+          <a id="logoutLink" href="#">Cerrar sesión</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container" style="max-width:980px;">
+        <h1>Panel del propietario</h1>
+        <p class="hero-subtitle">Aquí podrás administrar tus mascotas y códigos QR.</p>
+
+        <section class="feature-item" style="margin:16px 0;">
+          <h3>Tu perfil</h3>
+          <pre id="profile" style="white-space:pre-wrap"></pre>
+        </section>
+
+        <section class="feature-item" style="margin:16px 0;">
+          <h3>Mascotas</h3>
+          <p>(Próximamente: listado y gestión de mascotas)</p>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        const token = localStorage.getItem('auth_token');
+        const profileEl = document.getElementById('profile');
+        const logout = document.getElementById('logoutLink');
+
+        if (!token) {
+          window.location.href = '/login';
+          return;
+        }
+
+        fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + token } })
+          .then(async (res) => {
+            if (!res.ok) throw new Error('No autorizado');
+            const data = await res.json();
+            profileEl.textContent = JSON.stringify(data.user, null, 2);
+          })
+          .catch(() => {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/login';
+          });
+
+        logout.addEventListener('click', (e) => {
+          e.preventDefault();
+          localStorage.removeItem('auth_token');
+          window.location.href = '/';
+        });
+      })();
+    </script>
+  </body>
+  </html>

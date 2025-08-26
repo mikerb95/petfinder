@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const config = require('./config');
 const { getPool } = require('./db');
+const { requireAuth } = require('./middleware/auth');
 const authRoutes = require('./routes/auth');
 
 const app = express();
@@ -29,6 +30,22 @@ app.get('/api/db/health', async (req, res) => {
     return res.json({ status: 'ok', db: 'mysql', ok: rows?.[0]?.ok === 1 });
   } catch (err) {
     return res.status(500).json({ status: 'error', error: err.message });
+  }
+});
+
+// Authenticated: current user profile
+app.get('/api/me', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const pool = getPool();
+    const [rows] = await pool.query(
+      'SELECT id, name, email, phone, created_at FROM users WHERE id = ?',
+      [userId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'user not found' });
+    res.json({ user: rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: 'internal server error' });
   }
 });
 
