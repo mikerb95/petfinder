@@ -8,6 +8,10 @@
     <style>
       body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
       .card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+  /* Ensure dark text on white card for readability */
+  .card, .card h1, .card h2, .card h3, .card p, .card li, .card a, .card dl { color:#111; }
+  .card .button { color:#111; background:#fff; border:1px solid #cfcfcf; }
+  .card .button:hover { border-color:#9a9a9a; }
       .badge { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; font-weight:600; }
       .badge.lost { background:#ffe6e6; color:#a40000; border:1px solid #ffb3b3; }
       .badge.home { background:#e6fff2; color:#046d36; border:1px solid #b3ffd7; }
