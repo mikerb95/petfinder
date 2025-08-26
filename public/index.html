@@ -27,6 +27,7 @@
           <span id="hdrName" style="margin-right:12px; opacity:.9;"></span>
           <a id="hdrLogin" class="link" href="/login">Iniciar sesión</a>
           <a id="hdrRegister" class="button button-primary" href="/register">Registrarse</a>
+          <a id="hdrLogout" class="link" href="#" style="display:none;">Cerrar sesión</a>
         </nav>
       </div>
     </header>
@@ -156,14 +157,27 @@
                 // Hide login/register in header when logged in
                 const hdrLogin = document.getElementById('hdrLogin');
                 const hdrRegister = document.getElementById('hdrRegister');
+                const hdrLogout = document.getElementById('hdrLogout');
                 if (hdrLogin) hdrLogin.style.display = 'none';
                 if (hdrRegister) hdrRegister.style.display = 'none';
+                if (hdrLogout) hdrLogout.style.display = '';
                 // Optionally keep redirect to dashboard
                 // window.location.replace('/dashboard');
               })
               .catch(() => {});
           }
         } catch (_) {}
+
+        // Logout handler
+        (function(){
+          const l = document.getElementById('hdrLogout');
+          if (!l) return;
+          l.addEventListener('click', function(e){
+            e.preventDefault();
+            try { localStorage.removeItem('auth_token'); } catch(_){ }
+            window.location.href = '/';
+          });
+        })();
 
         const form = document.getElementById('demoForm');
         const input = document.getElementById('qrIdInput');
