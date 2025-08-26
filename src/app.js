@@ -56,6 +56,9 @@ app.get('/login', (req, res) => {
 app.get('/register', (req, res) => {
   res.sendFile(path.join(publicDir, 'register.html'));
 });
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(publicDir, 'dashboard.html'));
+});
 app.get('/p/:qrId', (req, res) => {
   const { qrId } = req.params;
   res.send(`<!doctype html><html><body><h1>Página pública de mascota</h1><p>QR ID: ${qrId}</p><p>(Placeholder)</p><p><a href="/">Volver al inicio</a></p></body></html>`);
