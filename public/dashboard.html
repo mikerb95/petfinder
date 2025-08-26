@@ -195,7 +195,21 @@
           const listEl = document.getElementById('pets');
           listEl.innerHTML = 'Cargando...';
           const res = await fetch('/api/pets', { headers: { 'Authorization': 'Bearer ' + token } });
-          if (!res.ok) { listEl.textContent = 'Error al cargar'; return; }
+          if (!res.ok) {
+            if (res.status === 401) {
+              localStorage.removeItem('auth_token');
+              window.location.href = '/login';
+              return;
+            }
+            let msg = 'Error al cargar';
+            try { const err = await res.json(); if (err?.error) msg = 'Error al cargar: ' + err.error; } catch {}
+            listEl.textContent = msg;
+            if (res.status >= 500) {
+              const warn = document.getElementById('dbWarn');
+              if (warn) warn.style.display = 'block';
+            }
+            return;
+          }
           const data = await res.json();
           if (!data.pets.length) { listEl.textContent = 'Aún no tienes mascotas registradas.'; return; }
           listEl.innerHTML = '';
