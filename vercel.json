@@ -1,6 +1,12 @@
 {
-  "_comment": "Explicacion: Este archivo configura las 'rewrites' en vercel. Motivo: permitir que una sola funcion serverless (api/index.js) maneje tanto las rutas de API (/api/...) como rutas dinamicas del sitio (/p/:qrId, /login, /register) usando Express. Logica: Vercel redirige las URLs indicadas a /api/index.js, donde Express decide que responder. Nota: JSON no admite comentarios; por eso usamos la clave _comment, que vercel ignora.",
+  "version": 2,
+  "_comment": "Explicación (ES): Configura 'rewrites' en Vercel. Motivo: servir la landing y activos estáticos directamente, y enviar rutas de app/API a una sola función serverless (api/index.js) con Express. Lógica: Vercel redirige las URLs a /api/index.js donde Express responde, mientras que / y /assets se sirven estáticamente desde /public.",
+  "functions": {
+    "api/**/*.js": { "runtime": "nodejs20.x" }
+  },
   "rewrites": [
+    { "source": "/", "destination": "/public/index.html" },
+    { "source": "/assets/:path*", "destination": "/public/assets/:path*" },
     { "source": "/api/:path*", "destination": "/api/index.js" },
     { "source": "/p/:path*", "destination": "/api/index.js" },
     { "source": "/login", "destination": "/api/index.js" },
