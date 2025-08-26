@@ -136,6 +136,9 @@ app.post('/api/pets', requireAuth, async (req, res) => {
     }
     return res.status(500).json({ error: 'could not generate unique qr id' });
   } catch (err) {
+    if (config.env !== 'production') {
+      return res.status(500).json({ error: 'internal server error', detail: err.code || err.message });
+    }
     res.status(500).json({ error: 'internal server error' });
   }
 });

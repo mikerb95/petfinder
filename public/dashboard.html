@@ -21,6 +21,9 @@
 
     <main class="section">
       <div class="container" style="max-width:980px;">
+        <div id="dbWarn" class="feature-item" style="display:none; border-left:4px solid #c00; background:#fff5f5;">
+          <strong>Atención:</strong> No se pudo conectar con la base de datos. Verifica tu configuración.
+        </div>
         <h1>Panel del propietario</h1>
         <p class="hero-subtitle">Aquí podrás administrar tus mascotas y códigos QR.</p>
 
@@ -76,6 +79,11 @@
           return;
         }
 
+    // DB health quick check (non-blocking)
+    fetch('/api/db/health').then(r => r.json()).then(d => {
+      if (!d || d.status !== 'ok' || d.ok === false) document.getElementById('dbWarn').style.display = 'block';
+    }).catch(() => { document.getElementById('dbWarn').style.display = 'block'; });
+
     fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + token } })
           .then(async (res) => {
             if (!res.ok) throw new Error('No autorizado');
@@ -120,7 +128,11 @@
             },
             body: JSON.stringify(body)
           });
-          if (!res.ok) return alert('No se pudo crear la mascota');
+          if (!res.ok) {
+            let msg = 'No se pudo crear la mascota';
+            try { const err = await res.json(); if (err?.error) msg = err.error + (err.detail ? ' (' + err.detail + ')' : ''); } catch {}
+            return alert(msg);
+          }
           petForm.reset();
           loadPets();
         });
