@@ -60,6 +60,10 @@
   .segmented .seg-btn + .seg-btn { border-left: 1px solid #e5e7eb; }
   .segmented .seg-btn:focus-visible { outline: 2px solid #93c5fd; outline-offset: -2px; }
   .segmented .seg-btn.active { background: var(--color-primary, #14b8a6); color: #041410; }
+  /* Improve contrast for primary action in modal footer */
+  #editSave { background: var(--color-primary, #14b8a6); color: #041410; border: 1px solid #0ea5a6; }
+  #editSave:hover { filter: brightness(0.96); }
+  #editSave:focus-visible { outline: 3px solid rgba(20,184,166,0.35); outline-offset: 2px; }
     </style>
   </head>
   <body>
