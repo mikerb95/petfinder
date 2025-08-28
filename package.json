@@ -15,7 +15,8 @@
   "express": "^4.19.2",
   "jsonwebtoken": "^9.0.2",
   "mysql2": "^3.11.3",
-  "qrcode": "^1.5.3"
+  "qrcode": "^1.5.3",
+  "resend": "^3.2.0"
   },
   "engines": {
     "node": ">=18"

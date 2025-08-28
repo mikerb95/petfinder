@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getPool } = require('../db');
 const config = require('../config');
+let Resend; try { Resend = require('resend').Resend; } catch(_) { Resend = null; }
 
 const router = express.Router();
 
@@ -75,7 +76,25 @@ router.post('/forgot', async (req, res) => {
       const token = jwt.sign({ sub: userId, email, prp: 'reset' }, config.jwtSecret, { expiresIn: '30m' });
       const base = config.appBaseUrl?.replace(/\/$/, '') || '';
       reset_link = `${base}/reset?token=${encodeURIComponent(token)}`;
-      // TODO: Enviar por correo con un proveedor (Resend, Sendgrid, etc.)
+      // Enviar por correo si Resend esta configurado
+      const RK = process.env.RESEND_API_KEY; const FROM = process.env.FROM_EMAIL || 'no-reply@localhost';
+      if (Resend && RK && process.env.NODE_ENV === 'production') {
+        try {
+          const resend = new Resend(RK);
+          const to = email;
+          const subject = 'Recuperar contraseña — Petfinder';
+          const html = `
+            <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
+              <h2>Recuperar contraseña</h2>
+              <p>Has solicitado restablecer tu contraseña. Usa el siguiente enlace dentro de 30 minutos:</p>
+              <p><a href="${reset_link}" style="color:#2563eb">Restablecer contraseña</a></p>
+              <p style="color:#6b7280;font-size:14px">Si no solicitaste este cambio, ignora este correo.</p>
+            </div>`;
+          await resend.emails.send({ from: FROM, to, subject, html });
+        } catch (e) {
+          console.error('resend error', e?.message);
+        }
+      }
     }
     if (process.env.NODE_ENV !== 'production') {
       return res.json({ ok: true, message: 'si el correo existe, se envio un enlace de recuperacion', reset_link });
