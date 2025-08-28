@@ -194,8 +194,9 @@
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-              const err = data && data.error ? data.error : 'Error al registrar';
-              throw new Error(err);
+              const base = data && data.error ? data.error : 'Error al registrar';
+              const extra = data && data.detail ? ` (${data.detail})` : '';
+              throw new Error(base + extra);
             }
             // New flow: prompt for verification code
             pendingEmail = payload.email;
