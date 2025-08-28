@@ -21,6 +21,32 @@
   .modal .input, .modal select { width: 100%; padding: 10px 12px; border-radius: 10px; border:1px solid #d1d5db; background:#fff; color:#111; }
   .modal .grid { display:grid; gap:10px; grid-template-columns: 1fr 1fr; }
   .button.secondary { background:#eee; color:#333; border:1px solid #d1d5db; }
+
+  /* Estilos de campos del formulario de mascotas */
+  #petForm input,
+  #petForm select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: #ffffff;
+    color: #111111;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+    transition: border-color .2s ease, box-shadow .2s ease, transform .02s ease;
+    color-scheme: light;
+  }
+  #petForm input:hover,
+  #petForm select:hover { border-color: rgba(255,255,255,0.28); }
+  #petForm input:focus,
+  #petForm select:focus {
+    border-color: var(--color-primary, #14b8a6);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(20,184,166,0.22);
+  }
+  #petForm ::placeholder { color: #6b7280; opacity: 1; }
+  #petForm select option { color:#111111; background:#ffffff; }
+  #petForm input:invalid { border-color: #ef4444; }
+  #petForm .demo-help { color: var(--color-muted); font-size: .9rem; align-self: center; }
     </style>
   </head>
   <body>
