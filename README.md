@@ -123,3 +123,33 @@ public/
 
 ---
 Open to contributions. Please propose changes via pull request.
+
+## Local setup on Windows (PowerShell)
+
+1. Copy the example env and edit values:
+
+```
+cp .env.example .env
+notepad .env
+```
+
+2. Ensure MySQL is running and the user/database exist. Create them if needed:
+
+```
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS petfinder; CREATE USER IF NOT EXISTS 'petfinder'@'%' IDENTIFIED BY 'petfinder_password'; GRANT ALL PRIVILEGES ON petfinder.* TO 'petfinder'@'%'; FLUSH PRIVILEGES;"
+```
+
+3. Install deps and apply the schema:
+
+```
+npm install
+npm run db:init
+```
+
+4. Start the server:
+
+```
+npm start
+```
+
+If you receive an access denied from MySQL during `db:init`, verify `.env` credentials match your local MySQL setup.
