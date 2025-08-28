@@ -68,30 +68,44 @@
           <p><button class="button" id="showPetFormBtn" type="button">Agregar nueva mascota</button></p>
           <form id="petForm" style="display:none; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr));">
             <input type="text" id="petName" placeholder="Nombre de la mascota" required />
+            <div class="demo-help">Ej.: Rocky, Luna, Max</div>
             <select id="petSpecies">
               <option value="">Especie…</option>
               <option value="perro">Perro</option>
               <option value="gato">Gato</option>
             </select>
+            <div class="demo-help">Selecciona perro o gato</div>
             <input type="text" id="petBreed" placeholder="Raza" />
+            <div class="demo-help">Ej.: criollo, labrador, siames</div>
             <input type="text" id="petColor" placeholder="Color" />
+            <div class="demo-help">Ej.: marron, negro con blanco</div>
             <input type="text" id="petNotes" placeholder="Notas" />
+            <div class="demo-help">Rasgos, comportamiento o indicaciones</div>
             <select id="petStatus">
               <option value="home">En casa</option>
               <option value="lost">Perdida</option>
             </select>
+            <div class="demo-help">Estado actual de la mascota</div>
             <input type="url" id="petPhoto" placeholder="URL de foto (opcional)" />
+            <div class="demo-help">Enlace publico a una imagen (https://...)</div>
             <input type="date" id="petBirthdate" placeholder="Fecha de nacimiento" />
+            <div class="demo-help">Fecha de nacimiento (opcional)</div>
             <select id="petSex">
               <option value="unknown">Sexo…</option>
               <option value="male">Macho</option>
               <option value="female">Hembra</option>
             </select>
+            <div class="demo-help">Sexo de la mascota</div>
             <input type="number" step="0.01" id="petWeight" placeholder="Peso (kg)" />
+            <div class="demo-help">En kilogramos (opcional)</div>
             <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="petSterilized" /> Esterilizado</label>
+            <div class="demo-help">Marca si esta esterilizado</div>
             <input type="text" id="petChip" placeholder="Microchip ID" />
+            <div class="demo-help">Identificador del microchip (opcional)</div>
             <input type="date" id="petLastVet" placeholder="Última visita al vet." />
+            <div class="demo-help">Ultima fecha de consulta veterinaria (opcional)</div>
             <input type="url" id="petVaccineCard" placeholder="URL carnet de vacunas (opcional)" />
+            <div class="demo-help">Enlace al carnet o documento (opcional)</div>
             <div style="grid-column: 1 / -1; display:flex; gap:8px; flex-wrap:wrap;">
               <button class="button" type="submit">Guardar mascota</button>
               <button class="button" type="button" id="cancelPetFormBtn" style="background:#eee; color:#333;">Cancelar</button>
