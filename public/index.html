@@ -23,6 +23,8 @@
       .modal video { width: 100%; border-radius: 12px; border:1px solid #e5e7eb; max-height: 70vh; object-fit: cover; background:#000; }
       .modal .hint { color:#555; margin-top:8px; }
       .modal .warn { display:none; background:#fff5f5; color:#111; border-left:4px solid #c00; padding:10px 12px; border-radius:8px; }
+  /* SVG QR mock sizing */
+  .qr-svg { display:block; width:100%; height:100%; }
     </style>
   </head>
   <body>
@@ -66,8 +68,72 @@
           <div class="hero-visual" aria-hidden="true">
             <div class="qr-illustration">
               <div class="qr-tag">
-                <div class="qr-square"></div>
-                <div class="qr-lines"></div>
+                <svg class="qr-svg" viewBox="0 0 160 160" role="img" aria-label="Ilustración de un código QR">
+                  <defs>
+                    <linearGradient id="qrGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#0ea5e9" />
+                      <stop offset="100%" stop-color="#22c55e" />
+                    </linearGradient>
+                    <pattern id="qrStripes" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                      <rect width="12" height="12" fill="rgba(255,255,255,0.10)" />
+                      <rect width="6" height="12" fill="rgba(255,255,255,0.0)" />
+                    </pattern>
+                  </defs>
+                  <!-- Marco exterior -->
+                  <rect x="4" y="4" width="152" height="152" rx="14" fill="#111827" stroke="rgba(255,255,255,0.10)" />
+                  <!-- Fondo con gradiente y ligero overlay -->
+                  <rect x="16" y="16" width="128" height="128" rx="8" fill="url(#qrGrad)" opacity="0.95" />
+                  <rect x="16" y="16" width="128" height="128" rx="8" fill="url(#qrStripes)" opacity="0.35" />
+                  <!-- Patrones de búsqueda (esquinas) -->
+                  <g fill="#0b1220">
+                    <rect x="24" y="24" width="32" height="32" rx="2" />
+                    <rect x="104" y="24" width="32" height="32" rx="2" />
+                    <rect x="24" y="104" width="32" height="32" rx="2" />
+                  </g>
+                  <g fill="#ffffff">
+                    <rect x="28" y="28" width="24" height="24" rx="2" />
+                    <rect x="108" y="28" width="24" height="24" rx="2" />
+                    <rect x="28" y="108" width="24" height="24" rx="2" />
+                  </g>
+                  <g fill="#0b1220">
+                    <rect x="32" y="32" width="16" height="16" rx="2" />
+                    <rect x="112" y="32" width="16" height="16" rx="2" />
+                    <rect x="32" y="112" width="16" height="16" rx="2" />
+                  </g>
+                  <!-- Módulos simulados -->
+                  <g fill="#0b1220">
+                    <rect x="64" y="28" width="8" height="8" />
+                    <rect x="76" y="28" width="8" height="8" />
+                    <rect x="88" y="28" width="8" height="8" />
+                    <rect x="64" y="40" width="8" height="8" />
+                    <rect x="88" y="40" width="8" height="8" />
+                    <rect x="64" y="52" width="8" height="8" />
+                    <rect x="76" y="52" width="8" height="8" />
+                    <rect x="88" y="52" width="8" height="8" />
+
+                    <rect x="52" y="76" width="8" height="8" />
+                    <rect x="64" y="76" width="8" height="8" />
+                    <rect x="76" y="76" width="8" height="8" />
+                    <rect x="88" y="76" width="8" height="8" />
+                    <rect x="100" y="76" width="8" height="8" />
+
+                    <rect x="52" y="88" width="8" height="8" />
+                    <rect x="76" y="88" width="8" height="8" />
+                    <rect x="88" y="88" width="8" height="8" />
+                    <rect x="100" y="88" width="8" height="8" />
+
+                    <rect x="52" y="100" width="8" height="8" />
+                    <rect x="64" y="100" width="8" height="8" />
+                    <rect x="76" y="100" width="8" height="8" />
+                    <rect x="88" y="100" width="8" height="8" />
+                    <rect x="100" y="100" width="8" height="8" />
+
+                    <rect x="112" y="64" width="8" height="8" />
+                    <rect x="112" y="52" width="8" height="8" />
+                    <rect x="40" y="64" width="8" height="8" />
+                    <rect x="40" y="52" width="8" height="8" />
+                  </g>
+                </svg>
               </div>
               <div class="collar"></div>
             </div>
