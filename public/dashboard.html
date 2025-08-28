@@ -53,6 +53,12 @@
   .typeahead { position: absolute; z-index: 60; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 6px; list-style: none; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); display: none; max-height: 220px; overflow: auto; }
   .typeahead li { padding: 8px 10px; border-radius: 8px; cursor: pointer; color:#111; }
   .typeahead li[aria-selected="true"], .typeahead li:hover { background: #f3f4f6; }
+
+  /* Segmented control (toggle) */
+  .segmented { display: inline-flex; border: 1px solid #e5e7eb; background: #f3f4f6; border-radius: 10px; overflow: hidden; }
+  .segmented .seg-btn { appearance: none; background: transparent; border: 0; padding: 8px 12px; color: #111; cursor: pointer; font: inherit; }
+  .segmented .seg-btn + .seg-btn { border-left: 1px solid #e5e7eb; }
+  .segmented .seg-btn.active { background: var(--color-primary, #14b8a6); color: #041410; }
     </style>
   </head>
   <body>
@@ -116,10 +122,11 @@
             <div class="demo-help">Ej.: marron, negro con blanco</div>
             <input type="text" id="petNotes" placeholder="Notas" />
             <div class="demo-help">Rasgos, comportamiento o indicaciones</div>
-            <select id="petStatus">
-              <option value="home">En casa</option>
-              <option value="lost">Perdida</option>
-            </select>
+            <div class="segmented" role="group" aria-label="Estado">
+              <button type="button" id="petStatusHome" class="seg-btn active" data-value="home" aria-pressed="true">En casa</button>
+              <button type="button" id="petStatusLost" class="seg-btn" data-value="lost" aria-pressed="false">Perdida</button>
+            </div>
+            <input type="hidden" id="petStatus" value="home" />
             <div class="demo-help">Estado actual de la mascota</div>
             <input type="url" id="petPhoto" placeholder="URL de foto (opcional)" />
             <div class="demo-help">Enlace publico a una imagen (https://...)</div>
@@ -183,11 +190,12 @@
                     <input id="e_color" class="input" type="text" />
                   </div>
                   <div>
-                    <label class="demo-label" for="e_status">Estado</label>
-                    <select id="e_status" class="input">
-                      <option value="home">En casa</option>
-                      <option value="lost">Perdida</option>
-                    </select>
+                    <label class="demo-label">Estado</label>
+                    <div class="segmented" role="group" aria-label="Estado en edicion">
+                      <button type="button" id="e_status_home" class="seg-btn" data-value="home" aria-pressed="false">En casa</button>
+                      <button type="button" id="e_status_lost" class="seg-btn" data-value="lost" aria-pressed="false">Perdida</button>
+                    </div>
+                    <input type="hidden" id="e_status" />
                   </div>
                   <div>
                     <label class="demo-label" for="e_photo">URL de foto</label>
@@ -318,6 +326,15 @@
             return alert(msg);
           }
           petForm.reset();
+          // reset segmented to default 'home'
+          (function(){
+            const hidden = document.getElementById('petStatus'); if (hidden) hidden.value = 'home';
+            const bHome = document.getElementById('petStatusHome'); const bLost = document.getElementById('petStatusLost');
+            if (bHome && bLost) {
+              bHome.classList.add('active'); bHome.setAttribute('aria-pressed','true');
+              bLost.classList.remove('active'); bLost.setAttribute('aria-pressed','false');
+            }
+          })();
           hidePetForm();
           loadPets();
         });
@@ -408,6 +425,21 @@
           if (e_color) e_color.value = p.color || '';
           if (e_notes) e_notes.value = p.notes || '';
           if (e_status) e_status.value = p.status || 'home';
+          // reflect segmented state
+          (function(){
+            const s = (p.status || 'home');
+            const bh = document.getElementById('e_status_home');
+            const bl = document.getElementById('e_status_lost');
+            if (bh && bl) {
+              if (s === 'lost') {
+                bl.classList.add('active'); bl.setAttribute('aria-pressed','true');
+                bh.classList.remove('active'); bh.setAttribute('aria-pressed','false');
+              } else {
+                bh.classList.add('active'); bh.setAttribute('aria-pressed','true');
+                bl.classList.remove('active'); bl.setAttribute('aria-pressed','false');
+              }
+            }
+          })();
           if (e_photo) e_photo.value = p.photo_url || '';
           editModal.style.display = 'flex';
           setTimeout(() => { if (e_name) e_name.focus(); }, 0);
@@ -446,10 +478,10 @@
 
         // --- Typeahead de raza (perro/gato) ---
         const DOG_BREEDS = [
-          'Criollo','Labrador retriever','Golden retriever','German shepherd','French bulldog','Bulldog','Poodle','Beagle','Rottweiler','Yorkshire terrier','Boxer','Doberman','Shih tzu','Pug','Chihuahua','Border collie','Siberian husky','Pitbull','Cocker spaniel','Maltese','Dachshund','Australian shepherd','Boston terrier','Great dane','Bichon frise','Cane corso','Akita','Samoyed','Shar pei','Weimaraner','Basset hound','Newfoundland','Scottish terrier','Airedale terrier','Whippet','Greyhound','Jack russell','Pointer','Staffordshire bull terrier','English springer spaniel'
+          'Criollo', 'Labrador retriever', 'Golden retriever', 'Pastor alemán', 'Bulldog francés', 'Bulldog', 'Caniche (Poodle)', 'Beagle', 'Rottweiler', 'Yorkshire terrier', 'Bóxer', 'Dóberman', 'Shih tzu', 'Pug (Carlino)', 'Chihuahua', 'Border collie', 'Husky siberiano', 'Pit bull', 'Cocker spaniel', 'Maltés', 'Teckel (Salchicha)', 'Pastor australiano', 'Boston terrier', 'Gran danés', 'Bichón frisé', 'Cane corso', 'Akita', 'Samoyedo', 'Shar pei', 'Weimaraner', 'Basset hound', 'Terranova', 'Terrier escocés', 'Airedale terrier', 'Whippet', 'Galgo', 'Jack russell terrier', 'Pointer', 'Staffordshire bull terrier', 'Springer spaniel inglés'
         ];
         const CAT_BREEDS = [
-          'Criollo','Siames','Persa','Maine coon','Bengal','Sphynx','British shorthair','Scottish fold','Ragdoll','Abyssinian','Russian blue','Norwegian forest','Savannah','Bombay','American shorthair','Oriental shorthair','Birmano','Chartreux','Himalayo','Turkish angora','Manx','Devon rex','Cornish rex','Exotic shorthair'
+          'Criollo', 'Siamés', 'Persa', 'Maine coon', 'Bengala', 'Sphynx (Esfinge)', 'Británico de pelo corto', 'Fold escocés', 'Ragdoll', 'Abisinio', 'Azul ruso', 'Bosque de Noruega', 'Savannah', 'Bombay', 'Americano de pelo corto', 'Oriental de pelo corto', 'Birmano', 'Cartujo', 'Himalayo', 'Angora turco', 'Manx', 'Devon rex', 'Cornish rex', 'Exótico de pelo corto'
         ];
 
         function getBreedListForSpecies(spec) {
@@ -466,11 +498,15 @@
           function open() { listEl.style.display = items.length ? 'block' : 'none'; inputEl.setAttribute('aria-expanded', listEl.style.display === 'block' ? 'true' : 'false'); }
           function render() {
             listEl.innerHTML = '';
-            const q = (inputEl.value || '').trim().toLowerCase();
+            const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const q = norm((inputEl.value || '').trim());
             if (!q) { items = []; close(); return; }
             const src = getBreedListForSpecies(speciesProvider());
             const seen = new Set();
-            items = src.filter(b => b.toLowerCase().includes(q)).filter(b => { const k = b.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 12);
+            items = src
+              .filter(b => norm(b).includes(q))
+              .filter(b => { const k = norm(b); if (seen.has(k)) return false; seen.add(k); return true; })
+              .slice(0, 12);
             if (!items.length) { close(); return; }
             for (let i = 0; i < items.length; i++) {
               const li = document.createElement('li');
@@ -513,6 +549,56 @@
         const e_breed_list = document.getElementById('e_breedList');
         setupTypeahead(e_breed, e_breed_list, () => e_species?.value || '');
         e_species?.addEventListener('change', () => { if (e_breed && e_breed.value) { const ev = new Event('input'); e_breed.dispatchEvent(ev); } });
+
+        // --- Mensajes de validacion en español (HTML5) ---
+        (function attachSpanishValidation(){
+          function normalize(s){ return (s||'').toLowerCase(); }
+          function setMessage(el){
+            el.setCustomValidity('');
+            const v = el.validity;
+            if (v.valid) return;
+            let msg = '';
+            if (v.valueMissing) msg = 'Este campo es obligatorio';
+            else if (v.typeMismatch) {
+              const type = normalize(el.getAttribute('type'));
+              if (type === 'email') msg = 'Ingresa un correo electrónico válido';
+              else if (type === 'url') msg = 'Ingresa una URL válida (https://...)';
+              else if (type === 'tel') msg = 'Ingresa un número de teléfono válido';
+              else msg = 'Ingresa un valor válido';
+            } else if (v.patternMismatch) msg = 'El formato no es válido';
+            else if (v.tooShort) msg = 'Debe tener al menos ' + (el.minLength || '') + ' caracteres';
+            else if (v.tooLong) msg = 'Debe tener como máximo ' + (el.maxLength || '') + ' caracteres';
+            else if (v.rangeUnderflow) msg = 'El valor debe ser al menos ' + (el.min || '');
+            else if (v.rangeOverflow) msg = 'El valor debe ser como máximo ' + (el.max || '');
+            else if (v.stepMismatch) msg = 'Selecciona un valor válido';
+            else if (v.badInput) msg = 'Ingresa un valor válido';
+            el.setCustomValidity(msg);
+          }
+          const all = document.querySelectorAll('input, select, textarea');
+          all.forEach(el => {
+            el.addEventListener('invalid', (e) => setMessage(e.target));
+            el.addEventListener('input', (e) => e.target.setCustomValidity(''));
+          });
+        })();
+        // Wire segmented control (create)
+        (function(){
+          const hidden = document.getElementById('petStatus');
+          const bHome = document.getElementById('petStatusHome');
+          const bLost = document.getElementById('petStatusLost');
+          function set(val){ if (hidden) hidden.value = val; if (val==='home'){ bHome?.classList.add('active'); bHome?.setAttribute('aria-pressed','true'); bLost?.classList.remove('active'); bLost?.setAttribute('aria-pressed','false'); } else { bLost?.classList.add('active'); bLost?.setAttribute('aria-pressed','true'); bHome?.classList.remove('active'); bHome?.setAttribute('aria-pressed','false'); } }
+          bHome?.addEventListener('click', () => set('home'));
+          bLost?.addEventListener('click', () => set('lost'));
+        })();
+
+        // Wire segmented control (edit)
+        ;(function(){
+          const hidden = document.getElementById('e_status');
+          const bHome = document.getElementById('e_status_home');
+          const bLost = document.getElementById('e_status_lost');
+          function set(val){ if (hidden) hidden.value = val; if (val==='home'){ bHome?.classList.add('active'); bHome?.setAttribute('aria-pressed','true'); bLost?.classList.remove('active'); bLost?.setAttribute('aria-pressed','false'); } else { bLost?.classList.add('active'); bLost?.setAttribute('aria-pressed','true'); bHome?.classList.remove('active'); bHome?.setAttribute('aria-pressed','false'); } }
+          bHome?.addEventListener('click', () => set('home'));
+          bLost?.addEventListener('click', () => set('lost'));
+        })();
       })();
     </script>
   </body>

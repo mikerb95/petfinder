@@ -193,6 +193,35 @@
             btn.disabled = false; btn.textContent = 'Crear cuenta';
           }
         });
+        // Mensajes de validacion en español (HTML5)
+        (function attachSpanishValidation(){
+          function setMessage(el){
+            el.setCustomValidity('');
+            const v = el.validity; if (v.valid) return;
+            let msg = '';
+            if (v.valueMissing) msg = 'Este campo es obligatorio';
+            else if (v.typeMismatch) {
+              const type = (el.getAttribute('type')||'').toLowerCase();
+              if (type === 'email') msg = 'Ingresa un correo electrónico válido';
+              else if (type === 'url') msg = 'Ingresa una URL válida (https://...)';
+              else if (type === 'tel') msg = 'Ingresa un número de teléfono válido';
+              else msg = 'Ingresa un valor válido';
+            } else if (v.patternMismatch) msg = 'El formato no es válido';
+            else if (v.tooShort) msg = 'Debe tener al menos ' + (el.minLength || '') + ' caracteres';
+            else if (v.tooLong) msg = 'Debe tener como máximo ' + (el.maxLength || '') + ' caracteres';
+            else if (v.rangeUnderflow) msg = 'El valor debe ser al menos ' + (el.min || '');
+            else if (v.rangeOverflow) msg = 'El valor debe ser como máximo ' + (el.max || '');
+            else if (v.stepMismatch) msg = 'Selecciona un valor válido';
+            else if (v.badInput) msg = 'Ingresa un valor válido';
+            el.setCustomValidity(msg);
+          }
+          const formEl = document.getElementById('registerForm');
+          const all = formEl ? formEl.querySelectorAll('input, select, textarea') : document.querySelectorAll('input, select, textarea');
+          all.forEach(el => {
+            el.addEventListener('invalid', (e) => setMessage(e.target));
+            el.addEventListener('input', (e) => e.target.setCustomValidity(''));
+          });
+        })();
       })();
     </script>
   </body>
