@@ -14,7 +14,7 @@ async function addColumn(sql) {
 (async function run(){
   const pool = getPool();
   try {
-    // Add columns to pets if missing
+  // Agregar columnas a pets si faltan
     await addColumn("ALTER TABLE pets ADD COLUMN birthdate DATE DEFAULT NULL");
     await addColumn("ALTER TABLE pets ADD COLUMN sex ENUM('male','female','unknown') NOT NULL DEFAULT 'unknown'");
     await addColumn("ALTER TABLE pets ADD COLUMN weight_kg DECIMAL(5,2) DEFAULT NULL");
@@ -28,7 +28,7 @@ async function addColumn(sql) {
     await addColumn("ALTER TABLE pets ADD COLUMN vet_clinic_phone VARCHAR(40) DEFAULT NULL");
     await addColumn("ALTER TABLE pets ADD COLUMN vaccine_card_url VARCHAR(255) DEFAULT NULL");
 
-    // Create event tables if not exist
+  // Crear tablas de eventos si no existen
     await pool.query(`CREATE TABLE IF NOT EXISTS pet_vaccinations (
       id BIGINT PRIMARY KEY AUTO_INCREMENT,
       pet_id BIGINT NOT NULL,

@@ -1,7 +1,7 @@
 /* 
    :root define variables globales de CSS que se pueden usar 
-   en todo el proyecto. Aquí se configuran colores y estilos base 
-   para mantener una apariencia uniforme y fácil de actualizar.
+   en todo el proyecto. Aqui se configuran colores y estilos base 
+   para mantener una apariencia uniforme y facil de actualizar.
 */
 :root {
   --color-primary: #a914b8;
@@ -16,10 +16,10 @@
 
 
 /* 
-   El selector universal (*) aplica estilos a todos los elementos de la página.
+   El selector universal (*) aplica estilos a todos los elementos de la pagina.
    box-sizing: border-box hace que el ancho y alto incluyan 
-   padding y bordes, facilitando el control del diseño y evitando 
-   cálculos adicionales de espacio.
+   padding y bordes, facilitando el control del diseno y evitando 
+   calculos adicionales de espacio.
 */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -31,9 +31,9 @@ body {
 }
 
 /*
-   Base heading sizes to avoid relying on browser defaults inside
-   <section>, <article>, <nav>, <aside>. This prevents deprecation warnings
-   and keeps typography consistent across browsers.
+   Tamano base de encabezados para no depender de valores por defecto del navegador
+   dentro de <section>, <article>, <nav>, <aside>. Evita advertencias y mantiene
+   tipografia consistente entre navegadores.
 */
 h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.2; margin: 0 0 12px; }
 h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.25; margin: 0 0 10px; }
@@ -43,7 +43,7 @@ h3 { font-size: clamp(18px, 2.4vw, 22px); line-height: 1.3; margin: 0 0 8px; }
 /* 
    Clase .container para estructurar el contenido principal.
    - width: 100%;        Hace que ocupe todo el ancho disponible.
-   - max-width: 1100px;  Limita el ancho máximo para evitar que se vea demasiado extendido.
+   - max-width: 1100px;  Limita el ancho maximo para evitar que se vea demasiado extendido.
    - margin: 0 auto;     Centra el contenedor horizontalmente.
    - padding: 0 20px;    Agrega espacio interno lateral para que el contenido no quede pegado a los bordes.
 */
@@ -51,12 +51,12 @@ h3 { font-size: clamp(18px, 2.4vw, 22px); line-height: 1.3; margin: 0 0 8px; }
 
 
 /* 
-   Estilos para la cabecera del sitio y su navegación:
-   - .site-header: Hace que la cabecera permanezca fija en la parte superior 
-     mientras se hace scroll, con un fondo semitransparente y un ligero desenfoque.
-   - .header-inner: Organiza el contenido interno en fila y lo separa con espacio entre elementos.
-   - .brand y .brand-mark: Controlan la apariencia del logotipo y el nombre del sitio.
-   - .main-nav: Define el estilo del menú de navegación, incluyendo enlaces y su efecto hover.
+    Estilos para la cabecera del sitio y su navegacion:
+    - .site-header: Hace que la cabecera permanezca fija en la parte superior 
+       mientras se hace scroll, con un fondo semitransparente y un ligero desenfoque.
+    - .header-inner: Organiza el contenido interno en fila y lo separa con espacio entre elementos.
+    - .brand y .brand-mark: Controlan la apariencia del logotipo y el nombre del sitio.
+    - .main-nav: Define el estilo del menu de navegacion, incluyendo enlaces y su efecto hover.
 */
 .site-header { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(6px); background: rgba(11,18,32,0.6); border-bottom: 1px solid rgba(255,255,255,0.06); }
 .header-inner { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; }
@@ -87,10 +87,10 @@ h3 { font-size: clamp(18px, 2.4vw, 22px); line-height: 1.3; margin: 0 0 8px; }
 
 
 /* 
-   Estilo para el contenedor de la ilustración QR.
-   - display: grid;        Utiliza un sistema de cuadrícula para alinear contenido.
+   Estilo para el contenedor de la ilustracion QR.
+   - display: grid;        Utiliza un sistema de cuadricula para alinear contenido.
    - place-items: center;  Centra el contenido tanto vertical como horizontalmente.
-   - height: 260px;        Define una altura fija para el área de la ilustración.
+   - height: 260px;        Define una altura fija para el area de la ilustracion.
 */
 .qr-illustration { display: grid; place-items: center; height: 260px; }
 .qr-tag { width: 160px; height: 160px; background: #111827; border: 2px solid rgba(255,255,255,0.1); border-radius: var(--radius); position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.04); }
@@ -124,9 +124,9 @@ h3 { font-size: clamp(18px, 2.4vw, 22px); line-height: 1.3; margin: 0 0 8px; }
 .footer-nav a:hover { color: var(--color-text); }
 
 /* 
-   Media query para pantallas pequeñas (máximo 900px de ancho).
-   Ajusta la distribución de columnas para que los elementos se 
-   muestren en una sola columna, mejorando la visualización en dispositivos móviles.
+   Media query para pantallas pequenas (maximo 900px de ancho).
+   Ajusta la distribucion de columnas para que los elementos se 
+   muestren en una sola columna, mejorando la visualizacion en dispositivos moviles.
 */
 @media (max-width: 900px) {
   .hero-inner { grid-template-columns: 1fr; }

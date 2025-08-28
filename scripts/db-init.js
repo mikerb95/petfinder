@@ -11,7 +11,7 @@ async function main() {
     .map(s => s.trim())
     .filter(Boolean);
   for (const stmt of statements) {
-    // console.log('Executing:', stmt.slice(0, 80));
+    // console.log('Ejecutando:', stmt.slice(0, 80));
     await pool.query(stmt);
   }
   console.log('DB schema applied.');

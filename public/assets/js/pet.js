@@ -1,5 +1,5 @@
 (function () {
-  if (window.__petPageInit || (document.body && document.body.dataset.petInit === '1')) return; // prevent double init
+  if (window.__petPageInit || (document.body && document.body.dataset.petInit === '1')) return; // evitar doble inicializacion
   window.__petPageInit = true;
   if (document.body) document.body.dataset.petInit = '1';
 
@@ -7,7 +7,7 @@
   function setText(id, val){ const el=$(id); if (el) el.textContent = val || '—'; }
   function showAlert(msg){ const a=$('alert'); if (a){ a.textContent = msg; a.style.display='block'; } }
 
-  // Get qrId from URL: /p/:qrId
+  // Obtener qrId desde la URL: /p/:qrId
   var qrId = (location.pathname.split('/')[2] || '').trim();
   if (!qrId) {
     showAlert('No se proporcionó un identificador de mascota.');

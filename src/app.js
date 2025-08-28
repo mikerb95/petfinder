@@ -9,22 +9,22 @@ const authRoutes = require('./routes/auth');
 
 const app = express();
 
-// Static landing and assets (handled by Vercel from /public in production, but harmless here)
+// Landing y assets estaticos (Vercel sirve /public en produccion, aqui no afecta)
 const publicDir = path.join(__dirname, '..', 'public');
 app.use(express.static(publicDir, { extensions: ['html'] }));
 
-// Body parsing
+// Parseo de cuerpo
 app.use(express.json());
 
-// API routes
+// Rutas API
 app.use('/api/auth', authRoutes);
 
-// Health check (no DB)
+// Verificacion de salud (sin DB)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', env: config.env });
 });
 
-// DB health check
+// Verificacion de salud de DB
 app.get('/api/db/health', async (req, res) => {
   try {
     const pool = getPool();
@@ -35,7 +35,7 @@ app.get('/api/db/health', async (req, res) => {
   }
 });
 
-// Authenticated: current user profile
+// Autenticado: perfil de usuario actual
 app.get('/api/me', requireAuth, async (req, res) => {
   try {
     const userId = req.auth?.sub;
@@ -51,11 +51,11 @@ app.get('/api/me', requireAuth, async (req, res) => {
   }
 });
 
-// (Owner QR and public owner page removed per requirements)
+// (QR de dueno y pagina publica de dueno removidos segun requisitos)
 
-// -------- Pets API (CRUD + QR) --------
+// -------- API de mascotas (CRUD + QR) --------
 
-// List pets for current user
+// Listar mascotas del usuario actual
 app.get('/api/pets', requireAuth, async (req, res) => {
   try {
     const userId = req.auth?.sub;
@@ -77,7 +77,7 @@ app.get('/api/pets', requireAuth, async (req, res) => {
   }
 });
 
-// Create pet
+// Crear mascota
 app.post('/api/pets', requireAuth, async (req, res) => {
   try {
     const userId = req.auth?.sub;
@@ -121,7 +121,7 @@ app.post('/api/pets', requireAuth, async (req, res) => {
         );
         return res.status(201).json({ id: result.insertId, qr_id: qrId });
       } catch (e) {
-        // ER_DUP_ENTRY code for mysql2
+  // Codigo ER_DUP_ENTRY para mysql2
         if (e && e.code === 'ER_DUP_ENTRY') continue;
         throw e;
       }
@@ -135,7 +135,7 @@ app.post('/api/pets', requireAuth, async (req, res) => {
   }
 });
 
-// Update pet (owner only)
+// Actualizar mascota (solo dueno)
 app.put('/api/pets/:id', requireAuth, async (req, res) => {
   try {
     const userId = req.auth?.sub;
@@ -147,7 +147,7 @@ app.put('/api/pets/:id', requireAuth, async (req, res) => {
       last_vet_visit, vet_clinic_name, vet_clinic_phone, vaccine_card_url
     } = req.body || {};
     const pool = getPool();
-    // Ensure ownership
+  // Verificar propiedad
     const [rows] = await pool.query('SELECT id FROM pets WHERE id = ? AND owner_id = ?', [id, userId]);
     if (!rows.length) return res.status(404).json({ error: 'pet not found' });
 
@@ -190,7 +190,7 @@ app.put('/api/pets/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Delete pet (owner only)
+// Eliminar mascota (solo dueno)
 app.delete('/api/pets/:id', requireAuth, async (req, res) => {
   try {
     const userId = req.auth?.sub;
@@ -205,7 +205,7 @@ app.delete('/api/pets/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Pet QR (SVG)
+// QR de mascota (SVG)
 app.get('/api/qr/pet/:qrId.svg', async (req, res) => {
   try {
     const { qrId } = req.params;
@@ -218,7 +218,7 @@ app.get('/api/qr/pet/:qrId.svg', async (req, res) => {
   }
 });
 
-// Pet QR (PNG)
+// QR de mascota (PNG)
 app.get('/api/qr/pet/:qrId.png', async (req, res) => {
   try {
     const { qrId } = req.params;
@@ -231,7 +231,7 @@ app.get('/api/qr/pet/:qrId.png', async (req, res) => {
   }
 });
 
-// Public JSON: pet details by qrId
+// JSON publico: detalles de mascota por qrId
 app.get('/api/pets/public/:qrId', async (req, res) => {
   try {
     const { qrId } = req.params;
@@ -268,7 +268,7 @@ app.get('/api/pets/public/:qrId', async (req, res) => {
   }
 });
 
-// Static pages for login/register
+// Paginas estaticas para login/registro
 app.get('/login', (req, res) => {
   res.sendFile(path.join(publicDir, 'login.html'));
 });
@@ -278,28 +278,28 @@ app.get('/register', (req, res) => {
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(publicDir, 'dashboard.html'));
 });
-// QR scanner page
+// Pagina de escaner QR
 app.get('/scan', (req, res) => {
   res.sendFile(path.join(publicDir, 'scan.html'));
 });
-// Kickoff showcase page
+// Pagina de kickoff
 app.get('/kickoff', (req, res) => {
   res.sendFile(path.join(publicDir, 'kickoff.html'));
 });
-// Terms page
+// Pagina de terminos
 app.get('/terms', (req, res) => {
   res.sendFile(path.join(publicDir, 'terms.html'));
 });
-// Privacy page
+// Pagina de privacidad
 app.get('/privacy', (req, res) => {
   res.sendFile(path.join(publicDir, 'privacy.html'));
 });
-// Public pet page by qrId (serves static page, which fetches JSON)
+// Pagina publica de mascota por qrId (sirve pagina estatica que obtiene JSON)
 app.get('/p/:qrId', (req, res) => {
   res.sendFile(path.join(publicDir, 'pet.html'));
 });
 
-// Root
+// Raiz
 app.get('/', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });

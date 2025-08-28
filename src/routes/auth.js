@@ -45,10 +45,10 @@ router.post('/login', async (req, res) => {
       'SELECT id, name, last_name, sex, email, password_hash, phone FROM users WHERE email = ?',
       [email]
     );
-    if (!rows.length) return res.status(401).json({ error: 'credenciales inválidas' });
+  if (!rows.length) return res.status(401).json({ error: 'credenciales inválidas' });
     const user = rows[0];
     const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) return res.status(401).json({ error: 'credenciales inválidas' });
+  if (!ok) return res.status(401).json({ error: 'credenciales inválidas' });
     const token = jwt.sign({ sub: user.id, email: user.email }, config.jwtSecret, { expiresIn: '7d' });
   res.json({ token, user: { id: user.id, name: user.name, last_name: user.last_name, sex: user.sex, email: user.email, phone: user.phone } });
   } catch (err) {

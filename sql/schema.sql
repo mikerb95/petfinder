@@ -1,4 +1,4 @@
--- Minimal schema for Petfinder
+-- Esquema minimo para Petfinder
 
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Pets table
+-- Tabla de mascotas
 CREATE TABLE IF NOT EXISTS pets (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   owner_id BIGINT NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS pets (
   notes TEXT DEFAULT NULL,
   status ENUM('home','lost') NOT NULL DEFAULT 'home',
   photo_url VARCHAR(255) DEFAULT NULL,
-  -- Health & identification fields
+  -- Campos de salud e identificacion
   birthdate DATE DEFAULT NULL,
   sex ENUM('male','female','unknown') NOT NULL DEFAULT 'unknown',
   weight_kg DECIMAL(5,2) DEFAULT NULL,
@@ -41,10 +41,10 @@ CREATE TABLE IF NOT EXISTS pets (
   CONSTRAINT fk_pets_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Note: For maximum compatibility with older MySQL versions, we avoid
--- USING ON UPDATE on updated_at and manage it from the application layer.
+-- Nota: para compatibilidad con versiones antiguas de MySQL, se evita
+-- USING ON UPDATE en updated_at y se maneja desde la capa de aplicacion.
 
--- Vaccination records per pet
+-- Registros de vacunacion por mascota
 CREATE TABLE IF NOT EXISTS pet_vaccinations (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   pet_id BIGINT NOT NULL,
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS pet_vaccinations (
   KEY idx_vacc_type (vaccine_type)
 );
 
--- Deworming records per pet
+-- Registros de desparasitacion por mascota
 CREATE TABLE IF NOT EXISTS pet_dewormings (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   pet_id BIGINT NOT NULL,
