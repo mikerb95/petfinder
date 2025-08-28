@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Recuperar contraseña — Petfinder</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner" style="max-width:720px;">
+        <a class="brand" href="/">
+          <span class="brand-mark">🐾</span>
+          <span class="brand-name">Petfinder</span>
+        </a>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container" style="max-width:720px;">
+        <h1>¿Olvidaste tu contraseña?</h1>
+        <p class="hero-subtitle">Ingresa tu correo y te enviaremos un enlace para restablecerla.</p>
+        <form id="forgotForm" class="demo-form" novalidate>
+          <label class="demo-label" for="email">Correo electrónico</label>
+          <input class="input" id="email" name="email" type="email" required placeholder="tu@correo.com" />
+          <button class="button button-primary" id="submitBtn" type="submit">Enviar enlace</button>
+          <div id="message" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
+        </form>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner" style="max-width:720px;">
+        <div class="footer-credit">Creado por Mike Rodríguez</div>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/terms">Términos</a>
+          <a href="/privacy">Privacidad</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      (function(){
+        const form = document.getElementById('forgotForm');
+        const msg = document.getElementById('message');
+        const btn = document.getElementById('submitBtn');
+        function setMessage(text, ok) { msg.textContent = text; msg.style.color = ok ? '#22c55e' : '#fca5a5'; }
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          setMessage('', true);
+          btn.disabled = true; btn.textContent = 'Enviando…';
+          try {
+            const res = await fetch('/api/auth/forgot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: document.getElementById('email').value.trim() }) });
+            const data = await res.json().catch(()=>({}));
+            if (!res.ok) throw new Error(data?.error || 'No se pudo enviar el enlace');
+            setMessage('Si el correo existe, enviamos un enlace de recuperación. Revisa tu bandeja.', true);
+            if (data?.reset_link) {
+              const a = document.createElement('a'); a.href = data.reset_link; a.textContent = 'Probar enlace (solo dev)'; a.target = '_blank'; a.rel = 'noopener'; msg.appendChild(document.createElement('br')); msg.appendChild(a);
+            }
+          } catch (err) {
+            setMessage(err.message || 'Error', false);
+          } finally {
+            btn.disabled = false; btn.textContent = 'Enviar enlace';
+          }
+        });
+      })();
+    </script>
+  </body>
+  </html>

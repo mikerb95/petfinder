@@ -275,6 +275,12 @@ app.get('/login', (req, res) => {
 app.get('/register', (req, res) => {
   res.sendFile(path.join(publicDir, 'register.html'));
 });
+app.get('/forgot', (req, res) => {
+  res.sendFile(path.join(publicDir, 'forgot.html'));
+});
+app.get('/reset', (req, res) => {
+  res.sendFile(path.join(publicDir, 'reset.html'));
+});
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(publicDir, 'dashboard.html'));
 });

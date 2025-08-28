@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Restablecer contraseña — Petfinder</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner" style="max-width:720px;">
+        <a class="brand" href="/">
+          <span class="brand-mark">🐾</span>
+          <span class="brand-name">Petfinder</span>
+        </a>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container" style="max-width:720px;">
+        <h1>Restablecer contraseña</h1>
+        <p class="hero-subtitle">Ingresa tu nueva contraseña para finalizar el proceso.</p>
+        <form id="resetForm" class="demo-form" novalidate>
+          <input type="hidden" id="token" />
+          <label class="demo-label" for="password">Nueva contraseña</label>
+          <input class="input" id="password" name="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" />
+          <label class="demo-label" for="confirm_password">Confirmar contraseña</label>
+          <input class="input" id="confirm_password" name="confirm_password" type="password" required minlength="6" placeholder="Repite la contraseña" />
+          <button class="button button-primary" id="submitBtn" type="submit">Actualizar contraseña</button>
+          <div id="message" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
+        </form>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner" style="max-width:720px;">
+        <div class="footer-credit">Creado por Mike Rodríguez</div>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/terms">Términos</a>
+          <a href="/privacy">Privacidad</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      (function(){
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        if (token) document.getElementById('token').value = token;
+        const form = document.getElementById('resetForm');
+        const msg = document.getElementById('message');
+        const btn = document.getElementById('submitBtn');
+        function setMessage(text, ok) { msg.textContent = text; msg.style.color = ok ? '#22c55e' : '#fca5a5'; }
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          setMessage('', true);
+          const p1 = document.getElementById('password').value;
+          const p2 = document.getElementById('confirm_password').value;
+          if (p1 !== p2) { setMessage('Las contraseñas no coinciden', false); return; }
+          btn.disabled = true; btn.textContent = 'Actualizando…';
+          try {
+            const res = await fetch('/api/auth/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: document.getElementById('token').value, password: p1, confirm_password: p2 }) });
+            const data = await res.json().catch(()=>({}));
+            if (!res.ok) throw new Error(data?.error || 'No se pudo actualizar');
+            setMessage('Contraseña actualizada. Ya puedes iniciar sesión.', true);
+            setTimeout(() => { window.location.href = '/login'; }, 1000);
+          } catch (err) {
+            setMessage(err.message || 'Error', false);
+          } finally {
+            btn.disabled = false; btn.textContent = 'Actualizar contraseña';
+          }
+        });
+      })();
+    </script>
+  </body>
+  </html>
