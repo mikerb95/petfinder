@@ -47,6 +47,12 @@
   #petForm select option { color:#111111; background:#ffffff; }
   #petForm input:invalid { border-color: #ef4444; }
   #petForm .demo-help { color: var(--color-muted); font-size: .9rem; align-self: center; }
+
+  /* Typeahead dropdown */
+  .ta-wrap { position: relative; }
+  .typeahead { position: absolute; z-index: 60; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 6px; list-style: none; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); display: none; max-height: 220px; overflow: auto; }
+  .typeahead li { padding: 8px 10px; border-radius: 8px; cursor: pointer; color:#111; }
+  .typeahead li[aria-selected="true"], .typeahead li:hover { background: #f3f4f6; }
     </style>
   </head>
   <body>
@@ -101,7 +107,10 @@
               <option value="gato">Gato</option>
             </select>
             <div class="demo-help">Selecciona perro o gato</div>
-            <input type="text" id="petBreed" placeholder="Raza" />
+            <div class="ta-wrap">
+              <input type="text" id="petBreed" placeholder="Raza" autocomplete="off" aria-autocomplete="list" aria-controls="petBreedList" aria-expanded="false" />
+              <ul id="petBreedList" class="typeahead" role="listbox" aria-label="Sugerencias de raza"></ul>
+            </div>
             <div class="demo-help">Ej.: criollo, labrador, siames</div>
             <input type="text" id="petColor" placeholder="Color" />
             <div class="demo-help">Ej.: marron, negro con blanco</div>
@@ -164,7 +173,10 @@
                   </div>
                   <div>
                     <label class="demo-label" for="e_breed">Raza</label>
-                    <input id="e_breed" class="input" type="text" />
+                    <div class="ta-wrap">
+                      <input id="e_breed" class="input" type="text" autocomplete="off" aria-autocomplete="list" aria-controls="e_breedList" aria-expanded="false" />
+                      <ul id="e_breedList" class="typeahead" role="listbox" aria-label="Sugerencias de raza"></ul>
+                    </div>
                   </div>
                   <div>
                     <label class="demo-label" for="e_color">Color</label>
@@ -431,6 +443,76 @@
           closeEditModal();
           loadPets();
         });
+
+        // --- Typeahead de raza (perro/gato) ---
+        const DOG_BREEDS = [
+          'Criollo','Labrador retriever','Golden retriever','German shepherd','French bulldog','Bulldog','Poodle','Beagle','Rottweiler','Yorkshire terrier','Boxer','Doberman','Shih tzu','Pug','Chihuahua','Border collie','Siberian husky','Pitbull','Cocker spaniel','Maltese','Dachshund','Australian shepherd','Boston terrier','Great dane','Bichon frise','Cane corso','Akita','Samoyed','Shar pei','Weimaraner','Basset hound','Newfoundland','Scottish terrier','Airedale terrier','Whippet','Greyhound','Jack russell','Pointer','Staffordshire bull terrier','English springer spaniel'
+        ];
+        const CAT_BREEDS = [
+          'Criollo','Siames','Persa','Maine coon','Bengal','Sphynx','British shorthair','Scottish fold','Ragdoll','Abyssinian','Russian blue','Norwegian forest','Savannah','Bombay','American shorthair','Oriental shorthair','Birmano','Chartreux','Himalayo','Turkish angora','Manx','Devon rex','Cornish rex','Exotic shorthair'
+        ];
+
+        function getBreedListForSpecies(spec) {
+          if ((spec || '').toLowerCase() === 'gato') return CAT_BREEDS;
+          if ((spec || '').toLowerCase() === 'perro') return DOG_BREEDS;
+          return DOG_BREEDS.concat(CAT_BREEDS);
+        }
+
+        function setupTypeahead(inputEl, listEl, speciesProvider) {
+          if (!inputEl || !listEl) return;
+          let items = [];
+          let activeIndex = -1;
+          function close() { listEl.style.display = 'none'; inputEl.setAttribute('aria-expanded', 'false'); activeIndex = -1; }
+          function open() { listEl.style.display = items.length ? 'block' : 'none'; inputEl.setAttribute('aria-expanded', listEl.style.display === 'block' ? 'true' : 'false'); }
+          function render() {
+            listEl.innerHTML = '';
+            const q = (inputEl.value || '').trim().toLowerCase();
+            if (!q) { items = []; close(); return; }
+            const src = getBreedListForSpecies(speciesProvider());
+            const seen = new Set();
+            items = src.filter(b => b.toLowerCase().includes(q)).filter(b => { const k = b.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 12);
+            if (!items.length) { close(); return; }
+            for (let i = 0; i < items.length; i++) {
+              const li = document.createElement('li');
+              li.id = listEl.id + '-' + i;
+              li.setAttribute('role', 'option');
+              li.textContent = items[i];
+              li.addEventListener('mousedown', (ev) => { ev.preventDefault(); inputEl.value = items[i]; close(); });
+              listEl.appendChild(li);
+            }
+            activeIndex = 0; markActive(); open();
+          }
+          function markActive() {
+            const children = Array.from(listEl.children);
+            children.forEach((el, idx) => el.setAttribute('aria-selected', String(idx === activeIndex)));
+            if (children[activeIndex]) children[activeIndex].scrollIntoView({ block: 'nearest' });
+          }
+          function move(delta) {
+            if (!items.length) return; activeIndex = Math.max(0, Math.min(items.length - 1, activeIndex + delta)); markActive();
+          }
+          inputEl.addEventListener('input', render);
+          inputEl.addEventListener('focus', render);
+          inputEl.addEventListener('blur', () => setTimeout(close, 120));
+          inputEl.addEventListener('keydown', (ev) => {
+            if (listEl.style.display !== 'block') return;
+            if (ev.key === 'ArrowDown') { ev.preventDefault(); move(1); }
+            else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
+            else if (ev.key === 'Enter') { if (activeIndex >= 0 && items[activeIndex]) { ev.preventDefault(); inputEl.value = items[activeIndex]; close(); } }
+            else if (ev.key === 'Escape') { close(); }
+          });
+        }
+
+        // Wire create form typeahead
+        const breedInput = document.getElementById('petBreed');
+        const breedList = document.getElementById('petBreedList');
+        const speciesSelect = document.getElementById('petSpecies');
+        setupTypeahead(breedInput, breedList, () => speciesSelect?.value || '');
+        speciesSelect?.addEventListener('change', () => { if (breedInput && breedInput.value) { /* re-render options based on species */ const ev = new Event('input'); breedInput.dispatchEvent(ev); } });
+
+        // Wire edit modal typeahead
+        const e_breed_list = document.getElementById('e_breedList');
+        setupTypeahead(e_breed, e_breed_list, () => e_species?.value || '');
+        e_species?.addEventListener('change', () => { if (e_breed && e_breed.value) { const ev = new Event('input'); e_breed.dispatchEvent(ev); } });
       })();
     </script>
   </body>
