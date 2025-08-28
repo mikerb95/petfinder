@@ -3,9 +3,11 @@
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   name VARCHAR(120) NOT NULL,
+  last_name VARCHAR(120) DEFAULT NULL,
   email VARCHAR(190) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   phone VARCHAR(40),
+  sex ENUM('male','female','unknown') NOT NULL DEFAULT 'unknown',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

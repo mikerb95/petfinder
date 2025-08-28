@@ -8,9 +8,12 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body || {};
+    const { name, last_name, sex, email, password, confirm_password, phone } = req.body || {};
     if (!name || !email || !password) {
-  return res.status(400).json({ error: 'nombre, correo y contraseña son obligatorios' });
+      return res.status(400).json({ error: 'nombre, correo y contraseña son obligatorios' });
+    }
+    if (password !== confirm_password) {
+      return res.status(400).json({ error: 'las contraseñas no coinciden' });
     }
     const pool = getPool();
     const [exists] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
@@ -19,12 +22,12 @@ router.post('/register', async (req, res) => {
     }
     const passwordHash = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
-      'INSERT INTO users (name, email, password_hash, phone) VALUES (?, ?, ?, ?)',
-      [name, email, passwordHash, phone || null]
+      'INSERT INTO users (name, last_name, sex, email, password_hash, phone) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, last_name || null, sex || 'unknown', email, passwordHash, phone || null]
     );
     const userId = result.insertId;
     const token = jwt.sign({ sub: userId, email }, config.jwtSecret, { expiresIn: '7d' });
-    res.status(201).json({ token, user: { id: userId, name, email, phone: phone || null } });
+    res.status(201).json({ token, user: { id: userId, name, last_name: last_name || null, sex: sex || 'unknown', email, phone: phone || null } });
   } catch (err) {
   console.error('register error', err);
   res.status(500).json({ error: 'error interno del servidor' });
@@ -39,7 +42,7 @@ router.post('/login', async (req, res) => {
     }
     const pool = getPool();
     const [rows] = await pool.query(
-      'SELECT id, name, email, password_hash, phone FROM users WHERE email = ?',
+      'SELECT id, name, last_name, sex, email, password_hash, phone FROM users WHERE email = ?',
       [email]
     );
     if (!rows.length) return res.status(401).json({ error: 'credenciales inválidas' });
@@ -47,7 +50,7 @@ router.post('/login', async (req, res) => {
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'credenciales inválidas' });
     const token = jwt.sign({ sub: user.id, email: user.email }, config.jwtSecret, { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, phone: user.phone } });
+  res.json({ token, user: { id: user.id, name: user.name, last_name: user.last_name, sex: user.sex, email: user.email, phone: user.phone } });
   } catch (err) {
     console.error('login error', err);
     res.status(500).json({ error: 'error interno del servidor' });

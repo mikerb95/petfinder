@@ -41,7 +41,7 @@ app.get('/api/me', requireAuth, async (req, res) => {
     const userId = req.auth?.sub;
     const pool = getPool();
     const [rows] = await pool.query(
-      'SELECT id, name, email, phone, created_at FROM users WHERE id = ?',
+      'SELECT id, name, last_name, sex, email, phone, created_at FROM users WHERE id = ?',
       [userId]
     );
     if (!rows.length) return res.status(404).json({ error: 'user not found' });
