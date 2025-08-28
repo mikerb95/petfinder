@@ -47,12 +47,7 @@
 
         <section class="feature-item" style="margin:16px 0;">
           <h3>Tu perfil</h3>
-          <div class="profile-card" style="display:grid; grid-template-columns: 120px 1fr; gap:16px; align-items:center;">
-            <div style="display:grid; gap:8px; justify-items:center;">
-              <img id="profilePhoto" alt="Tu foto" style="width:120px; height:120px; border-radius:999px; object-fit:cover; background:#f1f5f9; border:1px solid #e5e7eb;" />
-              <input type="file" id="profilePhotoInput" accept="image/*" style="display:none" />
-              <button class="button" id="profilePhotoBtn" type="button">Subir foto</button>
-            </div>
+          <div class="profile-card">
             <dl class="kv">
               <dt>Nombre</dt>
               <dd id="profileName">—</dd>
@@ -189,11 +184,6 @@
             if (profileName) profileName.textContent = u.name || '—';
             if (profileEmail) profileEmail.textContent = u.email || '—';
             if (profilePhone) profilePhone.textContent = u.phone || '—';
-            const profileImg = document.getElementById('profilePhoto');
-            if (profileImg) {
-              if (u.photo_url) { profileImg.src = u.photo_url; profileImg.style.display = 'block'; }
-              else { profileImg.src = ''; profileImg.style.display = 'block'; }
-            }
             if (profileSince) {
               try {
                 const d = u.created_at ? new Date(u.created_at) : null;
@@ -292,14 +282,8 @@
               <p><strong>Especie:</strong> ${p.species || '—'} | <strong>Raza:</strong> ${p.breed || '—'} | <strong>Color:</strong> ${p.color || '—'}</p>
               <p><strong>Notas:</strong> ${p.notes || '—'}</p>
               <p><strong>Estado:</strong> ${p.status === 'lost' ? 'Perdida' : 'En casa'}</p>
-              <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <img src="${p.photo_url || ''}" alt="${p.name}" onerror="this.style.display='none'" style="width:120px; height:120px; border-radius:8px; object-fit:cover; background:#f1f5f9; border:1px solid #e5e7eb; ${p.photo_url ? '' : 'display:none;'}"/>
-                  <label class="button" style="cursor:pointer;">
-                    <input type="file" accept="image/*" data-pet-upload="${p.id}" style="display:none;" />
-                    Subir foto
-                  </label>
-                </div>
+              ${p.photo_url ? `<img src="${p.photo_url}" alt="${p.name}" style="max-width:200px; border-radius:8px;"/>` : ''}
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <img src="/api/qr/pet/${p.qr_id}.png" alt="QR ${p.name}" style="background:#fff; padding:4px; border-radius:6px; width:120px; height:120px; object-fit:contain" />
                 <a class="button" href="/api/qr/pet/${p.qr_id}.png" download>PNG</a>
                 <a class="button" href="/api/qr/pet/${p.qr_id}.svg" target="_blank">SVG</a>
@@ -329,28 +313,11 @@
               openEditModal(p);
             });
           });
-          // bind pet photo uploads
-          listEl.querySelectorAll('input[data-pet-upload]').forEach(inp => {
-            inp.addEventListener('change', async (e) => {
-              const file = e.target.files && e.target.files[0];
-              if (!file) return;
-              const petId = inp.getAttribute('data-pet-upload');
-              const url = await uploadImage(file).catch(err => { alert('Error al subir imagen: ' + (err?.message || '')); return null; });
-              if (!url) return;
-              const res = await fetch('/api/pets/' + petId + '/photo', {
-                method: 'PUT',
-                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ photo_url: url })
-              });
-              if (!res.ok) { alert('No se pudo guardar la foto'); return; }
-              loadPets();
-            });
-          });
         }
 
         // --- Edit modal logic ---
         let currentEditId = null;
-  const editModal = document.getElementById('editModal');
+        const editModal = document.getElementById('editModal');
         const editClose = document.getElementById('editClose');
         const editCancel = document.getElementById('editCancel');
         const editSave = document.getElementById('editSave');
@@ -405,51 +372,6 @@
           closeEditModal();
           loadPets();
         });
-
-        // --- Profile photo upload ---
-        const profileImg = document.getElementById('profilePhoto');
-        const profileBtn = document.getElementById('profilePhotoBtn');
-        const profileInput = document.getElementById('profilePhotoInput');
-        profileBtn?.addEventListener('click', () => profileInput?.click());
-        profileInput?.addEventListener('change', async (e) => {
-          const file = e.target.files && e.target.files[0];
-          if (!file) return;
-          const url = await uploadImage(file).catch(err => { alert('Error al subir imagen: ' + (err?.message || '')); return null; });
-          if (!url) return;
-          const res = await fetch('/api/me/photo', {
-            method: 'PUT',
-            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ photo_url: url })
-          });
-          if (!res.ok) { alert('No se pudo guardar tu foto'); return; }
-          if (profileImg) profileImg.src = url;
-        });
-
-        // --- Upload helper using Cloudinary unsigned uploads if configured ---
-        let publicCfg = null;
-        async function getPublicCfg() {
-          if (publicCfg) return publicCfg;
-          try {
-            const r = await fetch('/api/public-config');
-            publicCfg = await r.json();
-          } catch { publicCfg = {}; }
-          return publicCfg;
-        }
-        async function uploadImage(file) {
-          const cfg = await getPublicCfg();
-          const cloud = cfg?.cloudinary?.cloudName;
-          const preset = cfg?.cloudinary?.uploadPreset;
-          if (cloud && preset) {
-            const fd = new FormData();
-            fd.append('file', file);
-            fd.append('upload_preset', preset);
-            const resp = await fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(cloud) + '/image/upload', { method: 'POST', body: fd });
-            const data = await resp.json();
-            if (!resp.ok) throw new Error(data?.error?.message || 'upload failed');
-            return data.secure_url || data.url;
-          }
-          throw new Error('Subida no configurada. Agrega CLOUDINARY_CLOUD_NAME y CLOUDINARY_UPLOAD_PRESET en .env o ingresa una URL manual en el campo de foto.');
-        }
       })();
     </script>
   </body>
