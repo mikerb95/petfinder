@@ -96,14 +96,6 @@
           <div id="message" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
         </form>
 
-        <form id="verifyForm" class="demo-form" style="display:none; margin-top:20px" novalidate>
-          <h3>Verifica tu correo</h3>
-          <p class="hero-subtitle">Hemos enviado un código de 6 dígitos a tu correo. Escríbelo para activar tu cuenta.</p>
-          <label class="demo-label" for="vcode">Código de verificación</label>
-          <input class="input" id="vcode" name="vcode" type="text" inputmode="numeric" pattern="[0-9]{6}" placeholder="000000" maxlength="6" />
-          <button class="button button-primary" id="verifyBtn" type="submit">Verificar</button>
-          <div id="verifyMsg" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
-        </form>
       </div>
     </main>
 
@@ -138,11 +130,7 @@
         } catch(_) {}
 
   const form = document.getElementById('registerForm');
-  const verifyForm = document.getElementById('verifyForm');
-  const verifyMsg = document.getElementById('verifyMsg');
-  const verifyBtn = document.getElementById('verifyBtn');
-  let pendingEmail = '';
-  function setVerifyMessage(text, ok) { verifyMsg.textContent = text; verifyMsg.style.color = ok ? '#22c55e' : '#fca5a5'; }
+        
         const msg = document.getElementById('message');
         const btn = document.getElementById('submitBtn');
         function setMessage(text, ok) {
@@ -184,44 +172,17 @@
               const extra = data && data.detail ? ` (${data.detail})` : '';
               throw new Error(base + extra);
             }
-            // New flow: prompt for verification code
-            pendingEmail = payload.email;
-            setMessage('Cuenta creada. Revisa tu correo para el código de verificación.', true);
-            form.style.display = 'none';
-            verifyForm.style.display = '';
-            // In non-production, the backend may return verification_code for testing
-            if (data && data.verification_code) {
-              const v = document.getElementById('vcode'); if (v) v.value = data.verification_code;
-            }
+            // Old flow restored: store token and redirect
+            if (data && data.token) localStorage.setItem('auth_token', data.token);
+            setMessage('Cuenta creada correctamente. Redirigiendo…', true);
+            setTimeout(() => { window.location.href = '/'; }, 900);
           } catch (err) {
             setMessage(err.message || 'Error al registrar', false);
           } finally {
             btn.disabled = false; btn.textContent = 'Crear cuenta';
           }
         });
-        // Verify form submit handler
-        verifyForm.addEventListener('submit', async function(e){
-          e.preventDefault();
-          setVerifyMessage('', true);
-          verifyBtn.disabled = true; verifyBtn.textContent = 'Verificando…';
-          try {
-            const code = (document.getElementById('vcode').value || '').trim();
-            const res = await fetch('/api/auth/verify', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: pendingEmail, code })
-            });
-            const data = await res.json().catch(()=>({}));
-            if (!res.ok) throw new Error(data?.error || 'No se pudo verificar');
-            if (data && data.token) localStorage.setItem('auth_token', data.token);
-            setVerifyMessage('Correo verificado. Redirigiendo…', true);
-            setTimeout(() => { window.location.href = '/'; }, 900);
-          } catch (err) {
-            setVerifyMessage(err.message || 'Error al verificar', false);
-          } finally {
-            verifyBtn.disabled = false; verifyBtn.textContent = 'Verificar';
-          }
-        });
-
+        
         // Mensajes de validacion en español (HTML5)
         (function attachSpanishValidation(){
           function setMessage(el){

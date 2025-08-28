@@ -1,21 +1,14 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { getPool, ensureUserVerificationColumns } = require('../db');
+const { getPool } = require('../db');
 const config = require('../config');
 let Resend; try { Resend = require('resend').Resend; } catch(_) { Resend = null; }
 
 const router = express.Router();
 
-function generateSixDigitCode() {
-  // Returns a zero-padded 6-digit numeric code as string
-  const n = Math.floor(Math.random() * 1000000);
-  return String(n).padStart(6, '0');
-}
-
 router.post('/register', async (req, res) => {
   try {
-  await ensureUserVerificationColumns();
     const { name, last_name, sex, email, password, confirm_password, phone } = req.body || {};
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'nombre, correo y contraseña son obligatorios' });
@@ -30,36 +23,12 @@ router.post('/register', async (req, res) => {
     }
     const passwordHash = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
-      'INSERT INTO users (name, last_name, sex, email, password_hash, phone, email_verified) VALUES (?, ?, ?, ?, ?, ?, 0)',
+      'INSERT INTO users (name, last_name, sex, email, password_hash, phone) VALUES (?, ?, ?, ?, ?, ?)',
       [name, last_name || null, sex || 'unknown', email, passwordHash, phone || null]
     );
     const userId = result.insertId;
-    // Generate 6-digit code and set expiry (15 minutes)
-    const code = generateSixDigitCode();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    await pool.query('UPDATE users SET verification_code = ?, verification_expires_at = ? WHERE id = ?', [code, expiresAt, userId]);
-    // Send email via Resend (only in production)
-    const RK = process.env.RESEND_API_KEY; const FROM = process.env.FROM_EMAIL || 'no-reply@localhost';
-    if (Resend && RK && process.env.NODE_ENV === 'production') {
-      try {
-        const resend = new Resend(RK);
-        const subject = 'Tu código de verificación — Petfinder';
-        const html = `
-          <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
-            <h2>Verifica tu correo</h2>
-            <p>Usa este código para completar tu registro. Expira en 15 minutos:</p>
-            <p style="font-size:24px; letter-spacing: 4px; font-weight:700">${code}</p>
-            <p style="color:#6b7280;font-size:14px">Si no hiciste este registro, ignora este correo.</p>
-          </div>`;
-        await resend.emails.send({ from: FROM, to: email, subject, html });
-      } catch (e) {
-        console.error('resend verify code error', e?.message);
-      }
-    }
-    // In non-production, return the code to ease testing
-    const payload = { user: { id: userId, name, last_name: last_name || null, sex: sex || 'unknown', email, phone: phone || null } };
-    if (process.env.NODE_ENV !== 'production') payload.verification_code = code;
-    res.status(201).json(payload);
+    const token = jwt.sign({ sub: userId, email }, config.jwtSecret, { expiresIn: '7d' });
+    res.status(201).json({ token, user: { id: userId, name, last_name: last_name || null, sex: sex || 'unknown', email, phone: phone || null } });
   } catch (err) {
   console.error('register error', err);
   if (process.env.NODE_ENV !== 'production') {
@@ -71,23 +40,19 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-  await ensureUserVerificationColumns();
     const { email, password } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ error: 'correo y contraseña son obligatorios' });
     }
     const pool = getPool();
     const [rows] = await pool.query(
-      'SELECT id, name, last_name, sex, email, password_hash, phone, email_verified FROM users WHERE email = ?',
+  'SELECT id, name, last_name, sex, email, password_hash, phone FROM users WHERE email = ?',
       [email]
     );
   if (!rows.length) return res.status(401).json({ error: 'credenciales inválidas' });
     const user = rows[0];
     const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return res.status(401).json({ error: 'credenciales inválidas' });
-    if (!user.email_verified) {
-      return res.status(403).json({ error: 'correo no verificado' });
-    }
     const token = jwt.sign({ sub: user.id, email: user.email }, config.jwtSecret, { expiresIn: '7d' });
   res.json({ token, user: { id: user.id, name: user.name, last_name: user.last_name, sex: user.sex, email: user.email, phone: user.phone } });
   } catch (err) {
@@ -172,36 +137,4 @@ router.post('/reset', async (req, res) => {
 });
 
 // --- Verificación de correo con código de 6 dígitos ---
-router.post('/verify', async (req, res) => {
-  try {
-  await ensureUserVerificationColumns();
-    const { email, code } = req.body || {};
-    const emailNorm = (email || '').trim().toLowerCase();
-    const codeNorm = String(code || '').trim();
-    if (!emailNorm || !codeNorm) return res.status(400).json({ error: 'correo y codigo son obligatorios' });
-    if (!/^[0-9]{6}$/.test(codeNorm)) return res.status(400).json({ error: 'el codigo debe tener 6 digitos' });
-    const pool = getPool();
-    const [rows] = await pool.query(
-      'SELECT id, verification_code, verification_expires_at, email_verified FROM users WHERE email = ? LIMIT 1',
-      [emailNorm]
-    );
-    if (!rows.length) return res.status(404).json({ error: 'usuario no encontrado' });
-    const u = rows[0];
-    if (u.email_verified) return res.json({ ok: true, message: 'correo ya verificado' });
-    const now = new Date();
-    const exp = u.verification_expires_at ? new Date(u.verification_expires_at) : null;
-    if (!u.verification_code || !exp || now > exp) {
-      return res.status(400).json({ error: 'codigo invalido o expirado' });
-    }
-    if (String(u.verification_code) !== codeNorm) {
-      return res.status(400).json({ error: 'codigo incorrecto' });
-    }
-    await pool.query('UPDATE users SET email_verified = 1, verification_code = NULL, verification_expires_at = NULL WHERE id = ?', [u.id]);
-    // Issue auth token upon successful verification
-    const token = jwt.sign({ sub: u.id, email: emailNorm }, config.jwtSecret, { expiresIn: '7d' });
-    return res.json({ ok: true, token });
-  } catch (err) {
-    console.error('verify error', err);
-    return res.status(500).json({ error: 'error interno del servidor' });
-  }
-});
+// (verificación por código eliminada)
