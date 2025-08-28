@@ -23,9 +23,15 @@
         <form id="resetForm" class="demo-form" novalidate>
           <input type="hidden" id="token" />
           <label class="demo-label" for="password">Nueva contraseña</label>
-          <input class="input" id="password" name="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" />
+          <div style="position:relative;">
+            <input class="input" id="password" name="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" style="padding-right:42px;" />
+            <button type="button" id="pwToggle" aria-label="Mostrar contraseña mientras se presiona" title="Mantén presionado para ver" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:#f3f4f6; color:#111; border:1px solid #e5e7eb; border-radius:8px; padding:4px 6px; cursor:pointer;">👁️</button>
+          </div>
           <label class="demo-label" for="confirm_password">Confirmar contraseña</label>
-          <input class="input" id="confirm_password" name="confirm_password" type="password" required minlength="6" placeholder="Repite la contraseña" />
+          <div style="position:relative;">
+            <input class="input" id="confirm_password" name="confirm_password" type="password" required minlength="6" placeholder="Repite la contraseña" style="padding-right:42px;" />
+            <button type="button" id="pwToggle2" aria-label="Mostrar confirmación mientras se presiona" title="Mantén presionado para ver" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:#f3f4f6; color:#111; border:1px solid #e5e7eb; border-radius:8px; padding:4px 6px; cursor:pointer;">👁️</button>
+          </div>
           <button class="button button-primary" id="submitBtn" type="submit">Actualizar contraseña</button>
           <div id="message" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
         </form>
@@ -44,6 +50,23 @@
 
     <script>
       (function(){
+        // Press-and-hold password reveal
+        (function(){
+          function bindHold(btnId, inputId){
+            const btn = document.getElementById(btnId);
+            const input = document.getElementById(inputId);
+            if (!btn || !input) return;
+            const show = () => { input.setAttribute('type','text'); };
+            const hide = () => { input.setAttribute('type','password'); };
+            btn.addEventListener('mousedown', show);
+            btn.addEventListener('mouseup', hide);
+            btn.addEventListener('mouseleave', hide);
+            btn.addEventListener('touchstart', (e)=>{ e.preventDefault(); show(); }, {passive:false});
+            btn.addEventListener('touchend', hide);
+          }
+          bindHold('pwToggle','password');
+          bindHold('pwToggle2','confirm_password');
+        })();
         const params = new URLSearchParams(window.location.search);
         const token = params.get('token');
         if (token) document.getElementById('token').value = token;

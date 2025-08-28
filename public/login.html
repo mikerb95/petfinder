@@ -27,7 +27,10 @@
           <input class="input" id="email" name="email" type="email" required placeholder="tu@correo.com" />
 
           <label class="demo-label" for="password">Contraseña</label>
-          <input class="input" id="password" name="password" type="password" required placeholder="Tu contraseña" />
+          <div class="pw-wrap" style="position:relative;">
+            <input class="input" id="password" name="password" type="password" required placeholder="Tu contraseña" style="padding-right:42px;" />
+            <button type="button" id="pwToggle" aria-label="Mostrar contraseña mientras se presiona" title="Mantén presionado para ver" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:#f3f4f6; color:#111; border:1px solid #e5e7eb; border-radius:8px; padding:4px 6px; cursor:pointer;">👁️</button>
+          </div>
 
           <button class="button button-primary" id="submitBtn" type="submit">Entrar</button>
           <p style="margin-top:8px">¿Olvidaste tu contraseña? <a href="/forgot">Recupérala</a></p>
@@ -51,6 +54,19 @@
 
     <script>
       (function () {
+        // Press-and-hold password reveal
+        (function(){
+          const input = document.getElementById('password');
+          const btn = document.getElementById('pwToggle');
+          if (!input || !btn) return;
+          const show = () => { input.setAttribute('type','text'); };
+          const hide = () => { input.setAttribute('type','password'); };
+          btn.addEventListener('mousedown', show);
+          btn.addEventListener('mouseup', hide);
+          btn.addEventListener('mouseleave', hide);
+          btn.addEventListener('touchstart', (e)=>{ e.preventDefault(); show(); }, {passive:false});
+          btn.addEventListener('touchend', hide);
+        })();
         // Show header name if already logged in
         try {
           const t = localStorage.getItem('auth_token');

@@ -85,9 +85,15 @@
           <!-- Se eliminan restricciones de formato/largo en teléfono -->
 
           <label class="demo-label" for="password">Contraseña</label>
-          <input class="input" id="password" name="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" />
+          <div style="position:relative;">
+            <input class="input" id="password" name="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" style="padding-right:42px;" />
+            <button type="button" id="pwToggle" aria-label="Mostrar contraseña mientras se presiona" title="Mantén presionado para ver" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:#f3f4f6; color:#111; border:1px solid #e5e7eb; border-radius:8px; padding:4px 6px; cursor:pointer;">👁️</button>
+          </div>
           <label class="demo-label" for="confirm_password">Confirmar contraseña</label>
-          <input class="input" id="confirm_password" name="confirm_password" type="password" required minlength="6" placeholder="Repite la contraseña" />
+          <div style="position:relative;">
+            <input class="input" id="confirm_password" name="confirm_password" type="password" required minlength="6" placeholder="Repite la contraseña" style="padding-right:42px;" />
+            <button type="button" id="pwToggle2" aria-label="Mostrar confirmación mientras se presiona" title="Mantén presionado para ver" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:#f3f4f6; color:#111; border:1px solid #e5e7eb; border-radius:8px; padding:4px 6px; cursor:pointer;">👁️</button>
+          </div>
           <div id="pwdError" class="demo-help" style="color:#fca5a5;display:none;margin-bottom:8px"></div>
 
           <button class="button button-primary" id="submitBtn" type="submit">Crear cuenta</button>
@@ -112,6 +118,23 @@
 
     <script>
       (function () {
+        // Press-and-hold reveal for passwords
+        (function(){
+          function bindHold(btnId, inputId){
+            const btn = document.getElementById(btnId);
+            const input = document.getElementById(inputId);
+            if (!btn || !input) return;
+            const show = () => { input.setAttribute('type','text'); };
+            const hide = () => { input.setAttribute('type','password'); };
+            btn.addEventListener('mousedown', show);
+            btn.addEventListener('mouseup', hide);
+            btn.addEventListener('mouseleave', hide);
+            btn.addEventListener('touchstart', (e)=>{ e.preventDefault(); show(); }, {passive:false});
+            btn.addEventListener('touchend', hide);
+          }
+          bindHold('pwToggle','password');
+          bindHold('pwToggle2','confirm_password');
+        })();
           // If already logged, go to dashboard
           try {
             const t = localStorage.getItem('auth_token');
