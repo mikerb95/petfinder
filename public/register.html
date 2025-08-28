@@ -80,23 +80,9 @@
               <option value="+507">🇵🇦 +507 (Panamá)</option>
               <option value="+58">🇻🇪 +58 (Venezuela)</option>
             </select>
-            <input class="input" id="phone" name="phone" type="tel" required placeholder="3000000000" />
+            <input class="input" id="phone" name="phone" type="tel" required placeholder="Número de teléfono" />
           </div>
-          <div id="phoneError" class="demo-help" style="color:#fca5a5;display:none;margin-bottom:8px"></div>
-          <script>
-            const phoneInput = document.getElementById('phone');
-            const phoneError = document.getElementById('phoneError');
-            phoneInput.addEventListener('input', function () {
-              const digits = phoneInput.value.replace(/\D/g, '');
-              if (!digits.length) {
-                phoneError.textContent = 'Ingresa el número usando solo dígitos';
-                phoneError.style.display = 'block';
-                return;
-              }
-              phoneError.textContent = '';
-              phoneError.style.display = 'none';
-            });
-          </script>
+          <!-- Se eliminan restricciones de formato/largo en teléfono -->
 
           <label class="demo-label" for="password">Contraseña</label>
           <input class="input" id="password" name="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" />
@@ -168,14 +154,14 @@
           setMessage('', true);
           btn.disabled = true; btn.textContent = 'Creando…';
           const cc = document.getElementById('countryCode');
-          const localDigits = document.getElementById('phone').value.replace(/\D/g, '');
-          if (!localDigits) { setMessage('Ingresa un teléfono válido', false); btn.disabled = false; btn.textContent = 'Crear cuenta'; return; }
+          const phoneRaw = document.getElementById('phone').value.trim();
+          if (!phoneRaw) { setMessage('Ingresa un teléfono', false); btn.disabled = false; btn.textContent = 'Crear cuenta'; return; }
           const payload = {
             name: document.getElementById('name').value.trim(),
             last_name: document.getElementById('last_name').value.trim() || undefined,
             sex: document.getElementById('sex').value,
             email: document.getElementById('email').value.trim(),
-            phone: (cc && cc.value ? cc.value : '') + localDigits || undefined,
+            phone: ((cc && cc.value ? cc.value + ' ' : '') + phoneRaw) || undefined,
             password: document.getElementById('password').value,
             confirm_password: document.getElementById('confirm_password').value
           };

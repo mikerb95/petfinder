@@ -203,9 +203,42 @@
                     <input id="e_photo" class="input" type="url" placeholder="https://…" />
                   </div>
                 </div>
-                <div>
-                  <label class="demo-label" for="e_notes">Notas</label>
-                  <input id="e_notes" class="input" type="text" />
+                <div class="grid">
+                  <div>
+                    <label class="demo-label" for="e_notes">Notas</label>
+                    <input id="e_notes" class="input" type="text" />
+                  </div>
+                  <div>
+                    <label class="demo-label" for="e_birthdate">Fecha de nacimiento</label>
+                    <input id="e_birthdate" class="input" type="date" />
+                  </div>
+                  <div>
+                    <label class="demo-label" for="e_sex">Sexo</label>
+                    <select id="e_sex" class="input">
+                      <option value="unknown">—</option>
+                      <option value="male">Macho</option>
+                      <option value="female">Hembra</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="demo-label" for="e_weight">Peso (kg)</label>
+                    <input id="e_weight" class="input" type="number" step="0.01" />
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px; padding-top:26px;">
+                    <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="e_sterilized" /> Esterilizado</label>
+                  </div>
+                  <div>
+                    <label class="demo-label" for="e_chip">Microchip ID</label>
+                    <input id="e_chip" class="input" type="text" />
+                  </div>
+                  <div>
+                    <label class="demo-label" for="e_last_vet">Última visita al vet.</label>
+                    <input id="e_last_vet" class="input" type="date" />
+                  </div>
+                  <div>
+                    <label class="demo-label" for="e_vaccine_card">URL carnet de vacunas</label>
+                    <input id="e_vaccine_card" class="input" type="url" placeholder="https://…" />
+                  </div>
                 </div>
               </form>
             </div>
@@ -414,9 +447,16 @@
         const e_species = document.getElementById('e_species');
         const e_breed = document.getElementById('e_breed');
         const e_color = document.getElementById('e_color');
-        const e_notes = document.getElementById('e_notes');
+  const e_notes = document.getElementById('e_notes');
         const e_status = document.getElementById('e_status');
         const e_photo = document.getElementById('e_photo');
+  const e_birthdate = document.getElementById('e_birthdate');
+  const e_sex = document.getElementById('e_sex');
+  const e_weight = document.getElementById('e_weight');
+  const e_sterilized = document.getElementById('e_sterilized');
+  const e_chip = document.getElementById('e_chip');
+  const e_last_vet = document.getElementById('e_last_vet');
+  const e_vaccine_card = document.getElementById('e_vaccine_card');
 
         function openEditModal(p) {
           currentEditId = p.id;
@@ -442,6 +482,13 @@
             }
           })();
           if (e_photo) e_photo.value = p.photo_url || '';
+          if (e_birthdate) e_birthdate.value = p.birthdate ? new Date(p.birthdate).toISOString().slice(0,10) : '';
+          if (e_sex) e_sex.value = p.sex || 'unknown';
+          if (e_weight) e_weight.value = (p.weight_kg ?? '')
+          if (e_sterilized) e_sterilized.checked = !!p.sterilized;
+          if (e_chip) e_chip.value = p.microchip_id || '';
+          if (e_last_vet) e_last_vet.value = p.last_vet_visit ? new Date(p.last_vet_visit).toISOString().slice(0,10) : '';
+          if (e_vaccine_card) e_vaccine_card.value = p.vaccine_card_url || '';
           editModal.style.display = 'flex';
           setTimeout(() => { if (e_name) e_name.focus(); }, 0);
         }
@@ -465,7 +512,14 @@
             color: e_color.value.trim(),
             notes: e_notes.value.trim(),
             status: e_status.value,
-            photo_url: e_photo.value.trim()
+            photo_url: e_photo.value.trim(),
+            birthdate: e_birthdate.value || undefined,
+            sex: e_sex.value || undefined,
+            weight_kg: (function(){ const v = e_weight.value; return v ? parseFloat(v) : undefined; })(),
+            sterilized: !!e_sterilized.checked,
+            microchip_id: e_chip.value.trim() || undefined,
+            last_vet_visit: e_last_vet.value || undefined,
+            vaccine_card_url: e_vaccine_card.value.trim() || undefined
           };
           const res = await fetch('/api/pets/' + currentEditId, {
             method: 'PUT',
