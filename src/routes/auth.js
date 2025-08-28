@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { getPool } = require('../db');
+const { getPool, ensureUserVerificationColumns } = require('../db');
 const config = require('../config');
 let Resend; try { Resend = require('resend').Resend; } catch(_) { Resend = null; }
 
@@ -15,6 +15,7 @@ function generateSixDigitCode() {
 
 router.post('/register', async (req, res) => {
   try {
+  await ensureUserVerificationColumns();
     const { name, last_name, sex, email, password, confirm_password, phone } = req.body || {};
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'nombre, correo y contraseña son obligatorios' });
@@ -61,12 +62,16 @@ router.post('/register', async (req, res) => {
     res.status(201).json(payload);
   } catch (err) {
   console.error('register error', err);
+  if (process.env.NODE_ENV !== 'production') {
+    return res.status(500).json({ error: 'error interno del servidor', detail: err.code || err.message });
+  }
   res.status(500).json({ error: 'error interno del servidor' });
   }
 });
 
 router.post('/login', async (req, res) => {
   try {
+  await ensureUserVerificationColumns();
     const { email, password } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ error: 'correo y contraseña son obligatorios' });
@@ -169,6 +174,7 @@ router.post('/reset', async (req, res) => {
 // --- Verificación de correo con código de 6 dígitos ---
 router.post('/verify', async (req, res) => {
   try {
+  await ensureUserVerificationColumns();
     const { email, code } = req.body || {};
     const emailNorm = (email || '').trim().toLowerCase();
     const codeNorm = String(code || '').trim();
