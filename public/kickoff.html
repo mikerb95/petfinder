@@ -278,6 +278,29 @@
         </div>
       </section>
 
+      <!-- Escena 8: Vistas de la aplicación -->
+      <section class="ko-stage" data-anim="views">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="viewsCard" class="card-demo anim-el" style="width:min(80vw,900px);">
+              <div class="row"><strong>Inicio</strong><span>Ruta <code>/</code>. Landing con CTA y acceso al escáner QR.</span></div>
+              <div class="row"><strong>Registro</strong><span>Ruta <code>/register</code>. Crear cuenta (nombre, apellido, sexo, validación de contraseña).</span></div>
+              <div class="row"><strong>Login</strong><span>Ruta <code>/login</code>. Acceso con correo y contraseña (JWT).</span></div>
+              <div class="row"><strong>Panel</strong><span>Ruta <code>/dashboard</code>. CRUD de mascotas, QR PNG/SVG y datos de salud básicos.</span></div>
+              <div class="row"><strong>Ficha pública</strong><span>Ruta <code>/p/:qrId</code>. Vista pública con datos mínimos y contacto del dueño.</span></div>
+              <div class="row"><strong>Escáner QR</strong><span>Ruta <code>/scan</code>. Lector de QR del navegador para abrir <code>/p/:qrId</code>.</span></div>
+              <div class="row"><strong>Términos</strong><span>Ruta <code>/terms</code>. Condiciones de uso.</span></div>
+              <div class="row"><strong>Privacidad</strong><span>Ruta <code>/privacy</code>. Tratamiento de datos personales.</span></div>
+              <div class="row"><strong>Kickoff</strong><span>Ruta <code>/kickoff</code>. Esta presentación del producto.</span></div>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Vistas principales</h2>
+            <p class="anim-text">Las “vistas” son pantallas clave de la app. Cubren el ciclo completo: registro/login, gestión en panel y consulta pública mediante QR.</p>
+          </div>
+        </div>
+      </section>
+
       <section class="ko-cta">
         <div class="container" style="max-width:1100px;">
           <h2>Listo para probar</h2>
@@ -296,7 +319,7 @@
         <div class="footer-credit">Creado por Mike Rodríguez</div>
         <nav class="footer-nav" aria-label="Footer">
           <a href="/terms">Términos</a>
-          <a href="#">Privacidad</a>
+            <a href="/privacy">Privacidad</a>
         </nav>
       </div>
     </footer>
@@ -388,6 +411,7 @@
             else if (type === 'data') animCard('dataCard','dataText', p);
             else if (type === 'deploy') animCard('deployCard','deployText', p);
             else if (type === 'security') animCard('securityCard','securityText', p);
+            else if (type === 'views') animCard('viewsCard','viewsText', p);
           });
           rafId = requestAnimationFrame(onFrame);
         }
@@ -399,6 +423,8 @@
         els.set('dashText', sectionTexts('[data-anim="dashboard"]'));
         els.set('publicCard', document.getElementById('publicCard'));
         els.set('publicText', sectionTexts('[data-anim="public"]'));
+      els.set('viewsCard', document.getElementById('viewsCard'));
+      els.set('viewsText', sectionTexts('[data-anim="views"]'));
   els.set('archCard', document.getElementById('archCard'));
   els.set('archText', sectionTexts('[data-anim="arch"]'));
   els.set('dataCard', document.getElementById('dataCard'));
@@ -406,7 +432,7 @@
   els.set('deployCard', document.getElementById('deployCard'));
   els.set('deployText', sectionTexts('[data-anim="deploy"]'));
   els.set('securityCard', document.getElementById('securityCard'));
-  els.set('securityText', sectionTexts('[data-anim="security"]'));
+    els.set('securityText', sectionTexts('[data-anim="security"]'));
 
         function sectionTexts(sel){
           const s = document.querySelector(sel);
