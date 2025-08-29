@@ -72,8 +72,7 @@ app.put('/api/me', requireAuth, async (req, res) => {
          last_name = COALESCE(?, last_name),
          sex = COALESCE(?, sex),
          email = COALESCE(?, email),
-         phone = COALESCE(?, phone),
-         updated_at = NOW()
+         phone = COALESCE(?, phone)
        WHERE id = ?`,
       [name ?? null, (last_name ?? null), (sex ?? null), (email ?? null), (phone ?? null), userId]
     );
