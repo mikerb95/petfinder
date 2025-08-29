@@ -198,8 +198,24 @@
                   <input id="pf_email" class="input" type="email" />
                 </div>
                 <div style="grid-column: 1 / -1;">
-                  <label class="demo-label" for="pf_phone">Teléfono</label>
-                  <input id="pf_phone" class="input" type="text" />
+                  <label class="demo-label" for="pf_phone_num">Teléfono</label>
+                  <div class="demo-inputs" style="display:flex; gap:8px; align-items:center;">
+                    <select class="input" id="pf_cc" aria-label="Código de país" style="max-width:180px;">
+                      <option value="+57">🇨🇴 +57 (Colombia)</option>
+                      <option value="+52">🇲🇽 +52 (México)</option>
+                      <option value="+54">🇦🇷 +54 (Argentina)</option>
+                      <option value="+56">🇨🇱 +56 (Chile)</option>
+                      <option value="+51">🇵🇪 +51 (Perú)</option>
+                      <option value="+34">🇪🇸 +34 (España)</option>
+                      <option value="+1">🇺🇸 +1 (Estados Unidos)</option>
+                      <option value="+593">🇪🇨 +593 (Ecuador)</option>
+                      <option value="+598">🇺🇾 +598 (Uruguay)</option>
+                      <option value="+505">🇳🇮 +505 (Nicaragua)</option>
+                      <option value="+507">🇵🇦 +507 (Panamá)</option>
+                      <option value="+58">🇻🇪 +58 (Venezuela)</option>
+                    </select>
+                    <input id="pf_phone_num" class="input" type="tel" inputmode="numeric" placeholder="Número sin prefijo" />
+                  </div>
                 </div>
                 <div style="grid-column: 1 / -1;">
                   <label class="demo-label" for="pf_city">Ciudad</label>
@@ -339,7 +355,8 @@
   const pf_last = document.getElementById('pf_last');
   const pf_sex = document.getElementById('pf_sex');
   const pf_email = document.getElementById('pf_email');
-  const pf_phone = document.getElementById('pf_phone');
+  const pf_cc = document.getElementById('pf_cc');
+  const pf_phone_num = document.getElementById('pf_phone_num');
   const pf_city = document.getElementById('pf_city');
   const profileMsg = document.getElementById('profileMsg');
 
@@ -375,7 +392,17 @@
             if (pf_last) pf_last.value = u.last_name || '';
             if (pf_sex) pf_sex.value = u.sex || 'unknown';
             if (pf_email) pf_email.value = u.email || '';
-            if (pf_phone) pf_phone.value = u.phone || '';
+            // Parse phone into country code + number if possible
+            (function(){
+              const raw = u.phone || '';
+              const m = raw.match(/^\s*(\+\d{1,3})\s*(.*)$/);
+              if (m) {
+                if (pf_cc) pf_cc.value = m[1];
+                if (pf_phone_num) pf_phone_num.value = (m[2] || '').trim();
+              } else {
+                if (pf_phone_num) pf_phone_num.value = raw;
+              }
+            })();
             if (pf_city) pf_city.value = u.city || '';
         function openProfileModal(){ profileMsg.textContent=''; profileModal.style.display='flex'; setTimeout(()=>{ pf_name?.focus(); },0); }
         function closeProfileModal(){ profileModal.style.display='none'; }
@@ -391,7 +418,11 @@
             last_name: pf_last?.value?.trim() || undefined,
             sex: pf_sex?.value || undefined,
             email: pf_email?.value?.trim() || undefined,
-            phone: pf_phone?.value?.trim() || undefined,
+            phone: (function(){
+              const cc = pf_cc?.value || '';
+              const num = pf_phone_num?.value?.trim() || '';
+              return num ? ((cc ? (cc + ' ') : '') + num) : undefined;
+            })(),
             city: pf_city?.value?.trim() || undefined,
           };
           const res = await fetch('/api/me', { method:'PUT', headers:{ 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
