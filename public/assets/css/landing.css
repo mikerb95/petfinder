@@ -101,6 +101,27 @@ h3 { font-size: clamp(18px, 2.4vw, 22px); line-height: 1.3; margin: 0 0 8px; }
 .input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(20,184,166,0.22); }
 .demo-help { color: var(--color-muted); font-size: .9rem; }
 
+/* Input adornments (icons/buttons inside inputs) */
+.field-with-icon { position: relative; }
+.field-with-icon > .input { padding-right: 44px; }
+.field-with-icon .icon-toggle {
+   position: absolute;
+   right: 10px;
+   top: 50%;
+   transform: translateY(-50%);
+   background: transparent;
+   color: var(--color-muted);
+   border: 0;
+   width: 30px;
+   height: 30px;
+   display: grid;
+   place-items: center;
+   cursor: pointer;
+   z-index: 1;
+}
+.field-with-icon .icon-toggle:hover { color: var(--color-text); }
+.field-with-icon .icon-toggle:focus-visible { outline: 3px solid rgba(59,130,246,0.35); border-radius: 6px; }
+
 
 /* 
    Estilo para el contenedor de la ilustracion QR.
