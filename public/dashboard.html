@@ -491,6 +491,7 @@
           if (!data.pets.length) { listEl.textContent = 'Aún no tienes mascotas registradas.'; return; }
           listEl.innerHTML = '';
           for (const p of data.pets) {
+            const sexTxt = (p && p.sex === 'male') ? 'Macho' : (p && p.sex === 'female') ? 'Hembra' : '—';
             const card = document.createElement('div');
             card.className = 'feature-item';
             card.innerHTML = `
@@ -498,7 +499,7 @@
               <p><strong>Especie:</strong> ${p.species || '—'} | <strong>Raza:</strong> ${p.breed || '—'} | <strong>Color:</strong> ${p.color || '—'}</p>
               <p><strong>Notas:</strong> ${p.notes || '—'}</p>
               <p><strong>Estado:</strong> ${p.status === 'lost' ? 'Perdida' : 'En casa'}</p>
-              <p style="color:#6b7280"><strong>Salud:</strong> ${p.sex || '—'} · ${p.sterilized ? 'Esterilizado' : 'Sin esterilizar'} · ${p.weight_kg ? (p.weight_kg + ' kg') : '—'} · ${p.birthdate ? ('Nac.: ' + new Date(p.birthdate).toLocaleDateString()) : 'Nac.: —'} ${p.microchip_id ? ('· Chip: ' + p.microchip_id) : ''}</p>
+              <p style="color:#6b7280"><strong>Salud:</strong> ${sexTxt} · ${p.sterilized ? 'Esterilizado' : 'Sin esterilizar'} · ${p.weight_kg ? (p.weight_kg + ' kg') : '—'} · ${p.birthdate ? ('Nac.: ' + new Date(p.birthdate).toLocaleDateString()) : 'Nac.: —'} ${p.microchip_id ? ('· Chip: ' + p.microchip_id) : ''}</p>
               ${p.photo_url ? `<img src="${p.photo_url}" alt="${p.name}" style="max-width:200px; border-radius:8px;"/>` : ''}
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <img src="/api/qr/pet/${p.qr_id}.png" alt="QR ${p.name}" style="background:#fff; padding:4px; border-radius:6px; width:120px; height:120px; object-fit:contain" />
