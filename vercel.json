@@ -12,7 +12,7 @@
   { "src": "^/order_confirmed/?$", "dest": "/api/index.js" },
   { "src": "^/order_lookup/?$", "dest": "/api/index.js" },
   { "src": "^/contact/?$", "dest": "/api/index.js" },
-    { "src": "^/dashboard$", "dest": "/api/index.js" },
+    { "src": "^/dashboard/?$", "dest": "/api/index.js" },
   { "src": "^/admin/products/?$", "dest": "/api/index.js" },
   { "src": "^/admin/blog/?$", "dest": "/api/index.js" },
     { "src": "^/assets/(.*)$", "dest": "/public/assets/$1" },
@@ -23,7 +23,7 @@
   { "src": "^/sw\\.js$", "dest": "/public/sw.js" },
     { "src": "^/api/(.*)$", "dest": "/api/index.js" },
     { "src": "^/p/(.*)$", "dest": "/api/index.js" },
-  { "src": "^/(login|register|scan|terms|kickoff|privacy|forgot|reset)$", "dest": "/api/index.js" },
+  { "src": "^/(login|register|scan|terms|kickoff|privacy|forgot|reset)/?$", "dest": "/api/index.js" },
     { "src": ".*", "status": 404, "dest": "/public/404.html" }
   ]
 }
