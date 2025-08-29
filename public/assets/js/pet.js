@@ -10,8 +10,25 @@
     var content = $('content'); var legend = $('cityLegend');
     if (!content || !legend) return;
     if (!city) { legend.style.display = 'none'; content.style.removeProperty('--city-silhouette'); return; }
-    // Build a simple generic skyline SVG as data URL to avoid external requests
-    var svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 200' preserveAspectRatio='xMidYMax slice'><path fill='%23000' d='M0,200 L0,140 40,140 40,120 70,120 70,90 110,90 110,150 150,150 150,110 190,110 190,130 230,130 230,100 300,100 300,160 360,160 360,80 400,80 400,140 450,140 450,110 520,110 520,170 580,170 580,130 640,130 640,150 700,150 700,120 760,120 760,200 Z'/></svg>";
+    // Build an abstract aerial map-style SVG (roads/blocks/parks/water)
+    var svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800' preserveAspectRatio='xMidYMid slice'>"
+      + "<rect width='1200' height='800' fill='%23e5e7eb'/>" // base
+      + "<g stroke='%23cbd5e1' stroke-width='6' fill='none' opacity='0.8'>" // main roads
+      + "<path d='M0,100 L1200,220'/><path d='M0,500 L1200,620'/><path d='M200,0 L320,800'/><path d='M800,0 L920,800'/>"
+      + "</g>"
+      + "<g stroke='%23e2e8f0' stroke-width='2' fill='none' opacity='0.9'>" // secondary roads grid
+      + (function(){ var s=''; for(var x=60;x<1200;x+=120){ s += "<path d='M"+x+",0 L"+x+",800'/>"; } for(var y=60;y<800;y+=120){ s += "<path d='M0,"+y+" L1200,"+y+"'/>"; } return s; })()
+      + "</g>"
+      + "<g fill='%23bfdbfe' opacity='0.65'>" // water bodies
+      + "<ellipse cx='980' cy='180' rx='120' ry='70'/><ellipse cx='260' cy='640' rx='140' ry='80'/>"
+      + "</g>"
+      + "<g fill='%23a7f3d0' opacity='0.7'>" // parks
+      + "<rect x='120' y='160' width='180' height='120' rx='20'/><rect x='720' y='520' width='200' height='140' rx='24'/>"
+      + "</g>"
+      + "<g stroke='%2394a3b8' stroke-width='1' fill='none' opacity='0.6'>" // block outlines
+      + (function(){ var s=''; for(var x=0;x<1200;x+=120){ for(var y=0;y<800;y+=120){ s += "<rect x='"+x+"' y='"+y+"' width='120' height='120'/>"; } } return s; })()
+      + "</g>"
+      + "</svg>";
     var url = "url(\"data:image/svg+xml;utf8," + encodeURIComponent(svg) + "\")";
     content.style.setProperty('--city-silhouette', url);
     legend.textContent = 'Ciudad: ' + city;

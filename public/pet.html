@@ -9,7 +9,7 @@
       body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
   .card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); position: relative; overflow:hidden; }
   /* City silhouette as a faint background on the card */
-  .card::after { content:""; position:absolute; inset:0; pointer-events:none; background-image: var(--city-silhouette, none); background-repeat:no-repeat; background-position: right -10px bottom -6px; background-size: min(70%, 540px) auto; opacity: 0.08; }
+  .card::after { content:""; position:absolute; inset:0; pointer-events:none; background-image: var(--city-silhouette, none); background-repeat:no-repeat; background-position: center; background-size: 1200px auto; opacity: 0.12; }
   /* Ensure dark text on white card for readability */
   .card, .card h1, .card h2, .card h3, .card p, .card li, .card a, .card dl { color:#111; }
   .card .button { color:#111; background:#fff; border:1px solid #cfcfcf; }
