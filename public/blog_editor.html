@@ -15,7 +15,20 @@
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="/"><span class="brand-mark">🐾</span><span class="brand-name">Petfinder</span></a>
-      <nav class="main-nav"><a href="/shop">Tienda</a><a href="/blog">Blog</a><a href="/dashboard">Dashboard</a></nav>
+      <nav class="main-nav">
+        <a href="/shop">Tienda</a>
+        <a href="/blog">Blog</a>
+        <a id="loginLink" href="/login">Ingresar</a>
+        <span id="userWrap" style="position:relative;display:inline-block;">
+          <button id="userMenuBtn" type="button" class="button" style="display:none;">Hola, <span id="userName"></span> ▾</button>
+          <div id="userMenu" class="card" style="position:absolute;right:0;top:calc(100% + 8px);min-width:180px;display:none;z-index:50;">
+            <div class="card-body" style="display:flex;flex-direction:column;gap:6px;">
+              <a class="button" href="/dashboard">Panel</a>
+              <button id="logoutBtn" class="button" type="button">Cerrar sesión</button>
+            </div>
+          </div>
+        </span>
+      </nav>
     </div>
   </header>
   <main class="section">
@@ -53,6 +66,43 @@
       </nav>
     </div>
   </footer>
+  <script>
+    // Header user dropdown (Dashboard + Logout)
+    (function(){
+      try {
+        const t = localStorage.getItem('auth_token');
+        const login = document.getElementById('loginLink');
+        const wrap = document.getElementById('userWrap');
+        const btn = document.getElementById('userMenuBtn');
+        const menu = document.getElementById('userMenu');
+        const nameEl = document.getElementById('userName');
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (!t) { if (btn) btn.style.display='none'; if (menu) menu.style.display='none'; return; }
+        fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + t }})
+          .then(r => r.ok ? r.json() : null)
+          .then(d => {
+            if (!d || !d.user) return;
+            if (login) login.style.display = 'none';
+            if (nameEl) nameEl.textContent = d.user.name || 'Usuario';
+            if (btn) btn.style.display = 'inline-block';
+          }).catch(()=>{});
+        if (btn && menu && wrap) {
+          btn.addEventListener('click', () => {
+            menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+          });
+          document.addEventListener('click', (e) => {
+            if (!wrap.contains(e.target)) menu.style.display = 'none';
+          });
+        }
+        if (logoutBtn) {
+          logoutBtn.addEventListener('click', () => {
+            try { localStorage.removeItem('auth_token'); } catch(_){ }
+            window.location.href = '/';
+          });
+        }
+      } catch(_) {}
+    })();
+  </script>
   <script>
     const qs = new URLSearchParams(location.search);
     const postId = qs.get('post_id');
