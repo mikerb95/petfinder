@@ -4,38 +4,47 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Blog - Petfinder</title>
-  <link rel="stylesheet" href="/assets/css/style.css" />
+  <link rel="stylesheet" href="/assets/css/landing.css" />
   <style>
-    .blog-container{max-width:960px;margin:0 auto;padding:16px}
-    .post-card{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:12px 0;background:#fff}
-    .post-title{font-size:1.25rem;font-weight:600;margin:0 0 8px}
-    .post-excerpt{color:#4b5563;margin:0 0 8px}
-    .muted{color:#6b7280;font-size:.9rem}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    .btn{background:#111827;color:#fff;border:0;border-radius:6px;padding:8px 12px;cursor:pointer}
-    .btn.secondary{background:#6b7280}
-    .badge{padding:2px 8px;border:1px solid #e5e7eb;border-radius:999px;font-size:.75rem;color:#374151}
-    .filters{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-    input,select{border:1px solid #e5e7eb;border-radius:6px;padding:8px}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+    .toolbar .input{min-width:240px}
   </style>
 </head>
 <body>
-  <div class="blog-container">
-    <h1>Blog</h1>
-    <div class="actions">
-      <a class="btn" href="/blog/editor">Nuevo post</a>
-      <a class="btn secondary" href="/">Inicio</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/"><span class="brand-mark">🐾</span><span class="brand-name">Petfinder</span></a>
+      <nav class="main-nav"><a href="/shop">Tienda</a><a href="/blog">Blog</a><a href="/dashboard">Dashboard</a></nav>
     </div>
-    <div class="filters">
-      <input id="q" placeholder="Buscar..." />
-      <select id="status">
-        <option value="published">Publicados</option>
-        <option value="draft">Borradores</option>
-        <option value="archived">Archivados</option>
-      </select>
+  </header>
+
+  <main class="section">
+    <div class="container" style="max-width:980px;">
+      <h1>Blog</h1>
+      <div class="toolbar">
+        <input id="q" class="input" placeholder="Buscar..." />
+        <select id="status" class="input" style="max-width:220px">
+          <option value="published">Publicados</option>
+          <option value="draft">Borradores</option>
+          <option value="archived">Archivados</option>
+        </select>
+        <a class="button button-primary" href="/blog/editor">Nuevo post</a>
+      </div>
+      <div id="list" class="cards"></div>
     </div>
-    <div id="list"></div>
-  </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-credit">Creado por Mike Rodríguez</div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="https://github.com/mikerb95" target="_blank" rel="noopener">GitHub</a>
+        <a href="/terms">Términos</a>
+        <a href="/privacy">Privacidad</a>
+        <a href="/license">Licencia</a>
+      </nav>
+    </div>
+  </footer>
   <script>
     async function load() {
       const q = document.getElementById('q').value.trim();
@@ -47,14 +56,21 @@
       const data = await r.json();
       const el = document.getElementById('list');
       el.innerHTML = '';
-      (data.posts||[]).forEach(p => {
+      const posts = data.posts||[];
+      if (!posts.length) {
+        const empty = document.createElement('div');
+        empty.className = 'card';
+        empty.innerHTML = '<div class="muted">No hay publicaciones para este filtro.</div>';
+        el.appendChild(empty);
+      }
+      posts.forEach(p => {
         const d = document.createElement('div');
-        d.className = 'post-card';
+        d.className = 'card';
         d.innerHTML = `
-          <div class="post-title"><a href="/blog/${p.slug}">${p.title}</a></div>
-          <div class="post-excerpt">${(p.excerpt||'').slice(0,180)}</div>
-          <div class="muted">por ${p.author_name||'Anónimo'} · ${(p.published_at||'').replace('T',' ').slice(0,16)}</div>
-          <div style="display:flex;gap:8px;margin-top:8px">
+          <h3 style="margin:0 0 6px"><a href="/blog/${p.slug}">${p.title}</a></h3>
+          <p class="muted" style="margin:0 0 8px">${(p.excerpt||'').slice(0,180)}</p>
+          <div class="muted" style="font-size:.9rem">por ${p.author_name||'Anónimo'} · ${(p.published_at||'').replace('T',' ').slice(0,16)}</div>
+          <div style="display:flex;gap:8px;margin-top:10px">
             <span class="badge">👍 ${p.up_count||0}</span>
             <span class="badge">👎 ${p.down_count||0}</span>
             <span class="badge">💬 ${p.comment_count||0}</span>

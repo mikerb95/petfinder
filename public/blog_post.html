@@ -4,43 +4,58 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Entrada - Blog</title>
-  <link rel="stylesheet" href="/assets/css/style.css" />
+  <link rel="stylesheet" href="/assets/css/landing.css" />
   <style>
-    .wrap{max-width:860px;margin:0 auto;padding:16px}
-    .title{font-size:1.75rem;font-weight:700;margin:0 0 8px}
-    .muted{color:#6b7280}
-    .content{white-space:pre-wrap;line-height:1.6;margin-top:12px}
-    .badge{padding:2px 8px;border:1px solid #e5e7eb;border-radius:999px;font-size:.75rem;color:#374151}
     .actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-  .btn{background:#111827;color:#fff;border:0;border-radius:6px;padding:8px 12px;cursor:pointer}
-  .btn.active{outline:2px solid #60a5fa}
-  .btn.up.active{background:#166534}
-  .btn.down.active{background:#7f1d1d}
-    .comment{border-top:1px solid #e5e7eb;padding:8px 0}
-    .child{margin-left:16px;border-left:2px solid #e5e7eb;padding-left:8px}
-    textarea,input{width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:8px}
+    .btn{background:transparent;color:var(--color-text);border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:8px 12px;cursor:pointer}
+    .btn:hover{border-color:rgba(255,255,255,0.22)}
+    .btn.active{outline:2px solid #60a5fa}
+    .btn.up.active{background:#1b4332}
+    .btn.down.active{background:#4a1c1c}
+    .comment{border-top:1px solid rgba(255,255,255,0.08);padding:10px 0}
+    .child{margin-left:16px;border-left:2px solid rgba(255,255,255,0.08);padding-left:8px}
+    textarea,input{width:100%;border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:10px;background:rgba(255,255,255,0.04);color:var(--color-text)}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <a href="/blog">← Volver</a>
-    <h1 class="title" id="t"></h1>
-    <div class="muted" id="meta"></div>
-    <div class="actions">
-      <button class="btn up" id="up">👍 Me gusta</button>
-      <button class="btn down" id="down">👎 No me gusta</button>
-      <a class="btn" id="edit" href="#" style="display:none">Editar</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/"><span class="brand-mark">🐾</span><span class="brand-name">Petfinder</span></a>
+      <nav class="main-nav"><a href="/shop">Tienda</a><a href="/blog">Blog</a><a href="/dashboard">Dashboard</a></nav>
     </div>
-    <div class="content" id="c"></div>
-    <div style="margin-top:16px">
-      <h3>Comentarios</h3>
-      <div id="comments"></div>
-      <div style="margin-top:8px">
-        <textarea id="newComment" rows="3" placeholder="Escribe un comentario..."></textarea>
-        <button class="btn" id="sendComment">Publicar</button>
+  </header>
+  <main class="section">
+    <div class="container" style="max-width:900px;">
+      <a href="/blog" class="link">← Volver</a>
+      <h1 id="t" style="margin-top:8px"></h1>
+      <div class="muted" id="meta"></div>
+      <div class="actions">
+        <button class="btn up" id="up">👍 Me gusta</button>
+        <button class="btn down" id="down">👎 No me gusta</button>
+        <a class="button" id="edit" href="#" style="display:none">Editar</a>
       </div>
+      <article id="c" class="prose"></article>
+      <section style="margin-top:20px">
+        <h2>Comentarios</h2>
+        <div id="comments"></div>
+        <div style="margin-top:8px">
+          <textarea id="newComment" rows="3" placeholder="Escribe un comentario..."></textarea>
+          <button class="button" id="sendComment" style="margin-top:8px">Publicar</button>
+        </div>
+      </section>
     </div>
-  </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-credit">Creado por Mike Rodríguez</div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="https://github.com/mikerb95" target="_blank" rel="noopener">GitHub</a>
+        <a href="/terms">Términos</a>
+        <a href="/privacy">Privacidad</a>
+        <a href="/license">Licencia</a>
+      </nav>
+    </div>
+  </footer>
   <script>
     const slug = location.pathname.split('/').pop();
     let currentUser = null;
@@ -54,7 +69,13 @@
       const d = await r.json();
       document.getElementById('t').textContent = d.post.title;
       document.getElementById('meta').textContent = `por ${d.post.author_name||'Anónimo'} · ${fmtDate(d.post.published_at)} · 👍 ${d.post.up_count||0} · 👎 ${d.post.down_count||0}`;
-      document.getElementById('c').textContent = d.post.content;
+      // Render content as simple paragraphs; preserve line breaks
+      const cont = document.getElementById('c');
+      cont.textContent = '';
+      cont.innerHTML = (d.post.content||'')
+        .split(/\n\n+/)
+        .map(p => `<p>${p.replace(/\n/g,'<br/>')}</p>`)
+        .join('');
       const edit = document.getElementById('edit');
       if (d.post.can_edit) { edit.style.display = 'inline-block'; edit.href = '/blog/editor?post_id='+d.post.id }
       // Highlight my reaction on post
@@ -72,13 +93,13 @@
     function commentHtml(c){
       return `<div class="comment" data-id="${c.id}">
         <div class="muted">${c.user_name||'Anónimo'} · ${fmtDate(c.created_at)}</div>
-        <div>${c.body}</div>
-        <div style="display:flex;gap:8px;margin-top:4px">
+        <div style="margin:6px 0">${c.body}</div>
+        <div style="display:flex;gap:8px;margin-top:4px;align-items:center">
           <span class="badge">👍 ${c.up_count||0}</span>
           <span class="badge">👎 ${c.down_count||0}</span>
-          <button class="btn" data-act="reply">Responder</button>
-          <button class="btn" data-act="up">👍</button>
-          <button class="btn" data-act="down">👎</button>
+          <button class="button" data-act="reply">Responder</button>
+          <button class="button" data-act="up">👍</button>
+          <button class="button" data-act="down">👎</button>
         </div>
         <div class="child" id="children-${c.id}"></div>
       </div>`

@@ -4,38 +4,55 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Editor - Blog</title>
-  <link rel="stylesheet" href="/assets/css/style.css" />
+  <link rel="stylesheet" href="/assets/css/landing.css" />
   <style>
-    .wrap{max-width:860px;margin:0 auto;padding:16px}
     .row{display:flex;gap:12px;flex-wrap:wrap}
-    input,textarea,select{border:1px solid #e5e7eb;border-radius:6px;padding:8px;width:100%}
-    .btn{background:#111827;color:#fff;border:0;border-radius:6px;padding:8px 12px;cursor:pointer}
-    .muted{color:#6b7280}
+    .grow{flex:1 1 220px}
+    textarea{min-height: 320px}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <a href="/blog">← Volver</a>
-    <h1>Editor de Blog</h1>
-    <div class="row">
-      <input id="title" placeholder="Título" />
-      <input id="slug" placeholder="slug-auto" />
-      <select id="status">
-        <option value="draft">Borrador</option>
-        <option value="published">Publicado</option>
-        <option value="archived">Archivado</option>
-      </select>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/"><span class="brand-mark">🐾</span><span class="brand-name">Petfinder</span></a>
+      <nav class="main-nav"><a href="/shop">Tienda</a><a href="/blog">Blog</a><a href="/dashboard">Dashboard</a></nav>
     </div>
-    <textarea id="content" rows="14" placeholder="Contenido..."></textarea>
-    <div class="row">
-      <input id="excerpt" placeholder="Extracto (opcional)" />
-      <input id="cover_image_url" placeholder="URL de portada (opcional)" />
+  </header>
+  <main class="section">
+    <div class="container" style="max-width:900px;">
+      <a href="/blog" class="link">← Volver</a>
+      <h1>Editor de Blog</h1>
+      <div class="row">
+        <input class="input grow" id="title" placeholder="Título" />
+        <input class="input" id="slug" placeholder="slug-auto" style="max-width:240px" />
+        <select class="input" id="status" style="max-width:220px">
+          <option value="draft">Borrador</option>
+          <option value="published">Publicado</option>
+          <option value="archived">Archivado</option>
+        </select>
+      </div>
+      <textarea class="input" id="content" rows="14" placeholder="Contenido..."></textarea>
+      <div class="row">
+        <input class="input grow" id="excerpt" placeholder="Extracto (opcional)" />
+        <input class="input grow" id="cover_image_url" placeholder="URL de portada (opcional)" />
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+        <button class="button" id="save">Guardar</button>
+        <span class="muted" id="autosave"></span>
+      </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn" id="save">Guardar</button>
-      <span class="muted" id="autosave"></span>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-credit">Creado por Mike Rodríguez</div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="https://github.com/mikerb95" target="_blank" rel="noopener">GitHub</a>
+        <a href="/terms">Términos</a>
+        <a href="/privacy">Privacidad</a>
+        <a href="/license">Licencia</a>
+      </nav>
     </div>
-  </div>
+  </footer>
   <script>
     const qs = new URLSearchParams(location.search);
     const postId = qs.get('post_id');
