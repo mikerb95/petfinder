@@ -477,6 +477,10 @@ app.get('/reset', (req, res) => {
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(publicDir, 'dashboard.html'));
 });
+// Admin CMS simple de productos
+app.get('/admin/products', (req, res) => {
+  res.sendFile(path.join(publicDir, 'admin-products.html'));
+});
 // Pagina de escaner QR
 app.get('/scan', (req, res) => {
   res.sendFile(path.join(publicDir, 'scan.html'));

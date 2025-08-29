@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin — Productos</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+  </head>
+  <body>
+    <header class="site-header"><div class="container header-inner"><a class="brand" href="/">🐾 Petfinder</a><nav class="main-nav"><a href="/dashboard">Dashboard</a></nav></div></header>
+    <main class="container" style="padding:20px 0;">
+      <h1>Productos</h1>
+      <div style="margin:10px 0;">
+        <form id="newForm" style="display:grid; gap:8px; grid-template-columns: repeat(6, 1fr);">
+          <input class="input" name="name" placeholder="Nombre" required />
+          <input class="input" name="slug" placeholder="slug" required />
+          <input class="input" name="price_cents" placeholder="precio (centavos)" type="number" required />
+          <input class="input" name="currency" value="COP" placeholder="moneda" />
+          <input class="input" name="stock" placeholder="stock" type="number" />
+          <button class="button button-primary" type="submit">Crear</button>
+          <input class="input" name="image_url" placeholder="imagen URL" style="grid-column: span 3;" />
+          <input class="input" name="description" placeholder="descripción" style="grid-column: span 3;" />
+        </form>
+      </div>
+      <table style="width:100%; border-collapse: collapse;">
+        <thead><tr><th>ID</th><th>Nombre</th><th>Slug</th><th>Precio</th><th>Stock</th><th>Activo</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </main>
+    <script>
+      const token = localStorage.getItem('token');
+      if (!token) { alert('Inicia sesión como admin'); location.href = '/login'; }
+      async function load() {
+        const res = await fetch('/api/admin/products', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (res.status === 403) { alert('No autorizado'); return; }
+        const data = await res.json();
+        const tbody = document.getElementById('rows');
+        tbody.innerHTML = '';
+        (data.products || []).forEach(p => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${p.id}</td>
+            <td><input class="input" value="${p.name||''}" data-field="name" data-id="${p.id}"/></td>
+            <td><input class="input" value="${p.slug||''}" data-field="slug" data-id="${p.id}"/></td>
+            <td><input class="input" type="number" value="${p.price_cents||0}" data-field="price_cents" data-id="${p.id}"/></td>
+            <td><input class="input" type="number" value="${p.stock||0}" data-field="stock" data-id="${p.id}"/></td>
+            <td><input type="checkbox" ${p.active? 'checked':''} data-field="active" data-id="${p.id}"/></td>
+            <td>
+              <button class="button" data-action="save" data-id="${p.id}">Guardar</button>
+              <button class="button" data-action="delete" data-id="${p.id}">Eliminar</button>
+            </td>`;
+          tbody.appendChild(tr);
+        });
+      }
+      load();
+      document.getElementById('newForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const payload = Object.fromEntries(fd.entries());
+        payload.price_cents = Number(payload.price_cents);
+        payload.stock = payload.stock? Number(payload.stock): 0;
+        const res = await fetch('/api/admin/products', { method:'POST', headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + token }, body: JSON.stringify(payload) });
+        if (!res.ok) { alert('Error creando producto'); return; }
+        e.target.reset();
+        load();
+      });
+      document.getElementById('rows').addEventListener('click', async (e) => {
+        const btn = e.target.closest('button'); if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        if (btn.getAttribute('data-action') === 'delete') {
+          if (!confirm('¿Eliminar producto?')) return;
+          const res = await fetch('/api/admin/products/' + id, { method:'DELETE', headers: { 'Authorization':'Bearer ' + token } });
+          if (!res.ok) { alert('Error'); return; }
+          load();
+        }
+        if (btn.getAttribute('data-action') === 'save') {
+          const inputs = Array.from(document.querySelectorAll(`[data-id="${id}"]`));
+          const payload = {};
+          inputs.forEach(i => { const f = i.getAttribute('data-field'); payload[f] = i.type === 'checkbox' ? i.checked : (i.type === 'number' ? Number(i.value) : i.value); });
+          const res = await fetch('/api/admin/products/' + id, { method:'PUT', headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + token }, body: JSON.stringify(payload) });
+          if (!res.ok) { alert('Error guardando'); return; }
+        }
+      });
+    </script>
+  </body>
+</html>
