@@ -98,6 +98,8 @@
               <dd id="profileEmail">—</dd>
               <dt>Teléfono</dt>
               <dd id="profilePhone">—</dd>
+              <dt>Ciudad</dt>
+              <dd id="profileCity">—</dd>
               <dt>Miembro desde</dt>
               <dd id="profileSince">—</dd>
             </dl>
@@ -128,6 +130,8 @@
             <div class="demo-help">Ej.: criollo, labrador, siames</div>
             <input type="text" id="petColor" placeholder="Color" />
             <div class="demo-help">Ej.: marron, negro con blanco</div>
+            <input type="text" id="petCity" placeholder="Ciudad (requerido)" required />
+            <div class="demo-help">Ciudad donde vive o se perdió</div>
             <input type="text" id="petNotes" placeholder="Notas" />
             <div class="demo-help">Rasgos, comportamiento o indicaciones</div>
             <div class="segmented" role="group" aria-label="Estado">
@@ -196,6 +200,10 @@
                 <div style="grid-column: 1 / -1;">
                   <label class="demo-label" for="pf_phone">Teléfono</label>
                   <input id="pf_phone" class="input" type="text" />
+                </div>
+                <div style="grid-column: 1 / -1;">
+                  <label class="demo-label" for="pf_city">Ciudad</label>
+                  <input id="pf_city" class="input" type="text" />
                 </div>
               </form>
               <div id="profileMsg" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
@@ -318,6 +326,7 @@
   const profileName = document.getElementById('profileName');
   const profileEmail = document.getElementById('profileEmail');
   const profilePhone = document.getElementById('profilePhone');
+  const profileCity = document.getElementById('profileCity');
   const profileSince = document.getElementById('profileSince');
   const logout = document.getElementById('logoutLink');
   // Profile modal elements
@@ -331,6 +340,7 @@
   const pf_sex = document.getElementById('pf_sex');
   const pf_email = document.getElementById('pf_email');
   const pf_phone = document.getElementById('pf_phone');
+  const pf_city = document.getElementById('pf_city');
   const profileMsg = document.getElementById('profileMsg');
 
         if (!token) {
@@ -351,6 +361,7 @@
             if (profileName) profileName.textContent = u.name || '—';
             if (profileEmail) profileEmail.textContent = u.email || '—';
             if (profilePhone) profilePhone.textContent = u.phone || '—';
+            if (profileCity) profileCity.textContent = u.city || '—';
             if (profileSince) {
               try {
                 const d = u.created_at ? new Date(u.created_at) : null;
@@ -365,6 +376,7 @@
             if (pf_sex) pf_sex.value = u.sex || 'unknown';
             if (pf_email) pf_email.value = u.email || '';
             if (pf_phone) pf_phone.value = u.phone || '';
+            if (pf_city) pf_city.value = u.city || '';
         function openProfileModal(){ profileMsg.textContent=''; profileModal.style.display='flex'; setTimeout(()=>{ pf_name?.focus(); },0); }
         function closeProfileModal(){ profileModal.style.display='none'; }
         profileOpenBtn?.addEventListener('click', openProfileModal);
@@ -380,6 +392,7 @@
             sex: pf_sex?.value || undefined,
             email: pf_email?.value?.trim() || undefined,
             phone: pf_phone?.value?.trim() || undefined,
+            city: pf_city?.value?.trim() || undefined,
           };
           const res = await fetch('/api/me', { method:'PUT', headers:{ 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
           const data = await res.json().catch(()=>({}));
@@ -390,6 +403,7 @@
           if (profileName) profileName.textContent = u.name || '—';
           if (profileEmail) profileEmail.textContent = u.email || '—';
           if (profilePhone) profilePhone.textContent = u.phone || '—';
+          if (profileCity) profileCity.textContent = u.city || '—';
           closeProfileModal();
         });
       // Load pets
@@ -424,11 +438,12 @@
         if (cancelPetFormBtn) cancelPetFormBtn.addEventListener('click', () => { petForm.reset(); hidePetForm(); });
         petForm.addEventListener('submit', async (e) => {
           e.preventDefault();
-          const body = {
+            const body = {
             name: document.getElementById('petName').value.trim(),
             species: document.getElementById('petSpecies').value.trim() || undefined,
             breed: document.getElementById('petBreed').value.trim() || undefined,
             color: document.getElementById('petColor').value.trim() || undefined,
+              city: document.getElementById('petCity').value.trim(),
             notes: document.getElementById('petNotes').value.trim() || undefined,
             status: document.getElementById('petStatus').value,
             photo_url: document.getElementById('petPhoto').value.trim() || undefined,
@@ -441,6 +456,7 @@
             vaccine_card_url: document.getElementById('petVaccineCard').value.trim() || undefined,
           };
           if (!body.name) return alert('El nombre es obligatorio');
+          if (!body.city) return alert('La ciudad es obligatoria');
           const res = await fetch('/api/pets', {
             method: 'POST',
             headers: {
@@ -497,6 +513,7 @@
             card.innerHTML = `
               <h4>${p.name}</h4>
               <p><strong>Especie:</strong> ${p.species || '—'} | <strong>Raza:</strong> ${p.breed || '—'} | <strong>Color:</strong> ${p.color || '—'}</p>
+              <p><strong>Ciudad:</strong> ${p.city || '—'}</p>
               <p><strong>Notas:</strong> ${p.notes || '—'}</p>
               <p><strong>Estado:</strong> ${p.status === 'lost' ? 'Perdida' : 'En casa'}</p>
               <p style="color:#6b7280"><strong>Salud:</strong> ${sexTxt} · ${p.sterilized ? 'Esterilizado' : 'Sin esterilizar'} · ${p.weight_kg ? (p.weight_kg + ' kg') : '—'} · ${p.birthdate ? ('Nac.: ' + new Date(p.birthdate).toLocaleDateString()) : 'Nac.: —'} ${p.microchip_id ? ('· Chip: ' + p.microchip_id) : ''}</p>
@@ -512,6 +529,10 @@
             `;
             listEl.appendChild(card);
           }
+                  <div>
+                    <label class="demo-label" for="e_city">Ciudad</label>
+                    <input id="e_city" class="input" type="text" required />
+                  </div>
           // bind delete buttons
           listEl.querySelectorAll('button[data-del]').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -543,6 +564,7 @@
         const e_species = document.getElementById('e_species');
         const e_breed = document.getElementById('e_breed');
         const e_color = document.getElementById('e_color');
+        const e_city = document.getElementById('e_city');
   const e_notes = document.getElementById('e_notes');
         const e_status = document.getElementById('e_status');
         const e_photo = document.getElementById('e_photo');
@@ -578,6 +600,7 @@
             }
           })();
           if (e_photo) e_photo.value = p.photo_url || '';
+          if (e_city) e_city.value = p.city || '';
           if (e_birthdate) e_birthdate.value = p.birthdate ? new Date(p.birthdate).toISOString().slice(0,10) : '';
           if (e_sex) e_sex.value = p.sex || 'unknown';
           if (e_weight) e_weight.value = (p.weight_kg ?? '')
@@ -606,6 +629,7 @@
             species: e_species.value.trim(),
             breed: e_breed.value.trim(),
             color: e_color.value.trim(),
+            city: e_city.value.trim(),
             notes: e_notes.value.trim(),
             status: e_status.value,
             photo_url: e_photo.value.trim(),
@@ -617,6 +641,7 @@
             last_vet_visit: e_last_vet.value || undefined,
             vaccine_card_url: e_vaccine_card.value.trim() || undefined
           };
+          if (!payload.city) { alert('La ciudad es obligatoria'); return; }
           const res = await fetch('/api/pets/' + currentEditId, {
             method: 'PUT',
             headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },

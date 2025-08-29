@@ -45,4 +45,43 @@ async function ensureUserVerificationColumns() {
   }
 }
 
-module.exports = { getPool, ensureUserVerificationColumns };
+/** Ensure users.city column exists. */
+async function ensureUsersCityColumn() {
+  try {
+    const p = getPool();
+    const [cols] = await p.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users'`,
+      [config.db.database]
+    );
+    const names = new Set((cols || []).map(c => c.COLUMN_NAME));
+    if (!names.has('city')) {
+      await p.query(`ALTER TABLE users ADD COLUMN city VARCHAR(120) NULL AFTER phone`);
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Schema ensure (users.city) warning:', err.message);
+    }
+  }
+}
+
+module.exports = { getPool, ensureUserVerificationColumns, ensureUsersCityColumn };
+/** Ensure pets.city column exists. */
+async function ensurePetsCityColumn() {
+  try {
+    const p = getPool();
+    const [cols] = await p.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'pets'`,
+      [config.db.database]
+    );
+    const names = new Set((cols || []).map(c => c.COLUMN_NAME));
+    if (!names.has('city')) {
+      await p.query(`ALTER TABLE pets ADD COLUMN city VARCHAR(120) NULL AFTER color`);
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Schema ensure (pets.city) warning:', err.message);
+    }
+  }
+}
+
+module.exports.ensurePetsCityColumn = ensurePetsCityColumn;

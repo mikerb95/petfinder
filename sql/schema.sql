@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(190) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   phone VARCHAR(40),
+  city VARCHAR(120) DEFAULT NULL,
   sex ENUM('male','female','unknown') NOT NULL DEFAULT 'unknown',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS pets (
   species VARCHAR(60) DEFAULT NULL,
   breed VARCHAR(120) DEFAULT NULL,
   color VARCHAR(120) DEFAULT NULL,
+  city VARCHAR(120) DEFAULT NULL,
   notes TEXT DEFAULT NULL,
   status ENUM('home','lost') NOT NULL DEFAULT 'home',
   photo_url VARCHAR(255) DEFAULT NULL,

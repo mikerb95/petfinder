@@ -83,11 +83,13 @@
       if (data.owner?.email) {
         var mailBtn = $('mailBtn'); if (mailBtn){ mailBtn.href = 'mailto:' + data.owner.email + '?subject=Mascota%20encontrada'; mailBtn.style.display='inline-block'; }
       }
-      // City legend: prefer ?city= param; fallback try to infer from phone country code
+      // City legend: prefer explicit pet.city (API); fallback to ?city=; last resort infer by phone prefix
       try {
-        var urlCity = new URLSearchParams(location.search).get('city');
-        if (urlCity) setCityLegend(urlCity);
-        else if (data.owner?.phone) {
+        if (data.pet && data.pet.city) setCityLegend(data.pet.city);
+        else {
+          var urlCity = new URLSearchParams(location.search).get('city');
+          if (urlCity) setCityLegend(urlCity);
+          else if (data.owner?.phone) {
           var phone = String(data.owner.phone);
           var cityGuess = null;
           if (phone.startsWith('+57')) cityGuess = 'Bogotá';
@@ -97,6 +99,7 @@
           else if (phone.startsWith('+51')) cityGuess = 'Lima';
           else if (phone.startsWith('+34')) cityGuess = 'Madrid';
           if (cityGuess) setCityLegend(cityGuess);
+          }
         }
       } catch (_) {}
     })

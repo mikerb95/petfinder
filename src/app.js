@@ -41,7 +41,7 @@ app.get('/api/me', requireAuth, async (req, res) => {
     const userId = req.auth?.sub;
     const pool = getPool();
     const [rows] = await pool.query(
-      'SELECT id, name, last_name, sex, email, phone, created_at FROM users WHERE id = ?',
+  'SELECT id, name, last_name, sex, email, phone, city, created_at FROM users WHERE id = ?',
       [userId]
     );
     if (!rows.length) return res.status(404).json({ error: 'user not found' });
@@ -55,7 +55,7 @@ app.get('/api/me', requireAuth, async (req, res) => {
 app.put('/api/me', requireAuth, async (req, res) => {
   try {
     const userId = req.auth?.sub;
-    const { name, last_name, sex, email, phone } = req.body || {};
+  const { name, last_name, sex, email, phone, city } = req.body || {};
     if (email && typeof email !== 'string') return res.status(400).json({ error: 'email invalido' });
     if (name && typeof name !== 'string') return res.status(400).json({ error: 'nombre invalido' });
     if (last_name && typeof last_name !== 'string') return res.status(400).json({ error: 'apellido invalido' });
@@ -72,11 +72,12 @@ app.put('/api/me', requireAuth, async (req, res) => {
          last_name = COALESCE(?, last_name),
          sex = COALESCE(?, sex),
          email = COALESCE(?, email),
-         phone = COALESCE(?, phone)
+         phone = COALESCE(?, phone),
+         city = COALESCE(?, city)
        WHERE id = ?`,
-      [name ?? null, (last_name ?? null), (sex ?? null), (email ?? null), (phone ?? null), userId]
+      [name ?? null, (last_name ?? null), (sex ?? null), (email ?? null), (phone ?? null), (city ?? null), userId]
     );
-    const [rows] = await pool.query('SELECT id, name, last_name, sex, email, phone, created_at FROM users WHERE id = ?', [userId]);
+    const [rows] = await pool.query('SELECT id, name, last_name, sex, email, phone, city, created_at FROM users WHERE id = ?', [userId]);
     if (!rows.length) return res.status(404).json({ error: 'user not found' });
     res.json({ user: rows[0] });
   } catch (err) {
@@ -97,7 +98,7 @@ app.get('/api/pets', requireAuth, async (req, res) => {
     const userId = req.auth?.sub;
     const pool = getPool();
     const [rows] = await pool.query(
-      `SELECT id, name, species, breed, color, notes, status, photo_url,
+      `SELECT id, name, species, breed, color, city, notes, status, photo_url,
               birthdate, sex, weight_kg, sterilized, microchip_id,
               allergies, medical_conditions, medications,
               last_vet_visit, vet_clinic_name, vet_clinic_phone, vaccine_card_url,
@@ -118,12 +119,13 @@ app.post('/api/pets', requireAuth, async (req, res) => {
   try {
     const userId = req.auth?.sub;
     const {
-      name, species, breed, color, notes, status, photo_url,
+      name, species, breed, color, city, notes, status, photo_url,
       birthdate, sex, weight_kg, sterilized, microchip_id,
       allergies, medical_conditions, medications,
       last_vet_visit, vet_clinic_name, vet_clinic_phone, vaccine_card_url
     } = req.body || {};
     if (!name || typeof name !== 'string') return res.status(400).json({ error: 'name is required' });
+    if (!city || typeof city !== 'string') return res.status(400).json({ error: 'city is required' });
     if (status && !['home', 'lost'].includes(status)) return res.status(400).json({ error: 'invalid status' });
 
     const pool = getPool();
@@ -135,20 +137,20 @@ app.post('/api/pets', requireAuth, async (req, res) => {
       try {
         const [result] = await pool.query(
           `INSERT INTO pets (
-            owner_id, name, species, breed, color, notes, status, photo_url,
+            owner_id, name, species, breed, color, city, notes, status, photo_url,
             birthdate, sex, weight_kg, sterilized, microchip_id,
             allergies, medical_conditions, medications,
             last_vet_visit, vet_clinic_name, vet_clinic_phone, vaccine_card_url,
             qr_id, updated_at
           ) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?, ?,
             ?, NOW()
           )`,
           [
-            userId, name, species || null, breed || null, color || null, notes || null, status || 'home', photo_url || null,
+            userId, name, species || null, breed || null, color || null, city, notes || null, status || 'home', photo_url || null,
             birthdate || null, (sex || 'unknown'), (weight_kg ?? null), (sterilized ? 1 : 0), microchip_id || null,
             allergies || null, medical_conditions || null, medications || null,
             last_vet_visit || null, vet_clinic_name || null, vet_clinic_phone || null, vaccine_card_url || null,
@@ -177,7 +179,7 @@ app.put('/api/pets/:id', requireAuth, async (req, res) => {
     const userId = req.auth?.sub;
     const { id } = req.params;
     const {
-      name, species, breed, color, notes, status, photo_url,
+      name, species, breed, color, city, notes, status, photo_url,
       birthdate, sex, weight_kg, sterilized, microchip_id,
       allergies, medical_conditions, medications,
       last_vet_visit, vet_clinic_name, vet_clinic_phone, vaccine_card_url
@@ -195,6 +197,7 @@ app.put('/api/pets/:id', requireAuth, async (req, res) => {
          species = COALESCE(?, species),
          breed = COALESCE(?, breed),
          color = COALESCE(?, color),
+         city = COALESCE(?, city),
          notes = COALESCE(?, notes),
          status = COALESCE(?, status),
          photo_url = COALESCE(?, photo_url),
@@ -213,7 +216,7 @@ app.put('/api/pets/:id', requireAuth, async (req, res) => {
          updated_at = NOW()
        WHERE id = ?`,
       [
-        name ?? null, species ?? null, breed ?? null, color ?? null, notes ?? null, status ?? null, photo_url ?? null,
+        name ?? null, species ?? null, breed ?? null, color ?? null, city ?? null, notes ?? null, status ?? null, photo_url ?? null,
         birthdate ?? null, sex ?? null, (weight_kg ?? null), (typeof sterilized === 'boolean' ? (sterilized ? 1 : 0) : sterilized ?? null), microchip_id ?? null,
         allergies ?? null, medical_conditions ?? null, medications ?? null,
         last_vet_visit ?? null, vet_clinic_name ?? null, vet_clinic_phone ?? null, vaccine_card_url ?? null,
@@ -273,7 +276,7 @@ app.get('/api/pets/public/:qrId', async (req, res) => {
     const { qrId } = req.params;
     const pool = getPool();
     const [rows] = await pool.query(
-      `SELECT p.name AS pet_name, p.species, p.breed, p.color, p.notes, p.status, p.photo_url,
+      `SELECT p.name AS pet_name, p.species, p.breed, p.color, p.city, p.notes, p.status, p.photo_url,
               u.name AS owner_name, u.phone AS owner_phone, u.email AS owner_email
          FROM pets p
          JOIN users u ON u.id = p.owner_id
@@ -289,6 +292,7 @@ app.get('/api/pets/public/:qrId', async (req, res) => {
         species: r.species || null,
         breed: r.breed || null,
         color: r.color || null,
+        city: r.city || null,
         notes: r.notes || null,
         status: r.status || 'home',
         photo_url: r.photo_url || null,
