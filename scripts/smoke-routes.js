@@ -20,6 +20,10 @@ server.listen(0, async () => {
     const results = [];
     results.push(await check('/m'));
     results.push(await check('/tech'));
+  results.push(await check('/shop'));
+  results.push(await check('/blog'));
+  results.push(await check('/admin/products'));
+  results.push(await check('/admin/blog'));
     results.forEach((r) => {
       if (r.error) {
         console.error(`${r.path} ERROR ${r.error}`);

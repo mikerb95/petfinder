@@ -121,7 +121,7 @@ app.get('/api/me', requireAuth, async (req, res) => {
     const userId = req.auth?.sub;
     const pool = getPool();
     const [rows] = await pool.query(
-      'SELECT id, name, last_name, sex, email, phone, city, instagram_url, facebook_url, whatsapp_url, created_at FROM users WHERE id = ?',
+  'SELECT id, name, last_name, sex, email, phone, city, instagram_url, facebook_url, whatsapp_url, is_admin, created_at FROM users WHERE id = ?',
       [userId]
     );
     if (!rows.length) return res.status(404).json({ error: 'user not found' });
@@ -504,6 +504,10 @@ app.get('/dashboard', (req, res) => {
 app.get('/admin/products', (req, res) => {
   res.sendFile(path.join(publicDir, 'admin-products.html'));
 });
+// Admin Blog (moderación y taxonomía)
+app.get('/admin/blog', (req, res) => {
+  res.sendFile(path.join(publicDir, 'admin-blog.html'));
+});
 // Pagina de escaner QR
 app.get('/scan', (req, res) => {
   res.sendFile(path.join(publicDir, 'scan.html'));
@@ -863,6 +867,139 @@ app.get('/api/blog/comments/:id/reactions', async (req, res) => {
       }
     } catch(_){}
     return res.json({ up, down, score: (up - down), mine });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// -------- Admin Blog: Moderación de comentarios --------
+// Listar comentarios con filtros (status, q, post_id)
+app.get('/api/admin/blog/comments', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { status = '', q = '', post_id = '' } = req.query || {};
+    const params = [];
+    let where = 'WHERE 1=1';
+    if (status) { where += ' AND bc.status = ?'; params.push(status); }
+    if (post_id) { where += ' AND bc.post_id = ?'; params.push(Number(post_id)); }
+    if (q) { where += ' AND (bc.body LIKE ? OR bp.title LIKE ?)'; params.push(`%${q}%`, `%${q}%`); }
+    const pool = getPool();
+    const [rows] = await pool.query(
+      `SELECT bc.id, bc.post_id, bc.user_id, bc.parent_id, bc.body, bc.status, bc.created_at, bc.updated_at,
+              u.name AS user_name, bp.title AS post_title, bp.slug AS post_slug
+         FROM blog_comments bc
+         LEFT JOIN users u ON u.id = bc.user_id
+         JOIN blog_posts bp ON bp.id = bc.post_id
+        ${where}
+        ORDER BY bc.created_at DESC
+        LIMIT 200`, params);
+    res.json({ comments: rows });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Cambiar estado de un comentario
+app.patch('/api/admin/blog/comments/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body || {};
+    const allowed = ['visible','pending','hidden','deleted'];
+    if (status && !allowed.includes(String(status))) return res.status(400).json({ error: 'status invalido' });
+    const pool = getPool();
+    const [ex] = await pool.query('SELECT id FROM blog_comments WHERE id = ? LIMIT 1', [id]);
+    if (!ex.length) return res.status(404).json({ error: 'comment not found' });
+    await pool.query('UPDATE blog_comments SET status = COALESCE(?, status), updated_at = NOW() WHERE id = ?', [status ?? null, id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Eliminar comentario
+app.delete('/api/admin/blog/comments/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+    await pool.query('DELETE FROM blog_comments WHERE id = ?', [id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// -------- Admin Blog: Categorías --------
+app.get('/api/admin/blog/categories', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query('SELECT id, name, slug, description, created_at FROM blog_categories ORDER BY created_at DESC');
+    res.json({ categories: rows });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+app.post('/api/admin/blog/categories', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { name, slug, description = null } = req.body || {};
+    if (!name) return res.status(400).json({ error: 'name requerido' });
+    const pool = getPool();
+    const [r] = await pool.query('INSERT INTO blog_categories (name, slug, description) VALUES (?, COALESCE(?, REPLACE(LOWER(?), " ", "-")), ?)', [name, slug || null, name, description]);
+    res.status(201).json({ id: r.insertId });
+  } catch (err) {
+    if (err?.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'slug ya existe' });
+    res.status(500).json({ error: 'internal server error' });
+  }
+});
+app.put('/api/admin/blog/categories/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, slug, description } = req.body || {};
+    const pool = getPool();
+    await pool.query('UPDATE blog_categories SET name = COALESCE(?, name), slug = COALESCE(?, slug), description = COALESCE(?, description) WHERE id = ?', [name ?? null, slug ?? null, description ?? null, id]);
+    res.json({ ok: true });
+  } catch (err) {
+    if (err?.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'slug ya existe' });
+    res.status(500).json({ error: 'internal server error' });
+  }
+});
+app.delete('/api/admin/blog/categories/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+    await pool.query('DELETE FROM blog_post_categories WHERE category_id = ?', [id]);
+    await pool.query('DELETE FROM blog_categories WHERE id = ?', [id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// -------- Admin Blog: Tags --------
+app.get('/api/admin/blog/tags', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query('SELECT id, name, slug, created_at FROM blog_tags ORDER BY created_at DESC');
+    res.json({ tags: rows });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+app.post('/api/admin/blog/tags', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { name, slug } = req.body || {};
+    if (!name) return res.status(400).json({ error: 'name requerido' });
+    const pool = getPool();
+    const [r] = await pool.query('INSERT INTO blog_tags (name, slug) VALUES (?, COALESCE(?, REPLACE(LOWER(?), " ", "-")))', [name, slug || null, name]);
+    res.status(201).json({ id: r.insertId });
+  } catch (err) {
+    if (err?.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'slug ya existe' });
+    res.status(500).json({ error: 'internal server error' });
+  }
+});
+app.put('/api/admin/blog/tags/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, slug } = req.body || {};
+    const pool = getPool();
+    await pool.query('UPDATE blog_tags SET name = COALESCE(?, name), slug = COALESCE(?, slug) WHERE id = ?', [name ?? null, slug ?? null, id]);
+    res.json({ ok: true });
+  } catch (err) {
+    if (err?.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'slug ya existe' });
+    res.status(500).json({ error: 'internal server error' });
+  }
+});
+app.delete('/api/admin/blog/tags/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+    await pool.query('DELETE FROM blog_post_tags WHERE tag_id = ?', [id]);
+    await pool.query('DELETE FROM blog_tags WHERE id = ?', [id]);
+    res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: 'internal server error' }); }
 });
 

@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin — Blog</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+    <style>
+      .wrap{max-width:1100px;margin:0 auto;padding:16px}
+      .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+      table{width:100%;border-collapse:collapse}
+      th,td{border-bottom:1px solid #e5e7eb;padding:8px;text-align:left}
+      input,select,textarea{border:1px solid #e5e7eb;border-radius:6px;padding:6px}
+      .button.small{padding:6px 10px}
+      .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+      @media (max-width: 900px){ .grid{grid-template-columns:1fr} }
+    </style>
+  </head>
+  <body>
+    <header class="site-header"><div class="container header-inner"><a class="brand" href="/">🐾 Petfinder</a><nav class="main-nav"><a href="/shop">Tienda</a><a href="/blog">Blog</a><a href="/dashboard">Dashboard</a></nav></div></header>
+    <main class="wrap">
+      <h1>Admin del Blog</h1>
+      <div class="grid">
+        <section>
+          <h2>Moderación de comentarios</h2>
+          <div class="row" style="margin-bottom:8px">
+            <input id="c_q" placeholder="Buscar..." />
+            <select id="c_status">
+              <option value="">Todos</option>
+              <option value="visible">Visibles</option>
+              <option value="pending">Pendientes</option>
+              <option value="hidden">Ocultos</option>
+              <option value="deleted">Eliminados</option>
+            </select>
+            <input id="c_post_id" type="number" placeholder="Post ID" style="width:120px" />
+            <button class="button" id="c_load">Cargar</button>
+          </div>
+          <table>
+            <thead><tr><th>ID</th><th>Post</th><th>Autor</th><th>Comentario</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="c_rows"></tbody>
+          </table>
+        </section>
+        <section>
+          <h2>Categorías</h2>
+          <form id="cat_new" class="row" style="margin-bottom:8px">
+            <input name="name" placeholder="Nombre" required />
+            <input name="slug" placeholder="slug (opcional)" />
+            <input name="description" placeholder="Descripción (opcional)" />
+            <button class="button" type="submit">Crear</button>
+          </form>
+          <table>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Slug</th><th>Descripción</th><th></th></tr></thead>
+            <tbody id="cat_rows"></tbody>
+          </table>
+
+          <h2 style="margin-top:16px">Tags</h2>
+          <form id="tag_new" class="row" style="margin-bottom:8px">
+            <input name="name" placeholder="Nombre" required />
+            <input name="slug" placeholder="slug (opcional)" />
+            <button class="button" type="submit">Crear</button>
+          </form>
+          <table>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Slug</th><th></th></tr></thead>
+            <tbody id="tag_rows"></tbody>
+          </table>
+        </section>
+      </div>
+    </main>
+    <script>
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      if (!token) { alert('Requiere sesión'); location.href='/login'; }
+      async function isAdmin(){
+        try {
+          const r = await fetch('/api/me', { headers:{ 'Authorization':'Bearer '+token } });
+          if (!r.ok) return false; const d = await r.json();
+          return d?.user?.is_admin === 1 || d?.user?.is_admin === true;
+        } catch{ return false; }
+      }
+      // Comentarios
+      async function loadComments(){
+        const params = new URLSearchParams();
+        const q = document.getElementById('c_q').value.trim();
+        const status = document.getElementById('c_status').value;
+        const post = document.getElementById('c_post_id').value.trim();
+        if (q) params.set('q', q);
+        if (status) params.set('status', status);
+        if (post) params.set('post_id', post);
+        const r = await fetch('/api/admin/blog/comments?'+params.toString(), { headers:{ 'Authorization':'Bearer '+token } });
+        const d = await r.json();
+        const tb = document.getElementById('c_rows'); tb.innerHTML = '';
+        (d.comments||[]).forEach(c => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${c.id}</td>
+            <td><a href="/blog/${c.post_slug}" target="_blank">${c.post_title}</a></td>
+            <td>${c.user_name||'—'}</td>
+            <td>${(c.body||'').slice(0,160)}</td>
+            <td>
+              <select data-id="${c.id}" data-field="status">
+                ${['visible','pending','hidden','deleted'].map(s => `<option value="${s}" ${s===c.status?'selected':''}>${s}</option>`).join('')}
+              </select>
+            </td>
+            <td>
+              <button class="button small" data-act="save" data-id="${c.id}">Guardar</button>
+              <button class="button small" data-act="delete" data-id="${c.id}">Eliminar</button>
+            </td>`;
+          tb.appendChild(tr);
+        });
+      }
+      document.getElementById('c_load').onclick = loadComments;
+      document.getElementById('c_rows').addEventListener('click', async (e) => {
+        const btn = e.target.closest('button'); if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        if (btn.getAttribute('data-act') === 'save') {
+          const sel = document.querySelector(`select[data-id="${id}"][data-field="status"]`);
+          const status = sel?.value;
+          await fetch('/api/admin/blog/comments/'+id, { method:'PATCH', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }, body: JSON.stringify({ status }) });
+          loadComments();
+        } else if (btn.getAttribute('data-act') === 'delete') {
+          if (!confirm('¿Eliminar comentario?')) return;
+          await fetch('/api/admin/blog/comments/'+id, { method:'DELETE', headers:{ 'Authorization':'Bearer '+token } });
+          loadComments();
+        }
+      });
+
+      // Categorías
+      async function loadCats(){
+        const r = await fetch('/api/admin/blog/categories', { headers:{ 'Authorization':'Bearer '+token } });
+        const d = await r.json();
+        const tb = document.getElementById('cat_rows'); tb.innerHTML = '';
+        (d.categories||[]).forEach(c => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${c.id}</td>
+            <td><input class="input" value="${c.name||''}" data-id="${c.id}" data-field="name"/></td>
+            <td><input class="input" value="${c.slug||''}" data-id="${c.id}" data-field="slug"/></td>
+            <td><input class="input" value="${c.description||''}" data-id="${c.id}" data-field="description"/></td>
+            <td>
+              <button class="button small" data-act="save-cat" data-id="${c.id}">Guardar</button>
+              <button class="button small" data-act="del-cat" data-id="${c.id}">Eliminar</button>
+            </td>`;
+          tb.appendChild(tr);
+        });
+      }
+      document.getElementById('cat_new').addEventListener('submit', async (e)=>{
+        e.preventDefault(); const fd = new FormData(e.target); const payload = Object.fromEntries(fd.entries());
+        await fetch('/api/admin/blog/categories', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }, body: JSON.stringify(payload) });
+        e.target.reset(); loadCats();
+      });
+      document.getElementById('cat_rows').addEventListener('click', async (e)=>{
+        const btn = e.target.closest('button'); if (!btn) return; const id = btn.getAttribute('data-id');
+        if (btn.getAttribute('data-act') === 'save-cat') {
+          const get = (f) => document.querySelector(`[data-id="${id}"][data-field="${f}"]`)?.value || '';
+          const payload = { name: get('name'), slug: get('slug'), description: get('description') };
+          await fetch('/api/admin/blog/categories/'+id, { method:'PUT', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }, body: JSON.stringify(payload) });
+          loadCats();
+        } else if (btn.getAttribute('data-act') === 'del-cat') {
+          if (!confirm('¿Eliminar categoría?')) return;
+          await fetch('/api/admin/blog/categories/'+id, { method:'DELETE', headers:{ 'Authorization':'Bearer '+token } });
+          loadCats();
+        }
+      });
+
+      // Tags
+      async function loadTags(){
+        const r = await fetch('/api/admin/blog/tags', { headers:{ 'Authorization':'Bearer '+token } });
+        const d = await r.json();
+        const tb = document.getElementById('tag_rows'); tb.innerHTML = '';
+        (d.tags||[]).forEach(t => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${t.id}</td>
+            <td><input class="input" value="${t.name||''}" data-id="${t.id}" data-field="name"/></td>
+            <td><input class="input" value="${t.slug||''}" data-id="${t.id}" data-field="slug"/></td>
+            <td>
+              <button class="button small" data-act="save-tag" data-id="${t.id}">Guardar</button>
+              <button class="button small" data-act="del-tag" data-id="${t.id}">Eliminar</button>
+            </td>`;
+          tb.appendChild(tr);
+        });
+      }
+      document.getElementById('tag_new').addEventListener('submit', async (e)=>{
+        e.preventDefault(); const fd = new FormData(e.target); const payload = Object.fromEntries(fd.entries());
+        await fetch('/api/admin/blog/tags', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }, body: JSON.stringify(payload) });
+        e.target.reset(); loadTags();
+      });
+      document.getElementById('tag_rows').addEventListener('click', async (e)=>{
+        const btn = e.target.closest('button'); if (!btn) return; const id = btn.getAttribute('data-id');
+        if (btn.getAttribute('data-act') === 'save-tag') {
+          const get = (f) => document.querySelector(`[data-id="${id}"][data-field="${f}"]`)?.value || '';
+          const payload = { name: get('name'), slug: get('slug') };
+          await fetch('/api/admin/blog/tags/'+id, { method:'PUT', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }, body: JSON.stringify(payload) });
+          loadTags();
+        } else if (btn.getAttribute('data-act') === 'del-tag') {
+          if (!confirm('¿Eliminar tag?')) return;
+          await fetch('/api/admin/blog/tags/'+id, { method:'DELETE', headers:{ 'Authorization':'Bearer '+token } });
+          loadTags();
+        }
+      });
+
+      // Initial load
+      (async function(){
+        if (!(await isAdmin())) { alert('Solo administradores'); location.href='/'; return; }
+        loadComments(); loadCats(); loadTags();
+      })();
+    </script>
+  </body>
+</html>
