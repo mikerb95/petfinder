@@ -153,3 +153,50 @@ async function ensureExtraPetTables() {
 }
 
 module.exports.ensureExtraPetTables = ensureExtraPetTables;
+
+/** Ensure users.is_admin column exists for admin gating. */
+async function ensureUsersAdminColumn() {
+  try {
+    const p = getPool();
+    const [cols] = await p.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users'`,
+      [config.db.database]
+    );
+    const names = new Set((cols || []).map(c => c.COLUMN_NAME));
+    if (!names.has('is_admin')) {
+      await p.query(`ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER whatsapp_url`);
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Schema ensure (users.is_admin) warning:', err.message);
+    }
+  }
+}
+
+module.exports.ensureUsersAdminColumn = ensureUsersAdminColumn;
+
+/** Ensure products table exists for the shop CMS. */
+async function ensureProductsTable() {
+  try {
+    const p = getPool();
+    await p.query(`CREATE TABLE IF NOT EXISTS products (
+      id BIGINT PRIMARY KEY AUTO_INCREMENT,
+      name VARCHAR(160) NOT NULL,
+      slug VARCHAR(160) NOT NULL UNIQUE,
+      price_cents INT NOT NULL,
+      currency VARCHAR(3) NOT NULL DEFAULT 'COP',
+      stock INT NOT NULL DEFAULT 0,
+      active TINYINT(1) NOT NULL DEFAULT 1,
+      image_url VARCHAR(255) NULL,
+      description TEXT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NULL DEFAULT NULL
+    )`);
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Schema ensure (products) warning:', err.message);
+    }
+  }
+}
+
+module.exports.ensureProductsTable = ensureProductsTable;

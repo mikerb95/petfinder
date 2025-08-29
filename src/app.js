@@ -6,6 +6,7 @@ const { requireAuth } = require('./middleware/auth');
 const QRCode = require('qrcode');
 const { randomId } = require('./utils/id');
 const authRoutes = require('./routes/auth');
+const { requireAdmin } = require('./middleware/admin');
 
 const app = express();
 
@@ -18,6 +19,62 @@ app.use(express.json());
 
 // Rutas API
 app.use('/api/auth', authRoutes);
+// --- CMS Productos (admin) ---
+app.get('/api/admin/products', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query('SELECT id, name, slug, price_cents, currency, stock, active, image_url, description, created_at, updated_at FROM products ORDER BY created_at DESC');
+    res.json({ products: rows });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+app.post('/api/admin/products', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { name, slug, price_cents, currency, stock, active, image_url, description } = req.body || {};
+    if (!name || !slug || typeof price_cents !== 'number') return res.status(400).json({ error: 'name, slug y price_cents son obligatorios' });
+    const pool = getPool();
+    const [r] = await pool.query(
+      'INSERT INTO products (name, slug, price_cents, currency, stock, active, image_url, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, slug, price_cents, currency || 'COP', stock ?? 0, active ? 1 : 0, image_url || null, description || null]
+    );
+    res.status(201).json({ id: r.insertId });
+  } catch (err) {
+    if (err && err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'slug ya existe' });
+    res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+app.put('/api/admin/products/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, slug, price_cents, currency, stock, active, image_url, description } = req.body || {};
+    const pool = getPool();
+    await pool.query(
+      `UPDATE products SET
+        name = COALESCE(?, name),
+        slug = COALESCE(?, slug),
+        price_cents = COALESCE(?, price_cents),
+        currency = COALESCE(?, currency),
+        stock = COALESCE(?, stock),
+        active = COALESCE(?, active),
+        image_url = COALESCE(?, image_url),
+        description = COALESCE(?, description),
+        updated_at = NOW()
+      WHERE id = ?`,
+      [name ?? null, slug ?? null, price_cents ?? null, currency ?? null, stock ?? null, (typeof active === 'boolean' ? (active ? 1 : 0) : active ?? null), image_url ?? null, description ?? null, id]
+    );
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+app.delete('/api/admin/products/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+    await pool.query('DELETE FROM products WHERE id = ?', [id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
 
 // Verificacion de salud (sin DB)
 app.get('/api/health', (req, res) => {
