@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contacto — Petfinder</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner" style="max-width:720px;">
+        <a class="brand" href="/">
+          <span class="brand-mark">🐾</span>
+          <span class="brand-name">Petfinder</span>
+        </a>
+        <nav class="main-nav"><a href="/shop">Tienda</a><a href="/blog">Blog</a></nav>
+      </div>
+    </header>
+    <main class="section">
+      <div class="container" style="max-width:720px;">
+        <h1>Contacto con el desarrollador</h1>
+        <p class="hero-subtitle">¿Tienes dudas, sugerencias o quieres colaborar? Completa el formulario o usa los datos abajo.</p>
+        <form id="contactForm" class="demo-form" novalidate>
+          <label class="demo-label" for="name">Nombre</label>
+          <input class="input" id="name" name="name" type="text" required placeholder="Tu nombre" />
+          <label class="demo-label" for="email">Correo electrónico</label>
+          <input class="input" id="email" name="email" type="email" required placeholder="tu@correo.com" />
+          <label class="demo-label" for="message">Mensaje</label>
+          <textarea class="input" id="message" name="message" required rows="5" placeholder="Escribe tu mensaje"></textarea>
+          <button class="button button-primary" id="submitBtn" type="submit">Enviar mensaje</button>
+          <div id="msgStatus" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
+        </form>
+        <hr style="margin:32px 0;" />
+        <div class="demo-help" style="font-size:1.1em">
+          <strong>Contacto directo:</strong><br>
+          <span>Correo: <a href="mailto:mikerb95@gmail.com">mikerb95@gmail.com</a></span><br>
+          <span>GitHub: <a href="https://github.com/mikerb95" target="_blank">mikerb95</a></span>
+        </div>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="container footer-inner" style="max-width:720px;">
+        <div class="footer-credit">Creado por Mike Rodríguez</div>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="https://github.com/mikerb95" target="_blank" rel="noopener">GitHub</a>
+          <a href="/terms">Términos</a>
+          <a href="/privacy">Privacidad</a>
+          <a href="/license">Licencia</a>
+        </nav>
+      </div>
+    </footer>
+    <script>
+      const form = document.getElementById('contactForm');
+      const btn = document.getElementById('submitBtn');
+      const msg = document.getElementById('msgStatus');
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        msg.textContent = '';
+        btn.disabled = true; btn.textContent = 'Enviando…';
+        const payload = {
+          name: document.getElementById('name').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          message: document.getElementById('message').value.trim()
+        };
+        if (!payload.name || !payload.email || !payload.message) {
+          msg.textContent = 'Completa todos los campos.';
+          btn.disabled = false; btn.textContent = 'Enviar mensaje';
+          return;
+        }
+        try {
+          const res = await fetch('/api/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json().catch(()=>({}));
+          if (!res.ok) throw new Error(data.error || 'Error al enviar');
+          msg.textContent = '¡Mensaje enviado! Te responderé pronto.';
+          msg.style.color = '#22c55e';
+          form.reset();
+        } catch (err) {
+          msg.textContent = err.message || 'Error al enviar';
+          msg.style.color = '#fca5a5';
+        } finally {
+          btn.disabled = false; btn.textContent = 'Enviar mensaje';
+        }
+      });
+    </script>
+  </body>
+</html>
