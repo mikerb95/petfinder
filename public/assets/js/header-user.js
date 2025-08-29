@@ -1,7 +1,9 @@
 (function(){
   try {
-    var nav = document.querySelector('.site-header .main-nav');
-    if (!nav) return;
+  var nav = document.querySelector('.site-header .main-nav');
+  var headerInner = document.querySelector('.site-header .header-inner');
+  var container = nav || headerInner; // fallback to header container if no nav
+  if (!container) return;
 
     // Reuse existing wrap if present, otherwise create it
     var wrap = document.getElementById('userWrap');
@@ -10,7 +12,8 @@
       wrap.id = 'userWrap';
       wrap.style.position = 'relative';
       wrap.style.display = 'inline-block';
-      nav.appendChild(wrap);
+  container.appendChild(wrap);
+  if (!nav && headerInner) { wrap.style.marginLeft = '8px'; }
     }
 
     // If menu/button not present, create them
@@ -38,9 +41,9 @@
       menu.innerHTML = '<div class="card-body" style="display:flex;flex-direction:column;gap:6px;"><a class="button" href="/dashboard">Panel</a><button id="logoutBtn" class="button" type="button">Cerrar sesión</button></div>';
       wrap.appendChild(menu);
     }
-    var nameEl = document.getElementById('userName');
-    var loginA = document.getElementById('loginLink') || document.getElementById('hdrLogin');
-    var regA = document.getElementById('hdrRegister');
+  var nameEl = document.getElementById('userName');
+  var loginA = document.getElementById('loginLink') || document.getElementById('hdrLogin') || (container && container.querySelector('a[href="/login"]'));
+  var regA = document.getElementById('hdrRegister') || (container && container.querySelector('a[href="/register"]'));
     var logoutA = document.getElementById('logoutLink') || document.getElementById('hdrLogout');
     var hdrName = document.getElementById('hdrName');
 

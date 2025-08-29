@@ -27,7 +27,8 @@
         <tbody id="rows"></tbody>
       </table>
     </main>
-    <script>
+  <script src="/assets/js/header-user.js" defer></script>
+  <script>
       const token = localStorage.getItem('token');
       if (!token) { alert('Inicia sesión como admin'); location.href = '/login'; }
       async function load() {
