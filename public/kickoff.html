@@ -301,6 +301,67 @@
         </div>
       </section>
 
+      <!-- Escena 8.1: Tienda (Shop) -->
+      <section class="ko-stage" data-anim="shop">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="shopCard" class="card-demo anim-el" style="width:min(80vw,900px);">
+              <div class="row"><strong>Vista</strong><span>Listado de productos, carrito, checkout y pago.</span></div>
+              <div class="row"><strong>Páginas</strong><span><code>/shop</code>, <code>/shop/:slug</code>, <code>/cart</code>, <code>/checkout</code>, <code>/payment</code>, <code>/order_confirmed</code>, <code>/order_lookup</code>.</span></div>
+              <div class="row"><strong>API</strong><span><code>GET /api/shop/products</code>, <code>GET /api/shop/products/:slug</code>, <code>GET/POST/PUT/DELETE /api/cart</code>, <code>POST /api/checkout</code>, <code>GET/POST /api/payment/:orderId</code>, <code>GET /api/orders/lookup</code>.</span></div>
+              <div class="row"><strong>Sesión carrito</strong><span>Cookie <code>pf_cart</code> (HttpOnly, Lax) vincula <code>carts</code> y <code>cart_items</code>.</span></div>
+              <div class="row"><strong>Precios</strong><span>Centavos (<code>price_cents</code>), una moneda por orden; cupones percent/fijo, control de redenciones.</span></div>
+              <div class="row"><strong>Stock</strong><span>Se valida y descuenta al pagar; movimientos registrados en <code>inventory_movements</code>.</span></div>
+              <div class="row"><strong>DEV</strong><span><code>POST /api/shop/payments/simulate</code> para simular pago en desarrollo.</span></div>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Tienda integrada</h2>
+            <p class="anim-text">Catálogo público, carrito persistente por cookie y checkout sencillo con creación de orden, items, pago pendiente y confirmación.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Escena 8.2: Blog -->
+      <section class="ko-stage" data-anim="blog">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="blogCard" class="card-demo anim-el" style="width:min(80vw,900px);">
+              <div class="row"><strong>Vista</strong><span>Listado, detalle con reacciones y comentarios, y editor.</span></div>
+              <div class="row"><strong>Páginas</strong><span><code>/blog</code>, <code>/blog/:slug</code>, <code>/blog/editor</code>.</span></div>
+              <div class="row"><strong>API</strong><span><code>GET /api/blog/posts</code>, <code>POST /api/blog/posts</code>, <code>GET /api/blog/posts/:slug</code>, <code>PUT /api/blog/posts/:id</code>, <code>GET/POST /api/blog/posts/:slug/comments</code>, <code>POST /api/blog/posts/:slug/react</code>, <code>POST /api/blog/comments/:id/react</code>, <code>GET /api/blog/(posts|comments)/:id/reactions</code>.</span></div>
+              <div class="row"><strong>Moderación</strong><span>Admin: <code>/api/admin/blog/comments</code> (listar/editar), <code>/api/admin/blog/categories</code>, <code>/api/admin/blog/tags</code>.</span></div>
+              <div class="row"><strong>Permisos</strong><span>Publicación/borradores según autor o admin; lectura restringe borradores; JWT para crear/editar/comentar.</span></div>
+              <div class="row"><strong>Taxonomía</strong><span>Categorías y tags con tablas pivote (<code>blog_post_categories</code>, <code>blog_post_tags</code>).</span></div>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Blog con comentarios y reacciones</h2>
+            <p class="anim-text">Soporta borradores/ publicados, árbol de comentarios y reacciones con toggles por usuario.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Escena 8.3: Especificaciones técnicas (Tienda y Blog) -->
+      <section class="ko-stage" data-anim="specs">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="specsCard" class="card-demo anim-el" style="width:min(80vw,900px);">
+              <div class="row"><strong>Shop · Datos</strong><span>Tablas: <code>products</code>, <code>product_variants</code>, <code>carts</code>, <code>cart_items</code>, <code>orders</code>, <code>order_items</code>, <code>payments</code>, <code>coupons</code>, <code>inventory_movements</code>, <code>addresses</code>.</span></div>
+              <div class="row"><strong>Shop · Flujos</strong><span><em>Cart</em> (cookie) → <em>Checkout</em> crea address y orden (<code>pending</code>) → <em>Payment</em> valida stock y pasa a <code>paid</code>; lookup público por número.</span></div>
+              <div class="row"><strong>Shop · Validación</strong><span>Moneda única por orden, tope de cantidad, stock por variante/producto, cupones por ventana y redenciones.</span></div>
+              <div class="row"><strong>Blog · Datos</strong><span>Tablas: <code>blog_posts</code>, <code>blog_comments</code> (árbol por <code>parent_id</code>), <code>blog_post_reactions</code>, <code>blog_comment_reactions</code>, <code>blog_categories</code>, <code>blog_tags</code>, pivotes.</span></div>
+              <div class="row"><strong>Blog · Seguridad</strong><span>Autor/admin puede editar; lectura de borradores requiere token del autor/admin; endpoints de moderación sólo admin.</span></div>
+              <div class="row"><strong>Frontend</strong><span>HTML/CSS/JS sin framework; fetch API; dropdown de usuario unificado vía <code>/assets/js/header-user.js</code>.</span></div>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Especificaciones técnicas</h2>
+            <p class="anim-text">Resumen de tablas, flujos y garantías de integridad añadidas para la tienda y el blog.</p>
+          </div>
+        </div>
+      </section>
+
       <!-- Escena 9: Analítica con Vercel -->
       <section class="ko-stage" data-anim="analytics">
         <div class="container ko-sticky" style="max-width:1100px;">
@@ -439,6 +500,9 @@
             else if (type === 'deploy') animCard('deployCard','deployText', p);
             else if (type === 'security') animCard('securityCard','securityText', p);
             else if (type === 'views') animCard('viewsCard','viewsText', p);
+            else if (type === 'shop') animCard('shopCard','shopText', p);
+            else if (type === 'blog') animCard('blogCard','blogText', p);
+            else if (type === 'specs') animCard('specsCard','specsText', p);
             else if (type === 'analytics') animCard('analyticsCard','analyticsText', p);
           });
           rafId = requestAnimationFrame(onFrame);
@@ -463,6 +527,13 @@
     els.set('securityText', sectionTexts('[data-anim="security"]'));
   els.set('analyticsCard', document.getElementById('analyticsCard'));
   els.set('analyticsText', sectionTexts('[data-anim="analytics"]'));
+  // Nuevas secciones
+  els.set('shopCard', document.getElementById('shopCard'));
+  els.set('shopText', sectionTexts('[data-anim="shop"]'));
+  els.set('blogCard', document.getElementById('blogCard'));
+  els.set('blogText', sectionTexts('[data-anim="blog"]'));
+  els.set('specsCard', document.getElementById('specsCard'));
+  els.set('specsText', sectionTexts('[data-anim="specs"]'));
 
         function sectionTexts(sel){
           const s = document.querySelector(sel);
