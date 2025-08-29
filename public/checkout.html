@@ -13,13 +13,13 @@
         <span class="brand-mark">🐾</span>
         <span class="brand-name">Petfinder</span>
       </a>
-      <nav class="main-nav"><a href="/shop">Tienda</a><a href="/cart">Carrito</a><a href="/blog">Blog</a></nav>
+  <nav class="main-nav"><a href="/shop">Tienda</a><a href="/cart" id="cartLink" style="position:relative;">Carrito <span id="cartCount" style="position:absolute;top:-6px;right:-10px;background:#ef4444;color:#fff;border-radius:999px;padding:0 6px;font-size:12px;line-height:18px;min-width:18px;text-align:center;display:none;">0</span></a><a href="/blog">Blog</a></nav>
     </div>
   </header>
   <main class="section">
     <div class="container" style="max-width:720px;">
       <h1>Checkout</h1>
-      <form id="checkoutForm" class="demo-form" novalidate>
+  <form id="checkoutForm" class="demo-form" novalidate>
         <label class="demo-label" for="name">Nombre completo</label>
         <input class="input" id="name" name="name" type="text" required placeholder="Tu nombre" />
         <label class="demo-label" for="email">Correo electrónico</label>
@@ -31,6 +31,16 @@
         <label class="demo-label" for="phone">Teléfono</label>
         <input class="input" id="phone" name="phone" type="tel" required placeholder="Teléfono" />
         <div id="orderSummary" style="margin:16px 0;"></div>
+        <div class="card" style="margin:12px 0;">
+          <div class="card-body">
+            <label class="demo-label" for="coupon">¿Tienes un cupón?</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input class="input" id="coupon" name="coupon" type="text" placeholder="Código de descuento" style="flex:1;" />
+              <button class="button" id="applyCoupon" type="button">Aplicar</button>
+            </div>
+            <div id="couponMsg" class="demo-help" style="margin-top:8px;"></div>
+          </div>
+        </div>
         <button class="button button-primary" id="submitBtn" type="submit">Continuar al pago</button>
         <div id="msgStatus" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
       </form>
@@ -48,7 +58,16 @@
     </div>
   </footer>
   <script>
-    async function loadSummary() {
+    (async function(){
+      try{
+        const r = await fetch('/api/cart', {credentials:'include'});
+        const d = await r.json().catch(()=>({}));
+        const n = (d.items||[]).reduce((a,it)=>a+Number(it.quantity||0),0);
+        const el = document.getElementById('cartCount');
+        if (el) { if (n>0){ el.textContent=String(n); el.style.display='inline-block'; } else el.style.display='none'; }
+      }catch(_){ }
+    })();
+  async function loadSummary() {
       const res = await fetch('/api/cart');
       const data = await res.json();
       const items = data.items || [];
@@ -59,7 +78,7 @@
         total += item.price_cents * item.quantity;
         html += `<div>${item.name} x${item.quantity} — ${fmt(item.currency, (item.price_cents*item.quantity)/100)}</div>`;
       });
-      html += `<div style='font-weight:bold;margin-top:8px;'>Total: ${fmt('COP', total/100)}</div>`;
+  html += `<div style='font-weight:bold;margin-top:8px;'>Total: ${fmt('COP', total/100)}</div>`;
       document.getElementById('orderSummary').innerHTML = html;
     }
     loadSummary();
@@ -75,7 +94,8 @@
         email: document.getElementById('email').value.trim(),
         address: document.getElementById('address').value.trim(),
         city: document.getElementById('city').value.trim(),
-        phone: document.getElementById('phone').value.trim()
+        phone: document.getElementById('phone').value.trim(),
+        coupon_code: (document.getElementById('coupon').value||'').trim() || undefined
       };
       try {
         const res = await fetch('/api/checkout', {
@@ -92,6 +112,14 @@
       } finally {
         btn.disabled = false; btn.textContent = 'Continuar al pago';
       }
+    });
+
+    // Optional UX: basic coupon validation with a dry run by calling orders endpoint is out-of-scope; show local note
+    document.getElementById('applyCoupon').addEventListener('click', ()=>{
+      const code = (document.getElementById('coupon').value||'').trim();
+      const el = document.getElementById('couponMsg');
+      if (!code) { el.textContent = 'Ingresa un código.'; el.style.color = '#fca5a5'; return; }
+      el.textContent = 'El cupón se validará al crear la orden.'; el.style.color = '#9ca3af';
     });
   </script>
 </body>

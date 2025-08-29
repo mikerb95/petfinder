@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Buscar pedido — Petfinder</title>
+  <link rel="stylesheet" href="/assets/css/landing.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner" style="max-width:720px;">
+      <a class="brand" href="/">
+        <span class="brand-mark">🐾</span>
+        <span class="brand-name">Petfinder</span>
+      </a>
+      <nav class="main-nav"><a href="/shop">Tienda</a><a href="/cart">Carrito</a><a href="/blog">Blog</a></nav>
+    </div>
+  </header>
+  <main class="section">
+    <div class="container" style="max-width:720px;">
+      <h1>Consulta tu pedido</h1>
+      <form id="lookupForm" class="demo-form" style="margin-bottom:16px;">
+        <label class="demo-label" for="number">Número de orden</label>
+        <input class="input" id="number" name="number" type="text" required placeholder="PF1700000000000-ABCD" />
+        <label class="demo-label" for="email">Correo (opcional)</label>
+        <input class="input" id="email" name="email" type="email" placeholder="tu@correo.com" />
+        <button class="button button-primary" type="submit">Buscar</button>
+      </form>
+      <div id="result"></div>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner" style="max-width:720px;">
+      <div class="footer-credit">Creado por Mike Rodríguez</div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="https://github.com/mikerb95" target="_blank" rel="noopener">GitHub</a>
+        <a href="/terms">Términos</a>
+        <a href="/privacy">Privacidad</a>
+        <a href="/license">Licencia</a>
+      </nav>
+    </div>
+  </footer>
+  <script>
+    const fmt = (cur,v)=> new Intl.NumberFormat('es-CO',{style:'currency',currency:cur||'COP'}).format((v||0)/100);
+    document.getElementById('lookupForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const number = document.getElementById('number').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const res = await fetch('/api/orders/lookup?'+new URLSearchParams({ number, email }));
+      const data = await res.json().catch(()=>({}));
+      const wrap = document.getElementById('result');
+      if (!res.ok) { wrap.innerHTML = '<div class="demo-help">No encontrado.</div>'; return; }
+      const o = data.order; const items = data.items||[];
+      wrap.innerHTML = `
+        <div class="card"><div class="card-body">
+          <div><strong>Orden:</strong> ${o.order_number}</div>
+          <div><strong>Estado:</strong> ${o.status}</div>
+          <div><strong>Fecha:</strong> ${o.created_at||''}</div>
+          <div><strong>Cliente:</strong> ${o.name||''} — ${o.email||''}</div>
+          <div><strong>Dirección:</strong> ${o.address||''}, ${o.city||''}</div>
+          <div style="margin:10px 0 6px;"><strong>Artículos</strong></div>
+          ${items.map(it=>`<div>${it.name} x${it.quantity} — ${fmt(o.currency,it.total_cents)}</div>`).join('')}
+          <div style="margin-top:10px;font-weight:bold;">Total: ${fmt(o.currency, o.total_cents)}</div>
+        </div></div>`;
+    });
+  </script>
+</body>
+</html>

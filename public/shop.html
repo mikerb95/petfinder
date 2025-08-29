@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/assets/css/landing.css" />
   </head>
   <body>
-  <header class="site-header"><div class="container header-inner"><a class="brand" href="/">🐾 Petfinder</a><nav class="main-nav"><a href="/shop">Tienda</a><a href="/blog">Blog</a><a href="/login">Ingresar</a></nav></div></header>
+  <header class="site-header"><div class="container header-inner"><a class="brand" href="/">🐾 Petfinder</a><nav class="main-nav"><a href="/shop">Tienda</a><a href="/cart" id="cartLink" style="position:relative;">🛒<span id="cartCount" style="position:absolute;top:-6px;right:-10px;background:#ef4444;color:#fff;border-radius:999px;padding:0 6px;font-size:12px;line-height:18px;min-width:18px;text-align:center;display:none;">0</span></a><a href="/blog">Blog</a><a href="/login">Ingresar</a></nav></div></header>
     <main class="container" style="padding:20px 0;">
       <h1>Tienda</h1>
       <div id="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;"></div>
@@ -33,6 +33,17 @@
         });
       }
       load();
+    </script>
+    <script>
+      (async function(){
+        try{
+          const r = await fetch('/api/cart', {credentials:'include'});
+          const d = await r.json().catch(()=>({}));
+          const n = (d.items||[]).reduce((a,it)=>a+Number(it.quantity||0),0);
+          const el = document.getElementById('cartCount');
+          if (el) { if (n>0){ el.textContent=String(n); el.style.display='inline-block'; } else el.style.display='none'; }
+        }catch(_){ }
+      })();
     </script>
   </body>
 </html>

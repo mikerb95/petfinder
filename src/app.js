@@ -603,6 +603,10 @@ app.get('/payment', (req, res) => {
 app.get('/order_confirmed', (req, res) => {
   res.sendFile(path.join(publicDir, 'order_confirmed.html'));
 });
+// Lookup de orden pública
+app.get('/order_lookup', (req, res) => {
+  res.sendFile(path.join(publicDir, 'order_lookup.html'));
+});
 // Pagina de detalles tecnicos
 app.get('/tech', (req, res) => {
   res.sendFile(path.join(publicDir, 'tech.html'));
@@ -755,7 +759,7 @@ app.post('/api/checkout', async (req, res) => {
   const pool = getPool();
   let conn;
   try {
-    const { name, email, address, city, phone } = req.body || {};
+  const { name, email, address, city, phone, coupon_code = null } = req.body || {};
     if (!name || !email || !address || !city || !phone) return res.status(400).json({ error: 'faltan datos de envío' });
     const { cartId } = await getOrCreateCart(req, res);
     const [items] = await pool.query(
@@ -789,7 +793,32 @@ app.post('/api/checkout', async (req, res) => {
       subtotal += lineTotal;
       resolved.push({ product: p, variant: variantRow, unitPrice, quantity: qty });
     }
-    const discount = 0, shipping = 0, tax = 0;
+    // Cupón opcional
+    let couponId = null;
+    let discount = 0;
+    if (coupon_code) {
+      const [cr] = await conn.query(
+        `SELECT id, type, percent_off, amount_off_cents, currency, starts_at, ends_at, active, max_redemptions, usage_count
+           FROM coupons WHERE code = ? LIMIT 1`,
+        [coupon_code]
+      );
+      const c = cr[0];
+      const now = new Date();
+      const within = c && (!c.starts_at || new Date(c.starts_at) <= now) && (!c.ends_at || new Date(c.ends_at) >= now);
+      const active = c && c.active === 1;
+      const left = c && (c.max_redemptions == null || c.usage_count < c.max_redemptions);
+      const sameCur = c && (!c.currency || c.currency === currency);
+      if (!c || !within || !active || !left || !sameCur) {
+        throw new Error('cupón inválido');
+      }
+      couponId = c.id;
+      if (c.type === 'percent' && c.percent_off) {
+        discount = Math.floor(subtotal * (c.percent_off / 100));
+      } else if (c.type === 'fixed' && c.amount_off_cents) {
+        discount = Math.min(subtotal, c.amount_off_cents);
+      }
+    }
+    const shipping = 0, tax = 0;
     const total = Math.max(0, subtotal - discount + shipping + tax);
 
     // create addresses
@@ -799,16 +828,16 @@ app.post('/api/checkout', async (req, res) => {
     );
     const addrId = addrIns.insertId;
 
-    // Create order
+  // Create order
     let orderNumber;
     for (let i = 0; i < 5; i++) {
       orderNumber = 'PF' + Date.now() + '-' + randomId(4);
       try {
         await conn.query(
           `INSERT INTO orders (order_number, user_id, email, phone, billing_address_id, shipping_address_id, status, currency,
-                                subtotal_cents, discount_cents, shipping_cents, tax_cents, total_cents, coupon_id, notes)
-           VALUES (?, NULL, ?, ?, ?, ?, 'pending', ?, ?, 0, 0, 0, ?, NULL, NULL)`,
-          [orderNumber, email, phone, addrId, addrId, currency, subtotal, total]
+                subtotal_cents, discount_cents, shipping_cents, tax_cents, total_cents, coupon_id, notes)
+       VALUES (?, NULL, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, NULL)`,
+      [orderNumber, email, phone, addrId, addrId, currency, subtotal, discount, shipping, tax, total, couponId]
         );
         break;
       } catch (e) { if (!e || e.code !== 'ER_DUP_ENTRY') throw e; }
@@ -829,7 +858,7 @@ app.post('/api/checkout', async (req, res) => {
       );
     }
 
-    await conn.query(`INSERT INTO payments (order_id, provider, status, amount_cents, currency) VALUES (?, 'manual', 'pending', ?, ?)`, [orderId, total, currency]);
+  await conn.query(`INSERT INTO payments (order_id, provider, status, amount_cents, currency) VALUES (?, 'manual', 'pending', ?, ?)`, [orderId, total, currency]);
 
     // clear cart
     await conn.query('DELETE FROM cart_items WHERE cart_id = ?', [cartId]);
@@ -838,8 +867,8 @@ app.post('/api/checkout', async (req, res) => {
     res.status(201).json({ order_id: orderId });
   } catch (err) {
     try { if (conn) await conn.rollback(); } catch(_){}
-    const msg = err?.message || 'internal server error';
-    const code = ['producto no encontrado','variant inválida','producto inactivo','mezcla de monedas no soportada','carrito vacío'].includes(msg) ? 400 : 500;
+  const msg = err?.message || 'internal server error';
+  const code = ['producto no encontrado','variant inválida','producto inactivo','mezcla de monedas no soportada','carrito vacío','cupón inválido'].includes(msg) ? 400 : 500;
     res.status(code).json({ error: msg });
   } finally { if (conn) conn.release(); }
 });
@@ -850,13 +879,39 @@ app.get('/api/payment/:orderId', async (req, res) => {
     const { orderId } = req.params;
     const pool = getPool();
     const [orows] = await pool.query(
-      `SELECT o.id, o.email, o.phone, o.total_cents, o.currency, o.status,
+      `SELECT o.id, o.order_number, o.email, o.phone, o.total_cents, o.currency, o.status,
               a.full_name AS name, a.line1 AS address, a.city
          FROM orders o
          LEFT JOIN addresses a ON a.id = o.shipping_address_id
         WHERE o.id = ? LIMIT 1`, [orderId]);
     if (!orows.length) return res.status(404).json({ error: 'orden no encontrada' });
     res.json({ order: orows[0] });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Consulta pública de orden por número
+app.get('/api/orders/lookup', async (req, res) => {
+  try {
+    const { number, email } = req.query || {};
+    if (!number) return res.status(400).json({ error: 'falta number' });
+    const pool = getPool();
+    const params = [number];
+    let whereEmail = '';
+    if (email) { whereEmail = ' AND (o.email = ? OR ? IS NULL)'; params.push(email, email); }
+    const [rows] = await pool.query(
+      `SELECT o.id, o.order_number, o.email, o.phone, o.total_cents, o.currency, o.status,
+              a.full_name AS name, a.line1 AS address, a.city,
+              DATE_FORMAT(o.created_at, '%Y-%m-%d %H:%i:%s') AS created_at
+         FROM orders o
+         LEFT JOIN addresses a ON a.id = o.shipping_address_id
+        WHERE o.order_number = ? ${whereEmail}
+        LIMIT 1`, params);
+    if (!rows.length) return res.status(404).json({ error: 'orden no encontrada' });
+    const [items] = await pool.query(
+      `SELECT name, sku, unit_price_cents, quantity, total_cents FROM order_items WHERE order_id = ? ORDER BY id ASC`,
+      [rows[0].id]
+    );
+    res.json({ order: rows[0], items });
   } catch (err) { res.status(500).json({ error: 'internal server error' }); }
 });
 
