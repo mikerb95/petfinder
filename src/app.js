@@ -449,6 +449,12 @@ app.get('/p/:qrId', (req, res) => {
   res.sendFile(path.join(publicDir, 'pet.html'));
 });
 
+// Licencia (texto)
+app.get('/license', (req, res) => {
+  res.type('text/plain');
+  res.sendFile(path.join(__dirname, '..', 'LICENSE'));
+});
+
 // NFC short route: /n/:nfcId -> redirects to /p/:qrId
 app.get('/n/:nfcId', async (req, res) => {
   try {

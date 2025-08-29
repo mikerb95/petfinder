@@ -153,3 +153,9 @@ npm start
 ```
 
 If you receive an access denied from MySQL during `db:init`, verify `.env` credentials match your local MySQL setup.
+
+## License
+
+This project is distributed under a Restricted Use License intended for academic/demonstration purposes (SENA) and non-commercial testing only. Commercial use, redistribution, sublicensing, or rebranding is not permitted without prior written consent from the author.
+
+See the full text in [LICENSE](./LICENSE).

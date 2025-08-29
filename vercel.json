@@ -4,6 +4,7 @@
     { "src": "^/dashboard$", "dest": "/api/index.js" },
     { "src": "^/assets/(.*)$", "dest": "/public/assets/$1" },
   { "src": "^/tech$", "dest": "/public/tech.html" },
+  { "src": "^/license$", "dest": "/LICENSE" },
   { "src": "^/m$", "dest": "/public/m.html" },
     { "src": "^/api/(.*)$", "dest": "/api/index.js" },
     { "src": "^/p/(.*)$", "dest": "/api/index.js" },
