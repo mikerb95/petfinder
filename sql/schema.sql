@@ -367,3 +367,129 @@ CREATE TABLE IF NOT EXISTS inventory_movements (
   CONSTRAINT fk_im_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
   CONSTRAINT fk_im_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL
 );
+
+-- =============================
+-- Sección Blog (Posts de usuarios)
+-- =============================
+
+-- Tabla principal de posts del blog
+CREATE TABLE IF NOT EXISTS blog_posts (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  author_id BIGINT DEFAULT NULL,
+  title VARCHAR(200) NOT NULL,
+  slug VARCHAR(220) NOT NULL UNIQUE,
+  excerpt TEXT DEFAULT NULL,
+  content LONGTEXT NOT NULL,
+  cover_image_url VARCHAR(255) DEFAULT NULL,
+  status ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
+  published_at DATETIME DEFAULT NULL,
+  views_count INT NOT NULL DEFAULT 0,
+  meta_title VARCHAR(200) DEFAULT NULL,
+  meta_description VARCHAR(255) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  CONSTRAINT fk_bpost_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL,
+  KEY idx_bpost_status (status),
+  KEY idx_bpost_published_at (published_at)
+);
+
+-- Categorías del blog
+CREATE TABLE IF NOT EXISTS blog_categories (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(120) NOT NULL,
+  slug VARCHAR(160) NOT NULL UNIQUE,
+  description VARCHAR(255) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Relación N:M posts <-> categorías
+CREATE TABLE IF NOT EXISTS blog_post_categories (
+  post_id BIGINT NOT NULL,
+  category_id BIGINT NOT NULL,
+  PRIMARY KEY (post_id, category_id),
+  CONSTRAINT fk_bpc_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_bpc_category FOREIGN KEY (category_id) REFERENCES blog_categories(id) ON DELETE CASCADE
+);
+
+-- Tags del blog
+CREATE TABLE IF NOT EXISTS blog_tags (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(120) NOT NULL,
+  slug VARCHAR(160) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Relación N:M posts <-> tags
+CREATE TABLE IF NOT EXISTS blog_post_tags (
+  post_id BIGINT NOT NULL,
+  tag_id BIGINT NOT NULL,
+  PRIMARY KEY (post_id, tag_id),
+  CONSTRAINT fk_bpt_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_bpt_tag FOREIGN KEY (tag_id) REFERENCES blog_tags(id) ON DELETE CASCADE
+);
+
+-- Imágenes adicionales por post
+CREATE TABLE IF NOT EXISTS blog_post_images (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  post_id BIGINT NOT NULL,
+  image_url VARCHAR(255) NOT NULL,
+  alt VARCHAR(160) DEFAULT NULL,
+  position INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_bpimg_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE
+);
+
+-- Comentarios por post
+CREATE TABLE IF NOT EXISTS blog_comments (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  post_id BIGINT NOT NULL,
+  user_id BIGINT DEFAULT NULL,
+  parent_id BIGINT DEFAULT NULL,
+  body TEXT NOT NULL,
+  status ENUM('visible','pending','hidden','deleted') NOT NULL DEFAULT 'visible',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  CONSTRAINT fk_bcomm_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_bcomm_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_bcomm_parent FOREIGN KEY (parent_id) REFERENCES blog_comments(id) ON DELETE CASCADE,
+  KEY idx_bcomm_post (post_id),
+  KEY idx_bcomm_status (status)
+);
+
+-- Likes por usuario y post (únicos)
+CREATE TABLE IF NOT EXISTS blog_post_reactions (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  post_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  reaction ENUM('up','down') NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_bpr_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_bpr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_bpr_post_user (post_id, user_id)
+);
+
+-- Reacciones a comentarios (thumb up/down)
+CREATE TABLE IF NOT EXISTS blog_comment_reactions (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  comment_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  reaction ENUM('up','down') NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_bcr_comment FOREIGN KEY (comment_id) REFERENCES blog_comments(id) ON DELETE CASCADE,
+  CONSTRAINT fk_bcr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_bcr_comment_user (comment_id, user_id)
+);
+
+-- Historial de revisiones de un post
+CREATE TABLE IF NOT EXISTS blog_post_revisions (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  post_id BIGINT NOT NULL,
+  editor_user_id BIGINT DEFAULT NULL,
+  title VARCHAR(200) DEFAULT NULL,
+  content LONGTEXT NOT NULL,
+  reason VARCHAR(200) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_bprev_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_bprev_editor FOREIGN KEY (editor_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  KEY idx_bprev_post (post_id)
+);
