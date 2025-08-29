@@ -187,3 +187,11 @@ h3 { font-size: clamp(18px, 2.4vw, 22px); line-height: 1.3; margin: 0 0 8px; }
 .prose h3 { margin: 14px 0 6px; font-size: 1.15rem; }
 .prose ul { padding-left: 20px; margin: 8px 0 12px; }
 .prose li { margin: 4px 0; }
+
+/* Blog cover images and chips */
+.card-cover { width: 100%; aspect-ratio: 16 / 9; background: #0b1220; border-radius: 10px; overflow: hidden; border:1px solid rgba(255,255,255,0.08); margin-bottom: 10px; }
+.card-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover-hero { width: 100%; aspect-ratio: 16 / 9; background: #0b1220; border-radius: 12px; overflow: hidden; border:1px solid rgba(255,255,255,0.08); margin: 10px 0 14px; }
+.cover-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.chips { display:flex; gap:8px; flex-wrap:wrap; margin: 6px 0; }
+.chip { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border:1px solid rgba(255,255,255,0.12); border-radius:999px; font-size:.8rem; color: var(--color-muted); background: rgba(255,255,255,0.02); }

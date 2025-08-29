@@ -610,11 +610,17 @@ app.get('/api/blog/posts', async (req, res) => {
     if (status) { where += ' AND bp.status = ?'; params.push(status); }
     if (q) { where += ' AND (bp.title LIKE ? OR bp.excerpt LIKE ?)'; params.push(`%${q}%`, `%${q}%`); }
     const [rows] = await pool.query(
-      `SELECT bp.id, bp.title, bp.slug, bp.excerpt, bp.published_at,
+      `SELECT bp.id, bp.title, bp.slug, bp.excerpt, bp.cover_image_url, bp.published_at,
               u.name AS author_name,
               COALESCE(SUM(CASE WHEN bpr.reaction='up' THEN 1 ELSE 0 END),0) AS up_count,
               COALESCE(SUM(CASE WHEN bpr.reaction='down' THEN 1 ELSE 0 END),0) AS down_count,
-              (SELECT COUNT(1) FROM blog_comments bc WHERE bc.post_id = bp.id AND bc.status = 'visible') AS comment_count
+              (SELECT COUNT(1) FROM blog_comments bc WHERE bc.post_id = bp.id AND bc.status = 'visible') AS comment_count,
+              (SELECT GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ',')
+                 FROM blog_post_categories pc JOIN blog_categories c ON c.id = pc.category_id
+                WHERE pc.post_id = bp.id) AS categories_csv,
+              (SELECT GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ',')
+                 FROM blog_post_tags pt JOIN blog_tags t ON t.id = pt.tag_id
+                WHERE pt.post_id = bp.id) AS tags_csv
          FROM blog_posts bp
          LEFT JOIN users u ON u.id = bp.author_id
          LEFT JOIN blog_post_reactions bpr ON bpr.post_id = bp.id
@@ -622,7 +628,12 @@ app.get('/api/blog/posts', async (req, res) => {
          GROUP BY bp.id
          ORDER BY COALESCE(bp.published_at, bp.created_at) DESC
          LIMIT 100`, params);
-    res.json({ posts: rows });
+    const posts = rows.map(r => ({
+      ...r,
+      categories: r.categories_csv ? String(r.categories_csv).split(',').filter(Boolean) : [],
+      tags: r.tags_csv ? String(r.tags_csv).split(',').filter(Boolean) : []
+    }));
+    res.json({ posts });
   } catch (err) { res.status(500).json({ error: 'internal server error' }); }
 });
 
@@ -651,7 +662,17 @@ app.get('/api/blog/posts/:slug', async (req, res) => {
     const { slug } = req.params;
     const pool = getPool();
     const [rows] = await pool.query(
-      `SELECT bp.*, u.name AS author_name FROM blog_posts bp LEFT JOIN users u ON u.id = bp.author_id WHERE bp.slug = ? LIMIT 1`,
+      `SELECT bp.*, u.name AS author_name,
+              (SELECT GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ',')
+                 FROM blog_post_categories pc JOIN blog_categories c ON c.id = pc.category_id
+                WHERE pc.post_id = bp.id) AS categories_csv,
+              (SELECT GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ',')
+                 FROM blog_post_tags pt JOIN blog_tags t ON t.id = pt.tag_id
+                WHERE pt.post_id = bp.id) AS tags_csv
+         FROM blog_posts bp
+         LEFT JOIN users u ON u.id = bp.author_id
+        WHERE bp.slug = ?
+        LIMIT 1`,
       [slug]
     );
     if (!rows.length) return res.status(404).json({ error: 'not found' });
@@ -668,7 +689,7 @@ app.get('/api/blog/posts/:slug', async (req, res) => {
       }
     } catch(_){}
     if (post.status !== 'published' && !isOwnerOrAdmin) return res.status(403).json({ error: 'forbidden' });
-    const [re] = await pool.query(
+  const [re] = await pool.query(
       `SELECT SUM(CASE WHEN reaction='up' THEN 1 ELSE 0 END) AS up_count,
               SUM(CASE WHEN reaction='down' THEN 1 ELSE 0 END) AS down_count
          FROM blog_post_reactions WHERE post_id = ?`,
@@ -677,6 +698,8 @@ app.get('/api/blog/posts/:slug', async (req, res) => {
     post.up_count = re[0]?.up_count || 0;
     post.down_count = re[0]?.down_count || 0;
     post.can_edit = isOwnerOrAdmin;
+  post.categories = rows[0]?.categories_csv ? String(rows[0].categories_csv).split(',').filter(Boolean) : [];
+  post.tags = rows[0]?.tags_csv ? String(rows[0].tags_csv).split(',').filter(Boolean) : [];
     res.json({ post });
   } catch (err) { res.status(500).json({ error: 'internal server error' }); }
 });

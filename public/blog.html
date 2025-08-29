@@ -66,8 +66,11 @@
       posts.forEach(p => {
         const d = document.createElement('div');
         d.className = 'card';
+        const chips = [...(p.categories||[]).map(c=>`<span class="chip">🏷️ ${c}</span>`), ...(p.tags||[]).map(t=>`<span class=\"chip\">#${t}</span>`)].join(' ');
         d.innerHTML = `
+          ${p.cover_image_url ? `<div class="card-cover"><img src="${p.cover_image_url}" alt="${p.title}" loading="lazy" /></div>` : ''}
           <h3 style="margin:0 0 6px"><a href="/blog/${p.slug}">${p.title}</a></h3>
+          ${chips ? `<div class="chips">${chips}</div>` : ''}
           <p class="muted" style="margin:0 0 8px">${(p.excerpt||'').slice(0,180)}</p>
           <div class="muted" style="font-size:.9rem">por ${p.author_name||'Anónimo'} · ${(p.published_at||'').replace('T',' ').slice(0,16)}</div>
           <div style="display:flex;gap:8px;margin-top:10px">

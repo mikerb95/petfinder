@@ -27,8 +27,10 @@
   <main class="section">
     <div class="container" style="max-width:900px;">
       <a href="/blog" class="link">← Volver</a>
-      <h1 id="t" style="margin-top:8px"></h1>
-      <div class="muted" id="meta"></div>
+  <h1 id="t" style="margin-top:8px"></h1>
+  <div class="muted" id="meta"></div>
+  <div id="chips" class="chips"></div>
+  <div id="cover"></div>
       <div class="actions">
         <button class="btn up" id="up">👍 Me gusta</button>
         <button class="btn down" id="down">👎 No me gusta</button>
@@ -64,18 +66,22 @@
     }
     function fmtDate(s){ return s ? s.replace('T',' ').slice(0,16) : '' }
     async function load(){
-      const t = localStorage.getItem('auth_token');
-      const r = await fetch('/api/blog/posts/'+slug, { headers: t? { 'Authorization': 'Bearer '+t } : {} });
+  const t = localStorage.getItem('auth_token');
+  const r = await fetch('/api/blog/posts/'+slug, { headers: t? { 'Authorization': 'Bearer '+t } : {} });
       const d = await r.json();
       document.getElementById('t').textContent = d.post.title;
       document.getElementById('meta').textContent = `por ${d.post.author_name||'Anónimo'} · ${fmtDate(d.post.published_at)} · 👍 ${d.post.up_count||0} · 👎 ${d.post.down_count||0}`;
-      // Render content as simple paragraphs; preserve line breaks
-      const cont = document.getElementById('c');
-      cont.textContent = '';
-      cont.innerHTML = (d.post.content||'')
-        .split(/\n\n+/)
-        .map(p => `<p>${p.replace(/\n/g,'<br/>')}</p>`)
-        .join('');
+  // Cover image
+  const cover = document.getElementById('cover');
+  cover.innerHTML = d.post.cover_image_url ? `<div class="cover-hero"><img src="${d.post.cover_image_url}" alt="${d.post.title}"/></div>` : '';
+  // Chips
+  const chips = document.getElementById('chips');
+  const cats = (d.post.categories||[]).map(c=>`<span class="chip">🏷️ ${c}</span>`);
+  const tags = (d.post.tags||[]).map(t=>`<span class="chip">#${t}</span>`);
+  chips.innerHTML = [...cats, ...tags].join(' ');
+  // Render content as simple Markdown
+  const cont = document.getElementById('c');
+  cont.innerHTML = renderMarkdown(d.post.content||'');
       const edit = document.getElementById('edit');
       if (d.post.can_edit) { edit.style.display = 'inline-block'; edit.href = '/blog/editor?post_id='+d.post.id }
       // Highlight my reaction on post
@@ -182,6 +188,42 @@
       await fetch(`/api/blog/posts/${slug}/react`, { method:'POST', headers:{'Content-Type':'application/json', ...(t?{'Authorization':'Bearer '+t}:{})}, body: JSON.stringify({ reaction: 'down' })});
       load();
     };
+    // Minimal Markdown renderer (basic headings, bold/italic, code, lists, links)
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s]));
+    }
+    function renderMarkdown(md){
+      if (!md) return '';
+      // Normalize line breaks
+      md = md.replace(/\r\n?/g, '\n');
+      // Handle fenced code blocks
+      const codeBlocks = [];
+      md = md.replace(/```([\s\S]*?)```/g, (_, code) => {
+        const idx = codeBlocks.push(escapeHtml(code)) - 1;
+        return `{{CODEBLOCK_${idx}}}`;
+      });
+      // Headings
+      md = md.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
+             .replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
+             .replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+      // Lists (simple)
+      md = md.replace(/^(?:- |\* )(.*(?:\n(?:- |\* ).*)*)/gm, (m) => {
+        const items = m.split(/\n/).map(l=>l.replace(/^(?:- |\* )/,'')).map(it=>`<li>${escapeHtml(it)}</li>`).join('');
+        return `<ul>${items}</ul>`;
+      });
+      // Inline formats
+      md = md.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+             .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+             .replace(/`([^`]+)`/g, '<code>$1</code>')
+             .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1<\/a>');
+      // Paragraphs: wrap remaining text blocks
+      const blocks = md.split(/\n{2,}/).map(b=>{
+        if (/^<h[1-3]>|^<ul>|^<pre>|^<p>|^{{CODEBLOCK_/.test(b)) return b; // already a block
+        return `<p>${b.replace(/\n/g,'<br/>')}</p>`;
+      }).join('');
+      // Restore code blocks
+      return blocks.replace(/\{\{CODEBLOCK_(\d+)\}\}/g, (_, i) => `<pre><code>${codeBlocks[Number(i)]}</code></pre>`);
+    }
     me().then(load);
   </script>
 </body>
