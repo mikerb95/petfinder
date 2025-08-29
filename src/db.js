@@ -175,6 +175,28 @@ async function ensureUsersAdminColumn() {
 
 module.exports.ensureUsersAdminColumn = ensureUsersAdminColumn;
 
+/** Ensure users.score column exists for gamified actions. */
+async function ensureUsersScoreColumn() {
+  try {
+    const p = getPool();
+    const [cols] = await p.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users'`,
+      [config.db.database]
+    );
+    const names = new Set((cols || []).map(c => c.COLUMN_NAME));
+    if (!names.has('score')) {
+      // Place after is_admin when possible
+      await p.query(`ALTER TABLE users ADD COLUMN score INT NOT NULL DEFAULT 0 AFTER is_admin`);
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Schema ensure (users.score) warning:', err.message);
+    }
+  }
+}
+
+module.exports.ensureUsersScoreColumn = ensureUsersScoreColumn;
+
 /** Ensure products table exists for the shop CMS. */
 async function ensureProductsTable() {
   try {

@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS users (
   verification_code VARCHAR(6) DEFAULT NULL,
   verification_expires_at DATETIME DEFAULT NULL,
   is_admin TINYINT(1) NOT NULL DEFAULT 0,
+  -- Puntuación del usuario basada en acciones dentro del portal
+  score INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
