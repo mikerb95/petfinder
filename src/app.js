@@ -587,6 +587,15 @@ app.get('/api/shop/products/:slug', async (req, res) => {
 });
 
 // -------- API Blog --------
+// Helper to check admin
+async function isAdminUser(userId) {
+  try {
+    if (!userId) return false;
+    const pool = getPool();
+    const [rows] = await pool.query('SELECT is_admin FROM users WHERE id = ? LIMIT 1', [userId]);
+    return !!(rows.length && rows[0].is_admin === 1);
+  } catch (_) { return false; }
+}
 // Listar posts (públicos por defecto, soporta q y status)
 app.get('/api/blog/posts', async (req, res) => {
   try {
@@ -651,7 +660,7 @@ app.get('/api/blog/posts/:slug', async (req, res) => {
       if (m) {
         const payload = jwt.verify(m[1], config.jwtSecret);
         if (payload?.sub && Number(payload.sub) === Number(post.author_id)) isOwnerOrAdmin = true;
-        if (payload?.is_admin) isOwnerOrAdmin = true;
+        if (await isAdminUser(payload?.sub)) isOwnerOrAdmin = true;
       }
     } catch(_){}
     if (post.status !== 'published' && !isOwnerOrAdmin) return res.status(403).json({ error: 'forbidden' });
@@ -676,7 +685,8 @@ app.get('/api/blog/posts/id/:id', requireAuth, async (req, res) => {
     const pool = getPool();
     const [rows] = await pool.query(`SELECT * FROM blog_posts WHERE id = ? LIMIT 1`, [id]);
     if (!rows.length) return res.status(404).json({ error: 'not found' });
-    if (rows[0].author_id !== Number(userId) && !req.auth?.is_admin) return res.status(403).json({ error: 'forbidden' });
+  const isAdmin = await isAdminUser(userId);
+  if (rows[0].author_id !== Number(userId) && !isAdmin) return res.status(403).json({ error: 'forbidden' });
     res.json({ post: rows[0] });
   } catch (err) { res.status(500).json({ error: 'internal server error' }); }
 });
@@ -766,8 +776,15 @@ app.post('/api/blog/posts/:slug/react', requireAuth, async (req, res) => {
     const pool = getPool();
     const [p] = await pool.query('SELECT id FROM blog_posts WHERE slug = ? LIMIT 1', [slug]);
     if (!p.length) return res.status(404).json({ error: 'post not found' });
-    await pool.query('INSERT INTO blog_post_reactions (post_id, user_id, reaction) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE reaction = VALUES(reaction)', [p[0].id, userId, reaction]);
-    res.json({ ok: true });
+    // Toggle: if same reaction exists, remove; else upsert
+    const [ex] = await pool.query('SELECT id, reaction FROM blog_post_reactions WHERE post_id = ? AND user_id = ? LIMIT 1', [p[0].id, userId]);
+    if (ex.length && ex[0].reaction === reaction) {
+      await pool.query('DELETE FROM blog_post_reactions WHERE id = ?', [ex[0].id]);
+      return res.json({ ok: true, removed: true });
+    } else {
+      await pool.query('INSERT INTO blog_post_reactions (post_id, user_id, reaction) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE reaction = VALUES(reaction)', [p[0].id, userId, reaction]);
+      return res.json({ ok: true, reaction });
+    }
   } catch (err) { res.status(500).json({ error: 'internal server error' }); }
 });
 
@@ -781,8 +798,71 @@ app.post('/api/blog/comments/:id/react', requireAuth, async (req, res) => {
     const pool = getPool();
     const [c] = await pool.query('SELECT id FROM blog_comments WHERE id = ? LIMIT 1', [id]);
     if (!c.length) return res.status(404).json({ error: 'comment not found' });
-    await pool.query('INSERT INTO blog_comment_reactions (comment_id, user_id, reaction) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE reaction = VALUES(reaction)', [id, userId, reaction]);
-    res.json({ ok: true });
+    const [ex] = await pool.query('SELECT id, reaction FROM blog_comment_reactions WHERE comment_id = ? AND user_id = ? LIMIT 1', [id, userId]);
+    if (ex.length && ex[0].reaction === reaction) {
+      await pool.query('DELETE FROM blog_comment_reactions WHERE id = ?', [ex[0].id]);
+      return res.json({ ok: true, removed: true });
+    } else {
+      await pool.query('INSERT INTO blog_comment_reactions (comment_id, user_id, reaction) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE reaction = VALUES(reaction)', [id, userId, reaction]);
+      return res.json({ ok: true, reaction });
+    }
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Counters for a post (and user's own reaction if auth)
+app.get('/api/blog/posts/:slug/reactions', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const pool = getPool();
+    const [p] = await pool.query('SELECT id FROM blog_posts WHERE slug = ? LIMIT 1', [slug]);
+    if (!p.length) return res.status(404).json({ error: 'post not found' });
+    const postId = p[0].id;
+    const [rows] = await pool.query(
+      `SELECT 
+         SUM(CASE WHEN reaction='up' THEN 1 ELSE 0 END) AS up_count,
+         SUM(CASE WHEN reaction='down' THEN 1 ELSE 0 END) AS down_count
+       FROM blog_post_reactions WHERE post_id = ?`, [postId]);
+    const up = rows[0]?.up_count || 0;
+    const down = rows[0]?.down_count || 0;
+    let mine = null;
+    try {
+      const auth = req.headers.authorization || '';
+      const m = auth.match(/^Bearer\s+(.+)$/i);
+      if (m) {
+        const payload = jwt.verify(m[1], config.jwtSecret);
+        const [mr] = await pool.query('SELECT reaction FROM blog_post_reactions WHERE post_id = ? AND user_id = ? LIMIT 1', [postId, payload?.sub]);
+        mine = mr[0]?.reaction || null;
+      }
+    } catch(_){}
+    return res.json({ up, down, score: (up - down), mine });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Counters for a comment (and user's own reaction if auth)
+app.get('/api/blog/comments/:id/reactions', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+    const [exists] = await pool.query('SELECT id FROM blog_comments WHERE id = ? LIMIT 1', [id]);
+    if (!exists.length) return res.status(404).json({ error: 'comment not found' });
+    const [rows] = await pool.query(
+      `SELECT 
+         SUM(CASE WHEN reaction='up' THEN 1 ELSE 0 END) AS up_count,
+         SUM(CASE WHEN reaction='down' THEN 1 ELSE 0 END) AS down_count
+       FROM blog_comment_reactions WHERE comment_id = ?`, [id]);
+    const up = rows[0]?.up_count || 0;
+    const down = rows[0]?.down_count || 0;
+    let mine = null;
+    try {
+      const auth = req.headers.authorization || '';
+      const m = auth.match(/^Bearer\s+(.+)$/i);
+      if (m) {
+        const payload = jwt.verify(m[1], config.jwtSecret);
+        const [mr] = await pool.query('SELECT reaction FROM blog_comment_reactions WHERE comment_id = ? AND user_id = ? LIMIT 1', [id, payload?.sub]);
+        mine = mr[0]?.reaction || null;
+      }
+    } catch(_){}
+    return res.json({ up, down, score: (up - down), mine });
   } catch (err) { res.status(500).json({ error: 'internal server error' }); }
 });
 

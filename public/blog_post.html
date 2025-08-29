@@ -12,7 +12,10 @@
     .content{white-space:pre-wrap;line-height:1.6;margin-top:12px}
     .badge{padding:2px 8px;border:1px solid #e5e7eb;border-radius:999px;font-size:.75rem;color:#374151}
     .actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-    .btn{background:#111827;color:#fff;border:0;border-radius:6px;padding:8px 12px;cursor:pointer}
+  .btn{background:#111827;color:#fff;border:0;border-radius:6px;padding:8px 12px;cursor:pointer}
+  .btn.active{outline:2px solid #60a5fa}
+  .btn.up.active{background:#166534}
+  .btn.down.active{background:#7f1d1d}
     .comment{border-top:1px solid #e5e7eb;padding:8px 0}
     .child{margin-left:16px;border-left:2px solid #e5e7eb;padding-left:8px}
     textarea,input{width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:8px}
@@ -24,8 +27,8 @@
     <h1 class="title" id="t"></h1>
     <div class="muted" id="meta"></div>
     <div class="actions">
-      <button class="btn" id="up">👍 Me gusta</button>
-      <button class="btn" id="down">👎 No me gusta</button>
+      <button class="btn up" id="up">👍 Me gusta</button>
+      <button class="btn down" id="down">👎 No me gusta</button>
       <a class="btn" id="edit" href="#" style="display:none">Editar</a>
     </div>
     <div class="content" id="c"></div>
@@ -54,6 +57,16 @@
       document.getElementById('c').textContent = d.post.content;
       const edit = document.getElementById('edit');
       if (d.post.can_edit) { edit.style.display = 'inline-block'; edit.href = '/blog/editor?post_id='+d.post.id }
+      // Highlight my reaction on post
+      try {
+        const rr = await fetch(`/api/blog/posts/${slug}/reactions`, { headers: t? { 'Authorization': 'Bearer '+t } : {} });
+        const rx = await rr.json();
+        document.getElementById('up').classList.toggle('active', rx.mine === 'up');
+        document.getElementById('down').classList.toggle('active', rx.mine === 'down');
+      } catch(_){
+        document.getElementById('up').classList.remove('active');
+        document.getElementById('down').classList.remove('active');
+      }
       await loadComments();
     }
     function commentHtml(c){
@@ -70,6 +83,7 @@
         <div class="child" id="children-${c.id}"></div>
       </div>`
     }
+    let commentsHandlerBound = false;
     async function loadComments(){
       const r = await fetch(`/api/blog/posts/${slug}/comments`);
       const d = await r.json();
@@ -87,7 +101,8 @@
         })
       }
       renderList(tree, container);
-      container.addEventListener('click', async (e) => {
+      if (!commentsHandlerBound) {
+        container.addEventListener('click', async (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
         const wrap = btn.closest('.comment');
@@ -95,21 +110,38 @@
         const act = btn.getAttribute('data-act');
         const t = localStorage.getItem('auth_token');
         if (act === 'reply') {
-          const area = document.createElement('div');
-          area.innerHTML = `<div class="row"><textarea rows="3" placeholder="Tu respuesta..."></textarea><button class="btn" data-act="send-reply">Enviar</button></div>`;
-          wrap.appendChild(area);
-          const send = area.querySelector('[data-act="send-reply"]');
-          const ta = area.querySelector('textarea');
-          send.onclick = async () => {
-            const body = ta.value.trim(); if (!body) return;
-            await fetch(`/api/blog/posts/${slug}/comments`, { method:'POST', headers:{'Content-Type':'application/json', ...(t?{'Authorization':'Bearer '+t}:{})}, body: JSON.stringify({ body, parent_id: id })});
-            await loadComments();
-          };
+            if (wrap.querySelector('textarea')) return; // evitar duplicados
+            const area = document.createElement('div');
+            area.innerHTML = `<div class=\"row\"><textarea rows=\"3\" placeholder=\"Tu respuesta...\"></textarea><button class=\"btn\" data-act=\"send-reply\">Enviar</button></div>`;
+            wrap.appendChild(area);
+            const send = area.querySelector('[data-act=\"send-reply\"]');
+            const ta = area.querySelector('textarea');
+            send.onclick = async () => {
+              const body = ta.value.trim(); if (!body) return;
+              await fetch(`/api/blog/posts/${slug}/comments`, { method:'POST', headers:{'Content-Type':'application/json', ...(t?{'Authorization':'Bearer '+t}:{})}, body: JSON.stringify({ body, parent_id: id })});
+              await loadComments();
+            };
         } else if (act === 'up' || act === 'down') {
-          await fetch(`/api/blog/comments/${id}/react`, { method:'POST', headers:{'Content-Type':'application/json', ...(t?{'Authorization':'Bearer '+t}:{})}, body: JSON.stringify({ reaction: act })});
-          await loadComments();
+            await fetch(`/api/blog/comments/${id}/react`, { method:'POST', headers:{'Content-Type':'application/json', ...(t?{'Authorization':'Bearer '+t}:{})}, body: JSON.stringify({ reaction: act })});
+            await loadComments();
         }
-      }, { once: true });
+        });
+        commentsHandlerBound = true;
+      }
+      // Highlight my reaction in comments
+      try {
+        const t = localStorage.getItem('auth_token');
+        const nodes = container.querySelectorAll('.comment[data-id]');
+        for (const node of nodes) {
+          const id = node.getAttribute('data-id');
+          const rr = await fetch(`/api/blog/comments/${id}/reactions`, { headers: t? { 'Authorization': 'Bearer '+t } : {} });
+          const rx = await rr.json().catch(()=>({}));
+          const upBtn = node.querySelector('button[data-act="up"]');
+          const downBtn = node.querySelector('button[data-act="down"]');
+          if (upBtn) upBtn.classList.toggle('active', rx.mine === 'up');
+          if (downBtn) downBtn.classList.toggle('active', rx.mine === 'down');
+        }
+      } catch(_) {}
     }
     document.getElementById('sendComment').onclick = async () => {
       const body = document.getElementById('newComment').value.trim();
