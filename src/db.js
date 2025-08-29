@@ -197,6 +197,33 @@ async function ensureUsersScoreColumn() {
 
 module.exports.ensureUsersScoreColumn = ensureUsersScoreColumn;
 
+/** Ensure users referral columns exist: referral_code (unique) and referred_by_user_id (FK self). */
+async function ensureUsersReferralColumns() {
+  try {
+    const p = getPool();
+    const [cols] = await p.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users'`,
+      [config.db.database]
+    );
+    const names = new Set((cols || []).map(c => c.COLUMN_NAME));
+    const alters = [];
+    if (!names.has('referral_code')) alters.push("ADD COLUMN referral_code VARCHAR(24) NULL UNIQUE AFTER score");
+    if (!names.has('referred_by_user_id')) alters.push("ADD COLUMN referred_by_user_id BIGINT NULL AFTER referral_code");
+    if (alters.length) {
+      await p.query(`ALTER TABLE users ${alters.join(', ')}`);
+      // Add FK separately to avoid errors if column not created yet
+      await p.query(`ALTER TABLE users ADD CONSTRAINT fk_users_referrer FOREIGN KEY (referred_by_user_id) REFERENCES users(id) ON DELETE SET NULL`)
+        .catch(()=>{});
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Schema ensure (users.referrals) warning:', err.message);
+    }
+  }
+}
+
+module.exports.ensureUsersReferralColumns = ensureUsersReferralColumns;
+
 /** Ensure products table exists for the shop CMS. */
 async function ensureProductsTable() {
   try {

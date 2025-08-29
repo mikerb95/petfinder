@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getPool } = require('../db');
+const { randomId } = require('../utils/id');
 const config = require('../config');
 let Resend; try { Resend = require('resend').Resend; } catch(_) { Resend = null; }
 
@@ -9,7 +10,7 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
   try {
-  const { name, last_name, sex, email, password, confirm_password, phone, city, instagram_url, facebook_url, whatsapp_url } = req.body || {};
+  const { name, last_name, sex, email, password, confirm_password, phone, city, instagram_url, facebook_url, whatsapp_url, referred_by_code } = req.body || {};
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'nombre, correo y contraseña son obligatorios' });
     }
@@ -22,13 +23,34 @@ router.post('/register', async (req, res) => {
   return res.status(409).json({ error: 'el correo ya está registrado' });
     }
     const passwordHash = await bcrypt.hash(password, 10);
-    const [result] = await pool.query(
-      'INSERT INTO users (name, last_name, sex, email, password_hash, phone, city, instagram_url, facebook_url, whatsapp_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, last_name || null, sex || 'unknown', email, passwordHash, phone || null, city || null, instagram_url || null, facebook_url || null, whatsapp_url || null]
-    );
-    const userId = result.insertId;
+    // Resolve referred_by_user_id from a provided referral code (optional)
+    let referredByUserId = null;
+    if (referred_by_code) {
+      const [rr] = await pool.query('SELECT id FROM users WHERE referral_code = ? LIMIT 1', [referred_by_code]);
+      if (rr.length) referredByUserId = rr[0].id; else {
+        return res.status(400).json({ error: 'código de referido inválido' });
+      }
+    }
+    // Generate a unique referral_code for this new user
+    let referralCode = null;
+    let userId = null;
+    for (let i = 0; i < 5; i++) {
+      const candidate = randomId(8);
+      try {
+        const [result] = await pool.query(
+          'INSERT INTO users (name, last_name, sex, email, password_hash, phone, city, instagram_url, facebook_url, whatsapp_url, referral_code, referred_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [name, last_name || null, sex || 'unknown', email, passwordHash, phone || null, city || null, instagram_url || null, facebook_url || null, whatsapp_url || null, candidate, referredByUserId]
+        );
+        referralCode = candidate;
+        userId = result.insertId;
+        break;
+      } catch (e) {
+        if (e && e.code === 'ER_DUP_ENTRY') { continue; } else { throw e; }
+      }
+    }
+    if (!userId) throw new Error('no se pudo crear el usuario');
     const token = jwt.sign({ sub: userId, email }, config.jwtSecret, { expiresIn: '7d' });
-  res.status(201).json({ token, user: { id: userId, name, last_name: last_name || null, sex: sex || 'unknown', email, phone: phone || null, city: city || null, instagram_url: instagram_url || null, facebook_url: facebook_url || null, whatsapp_url: whatsapp_url || null } });
+  res.status(201).json({ token, user: { id: userId, name, last_name: last_name || null, sex: sex || 'unknown', email, phone: phone || null, city: city || null, instagram_url: instagram_url || null, facebook_url: facebook_url || null, whatsapp_url: whatsapp_url || null, referral_code: referralCode, referred_by_user_id: referredByUserId } });
   } catch (err) {
   console.error('register error', err);
   if (process.env.NODE_ENV !== 'production') {
