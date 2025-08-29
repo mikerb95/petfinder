@@ -18,6 +18,39 @@ app.use(express.static(publicDir, { extensions: ['html'] }));
 // Parseo de cuerpo
 app.use(express.json());
 
+// --- util cookie parsing for simple cart sessions ---
+function parseCookies(req) {
+  const header = req.headers.cookie || '';
+  const out = {};
+  header.split(';').forEach(kv => {
+    const idx = kv.indexOf('=');
+    if (idx > -1) {
+      const k = kv.slice(0, idx).trim();
+      const v = decodeURIComponent(kv.slice(idx + 1).trim());
+      if (k) out[k] = v;
+    }
+  });
+  return out;
+}
+async function getOrCreateCart(req, res) {
+  const pool = getPool();
+  let cookies = parseCookies(req);
+  let sid = cookies['pf_cart'] || null;
+  let cartId = null;
+  if (sid) {
+    const [r] = await pool.query('SELECT id FROM carts WHERE session_id = ? LIMIT 1', [sid]);
+    if (r.length) cartId = r[0].id;
+  }
+  if (!cartId) {
+    sid = 'sid_' + randomId(24);
+    const [c] = await pool.query('INSERT INTO carts (session_id) VALUES (?)', [sid]);
+    cartId = c.insertId;
+    const cookie = `pf_cart=${encodeURIComponent(sid)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`;
+    res.setHeader('Set-Cookie', cookie);
+  }
+  return { cartId, sessionId: sid };
+}
+
 // Rutas API
 app.use('/api/auth', authRoutes);
 // Endpoint DEV para promover a admin (no disponible en produccion)
@@ -524,6 +557,19 @@ app.get('/shop', (req, res) => {
 app.get('/shop/:slug', (req, res) => {
   res.sendFile(path.join(publicDir, 'shop_product.html'));
 });
+// Carrito / Checkout / Pago / Confirmación
+app.get('/cart', (req, res) => {
+  res.sendFile(path.join(publicDir, 'cart.html'));
+});
+app.get('/checkout', (req, res) => {
+  res.sendFile(path.join(publicDir, 'checkout.html'));
+});
+app.get('/payment', (req, res) => {
+  res.sendFile(path.join(publicDir, 'payment.html'));
+});
+app.get('/order_confirmed', (req, res) => {
+  res.sendFile(path.join(publicDir, 'order_confirmed.html'));
+});
 // Pagina de detalles tecnicos
 app.get('/tech', (req, res) => {
   res.sendFile(path.join(publicDir, 'tech.html'));
@@ -588,6 +634,238 @@ app.get('/api/shop/products/:slug', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'internal server error' });
   }
+});
+
+// -------- API Carrito (session cookie pf_cart) --------
+app.get('/api/cart', async (req, res) => {
+  try {
+    const pool = getPool();
+    const { cartId } = await getOrCreateCart(req, res);
+    const [rows] = await pool.query(
+      `SELECT ci.product_id, ci.variant_id, ci.quantity,
+              COALESCE(ci.unit_price_cents, p.price_cents) AS price_cents,
+              COALESCE(ci.currency, p.currency) AS currency,
+              p.name, p.image_url, p.stock
+         FROM cart_items ci
+         LEFT JOIN products p ON p.id = ci.product_id
+        WHERE ci.cart_id = ?
+        ORDER BY ci.added_at DESC`, [cartId]);
+    res.json({ items: rows });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+app.post('/api/cart', async (req, res) => {
+  try {
+    const { product_id, slug, variant_id = null, quantity = 1 } = req.body || {};
+    const q = Math.max(1, Number(quantity || 1));
+    const pool = getPool();
+    const { cartId } = await getOrCreateCart(req, res);
+    // resolve product
+    let pRow = null;
+    if (product_id) {
+      const [r] = await pool.query('SELECT id, price_cents, currency, stock, active FROM products WHERE id = ? LIMIT 1', [product_id]);
+      pRow = r[0];
+    } else if (slug) {
+      const [r] = await pool.query('SELECT id, price_cents, currency, stock, active FROM products WHERE slug = ? LIMIT 1', [slug]);
+      pRow = r[0];
+    }
+    if (!pRow) return res.status(404).json({ error: 'producto no encontrado' });
+    if (pRow.active !== 1) return res.status(400).json({ error: 'producto inactivo' });
+    // upsert item
+    const [ex] = await pool.query('SELECT id, quantity FROM cart_items WHERE cart_id = ? AND product_id = ? AND IFNULL(variant_id,0) = IFNULL(?,0) LIMIT 1', [cartId, pRow.id, variant_id]);
+    const newQty = Math.min(99, (ex[0]?.quantity || 0) + q);
+    if (ex.length) {
+      await pool.query('UPDATE cart_items SET quantity = ?, unit_price_cents = ?, currency = ? WHERE id = ?', [newQty, pRow.price_cents, pRow.currency, ex[0].id]);
+    } else {
+      await pool.query(
+        'INSERT INTO cart_items (cart_id, product_id, variant_id, quantity, unit_price_cents, currency) VALUES (?, ?, ?, ?, ?, ?)',
+        [cartId, pRow.id, variant_id || null, newQty, pRow.price_cents, pRow.currency]
+      );
+    }
+    res.status(201).json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+app.put('/api/cart', async (req, res) => {
+  try {
+    const { product_id, variant_id = null, quantity } = req.body || {};
+    if (!product_id) return res.status(400).json({ error: 'product_id requerido' });
+    const q = Math.max(0, Number(quantity || 0));
+    const pool = getPool();
+    const { cartId } = await getOrCreateCart(req, res);
+    if (q === 0) {
+      await pool.query('DELETE FROM cart_items WHERE cart_id = ? AND product_id = ? AND IFNULL(variant_id,0) = IFNULL(?,0)', [cartId, product_id, variant_id]);
+      return res.json({ ok: true, removed: true });
+    }
+    await pool.query('UPDATE cart_items SET quantity = ? WHERE cart_id = ? AND product_id = ? AND IFNULL(variant_id,0) = IFNULL(?,0)', [q, cartId, product_id, variant_id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+app.delete('/api/cart', async (req, res) => {
+  try {
+    const { product_id, variant_id = null } = req.body || {};
+    if (!product_id) return res.status(400).json({ error: 'product_id requerido' });
+    const pool = getPool();
+    const { cartId } = await getOrCreateCart(req, res);
+    await pool.query('DELETE FROM cart_items WHERE cart_id = ? AND product_id = ? AND IFNULL(variant_id,0) = IFNULL(?,0)', [cartId, product_id, variant_id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// -------- Checkout desde carrito --------
+app.post('/api/checkout', async (req, res) => {
+  const pool = getPool();
+  let conn;
+  try {
+    const { name, email, address, city, phone } = req.body || {};
+    if (!name || !email || !address || !city || !phone) return res.status(400).json({ error: 'faltan datos de envío' });
+    const { cartId } = await getOrCreateCart(req, res);
+    const [items] = await pool.query(
+      `SELECT ci.product_id, ci.variant_id, ci.quantity FROM cart_items ci WHERE ci.cart_id = ?`, [cartId]);
+    if (!items.length) return res.status(400).json({ error: 'carrito vacío' });
+
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // Resolve products and compute totals (similar a /api/shop/orders)
+    let currency = null;
+    let subtotal = 0;
+    const resolved = [];
+    for (const it of items) {
+      const [r] = await conn.query('SELECT id, name, slug, price_cents, currency, stock, active, sku FROM products WHERE id = ? LIMIT 1', [it.product_id]);
+      const p = r[0];
+      if (!p) throw new Error('producto no encontrado');
+      if (p.active !== 1) throw new Error('producto inactivo');
+      let unitPrice = p.price_cents;
+      let variantRow = null;
+      if (it.variant_id) {
+        const [vr] = await conn.query('SELECT id, product_id, sku, name, size, color, price_cents, stock FROM product_variants WHERE id = ? AND product_id = ? LIMIT 1', [it.variant_id, p.id]);
+        variantRow = vr[0] || null;
+        if (!variantRow) throw new Error('variant inválida');
+        if (variantRow.price_cents != null) unitPrice = variantRow.price_cents;
+      }
+      if (!currency) currency = p.currency;
+      if (currency !== p.currency) throw new Error('mezcla de monedas no soportada');
+      const qty = Math.max(1, Math.min(Number(it.quantity || 1), 99));
+      const lineTotal = unitPrice * qty;
+      subtotal += lineTotal;
+      resolved.push({ product: p, variant: variantRow, unitPrice, quantity: qty });
+    }
+    const discount = 0, shipping = 0, tax = 0;
+    const total = Math.max(0, subtotal - discount + shipping + tax);
+
+    // create addresses
+    const [addrIns] = await conn.query(
+      `INSERT INTO addresses (full_name, line1, city, country_code, phone) VALUES (?, ?, ?, 'CO', ?)`,
+      [name, address, city, phone]
+    );
+    const addrId = addrIns.insertId;
+
+    // Create order
+    let orderNumber;
+    for (let i = 0; i < 5; i++) {
+      orderNumber = 'PF' + Date.now() + '-' + randomId(4);
+      try {
+        await conn.query(
+          `INSERT INTO orders (order_number, user_id, email, phone, billing_address_id, shipping_address_id, status, currency,
+                                subtotal_cents, discount_cents, shipping_cents, tax_cents, total_cents, coupon_id, notes)
+           VALUES (?, NULL, ?, ?, ?, ?, 'pending', ?, ?, 0, 0, 0, ?, NULL, NULL)`,
+          [orderNumber, email, phone, addrId, addrId, currency, subtotal, total]
+        );
+        break;
+      } catch (e) { if (!e || e.code !== 'ER_DUP_ENTRY') throw e; }
+    }
+
+    const [orows] = await conn.query('SELECT id FROM orders WHERE order_number = ? LIMIT 1', [orderNumber]);
+    const orderId = orows[0]?.id; if (!orderId) throw new Error('no se pudo crear la orden');
+
+    // items
+    for (const r of resolved) {
+      const nameLine = r.product.name + (r.variant?.name ? (' - ' + r.variant.name) : '');
+      const sku = r.variant?.sku || r.product.sku || null;
+      const total_cents = r.unitPrice * r.quantity;
+      await conn.query(
+        `INSERT INTO order_items (order_id, product_id, variant_id, name, sku, unit_price_cents, quantity, total_cents)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [orderId, r.product.id, r.variant?.id || null, nameLine, sku, r.unitPrice, r.quantity, total_cents]
+      );
+    }
+
+    await conn.query(`INSERT INTO payments (order_id, provider, status, amount_cents, currency) VALUES (?, 'manual', 'pending', ?, ?)`, [orderId, total, currency]);
+
+    // clear cart
+    await conn.query('DELETE FROM cart_items WHERE cart_id = ?', [cartId]);
+
+    await conn.commit();
+    res.status(201).json({ order_id: orderId });
+  } catch (err) {
+    try { if (conn) await conn.rollback(); } catch(_){}
+    const msg = err?.message || 'internal server error';
+    const code = ['producto no encontrado','variant inválida','producto inactivo','mezcla de monedas no soportada','carrito vacío'].includes(msg) ? 400 : 500;
+    res.status(code).json({ error: msg });
+  } finally { if (conn) conn.release(); }
+});
+
+// -------- Payment endpoints para UI de pago --------
+app.get('/api/payment/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const pool = getPool();
+    const [orows] = await pool.query(
+      `SELECT o.id, o.email, o.phone, o.total_cents, o.currency, o.status,
+              a.full_name AS name, a.line1 AS address, a.city
+         FROM orders o
+         LEFT JOIN addresses a ON a.id = o.shipping_address_id
+        WHERE o.id = ? LIMIT 1`, [orderId]);
+    if (!orows.length) return res.status(404).json({ error: 'orden no encontrada' });
+    res.json({ order: orows[0] });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+app.post('/api/payment/:orderId', async (req, res) => {
+  const pool = getPool();
+  let conn;
+  try {
+    const { orderId } = req.params;
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    const [orows] = await conn.query('SELECT id, status, coupon_id FROM orders WHERE id = ? LIMIT 1', [orderId]);
+    if (!orows.length) return res.status(404).json({ error: 'orden no encontrada' });
+    const order = orows[0];
+    if (order.status !== 'pending') return res.status(400).json({ error: 'orden no pendiente' });
+    const [items] = await conn.query('SELECT product_id, variant_id, quantity FROM order_items WHERE order_id = ?', [orderId]);
+    // check stock
+    for (const it of items) {
+      if (it.variant_id) {
+        const [vr] = await conn.query('SELECT stock FROM product_variants WHERE id = ? LIMIT 1', [it.variant_id]);
+        const st = vr[0]?.stock ?? 0; if (st < it.quantity) throw new Error('stock insuficiente');
+      } else if (it.product_id) {
+        const [pr] = await conn.query('SELECT stock FROM products WHERE id = ? LIMIT 1', [it.product_id]);
+        const st = pr[0]?.stock ?? 0; if (st < it.quantity) throw new Error('stock insuficiente');
+      }
+    }
+    // decrement
+    for (const it of items) {
+      if (it.variant_id) {
+        await conn.query('UPDATE product_variants SET stock = stock - ? WHERE id = ?', [it.quantity, it.variant_id]);
+        await conn.query('INSERT INTO inventory_movements (variant_id, change_qty, reason, reference) VALUES (?, ?, \'order\', ?)', [it.variant_id, -it.quantity, String(orderId)]);
+      } else if (it.product_id) {
+        await conn.query('UPDATE products SET stock = stock - ? WHERE id = ?', [it.quantity, it.product_id]);
+        await conn.query('INSERT INTO inventory_movements (product_id, change_qty, reason, reference) VALUES (?, ?, \'order\', ?)', [it.product_id, -it.quantity, String(orderId)]);
+      }
+    }
+    await conn.query("UPDATE payments SET status = 'succeeded', updated_at = NOW() WHERE order_id = ?", [orderId]);
+    await conn.query("UPDATE orders SET status = 'paid', updated_at = NOW() WHERE id = ?", [orderId]);
+    if (order.coupon_id) await conn.query('UPDATE coupons SET usage_count = usage_count + 1 WHERE id = ?', [order.coupon_id]);
+    await conn.commit();
+    res.json({ ok: true, order_id: Number(orderId), status: 'paid' });
+  } catch (err) {
+    try { if (conn) await conn.rollback(); } catch(_){}
+    const msg = err?.message || 'internal server error';
+    const code = (msg === 'stock insuficiente') ? 400 : 500;
+    res.status(code).json({ error: msg });
+  } finally { if (conn) conn.release(); }
 });
 
 // -------- API Blog --------
