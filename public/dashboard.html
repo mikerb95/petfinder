@@ -73,12 +73,27 @@
           <span class="brand-mark">🐾</span>
           <span class="brand-name">Petfinder</span>
         </a>
+        <button id="menuToggle" class="menu-toggle" type="button" aria-label="Abrir menú" aria-controls="mobileDrawer" aria-expanded="false">☰</button>
         <nav class="main-nav">
           <span id="hdrName" style="margin-right:12px; opacity:.9;"></span>
           <a id="logoutLink" href="#">Cerrar sesión</a>
         </nav>
       </div>
     </header>
+
+    <!-- Off-canvas mobile drawer -->
+    <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+    <aside id="mobileDrawer" class="mobile-drawer" aria-hidden="true">
+      <header>
+        <strong>Menú</strong>
+        <button id="drawerClose" class="close" type="button" aria-label="Cerrar">Cerrar</button>
+      </header>
+      <nav aria-label="Menú móvil">
+        <a href="/">Inicio</a>
+        <a href="/dashboard">Panel</a>
+        <button id="mLogout" type="button">Cerrar sesión</button>
+      </nav>
+    </aside>
 
     <main class="section">
       <div class="container" style="max-width:980px;">
@@ -395,6 +410,21 @@
     <script>
       (function () {
         const token = localStorage.getItem('auth_token');
+        // Mobile drawer wiring
+        (function(){
+          const toggle = document.getElementById('menuToggle');
+          const drawer = document.getElementById('mobileDrawer');
+          const backdrop = document.getElementById('drawerBackdrop');
+          const closeBtn = document.getElementById('drawerClose');
+          function open(){ document.body.classList.add('drawer-open'); drawer?.setAttribute('aria-hidden','false'); toggle?.setAttribute('aria-expanded','true'); backdrop?.removeAttribute('hidden'); }
+          function close(){ document.body.classList.remove('drawer-open'); drawer?.setAttribute('aria-hidden','true'); toggle?.setAttribute('aria-expanded','false'); backdrop?.setAttribute('hidden',''); }
+          toggle?.addEventListener('click', open);
+          closeBtn?.addEventListener('click', close);
+          backdrop?.addEventListener('click', close);
+          document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') close(); });
+          const mLogout = document.getElementById('mLogout');
+          mLogout?.addEventListener('click', (e)=>{ e.preventDefault(); localStorage.removeItem('auth_token'); window.location.href='/'; });
+        })();
   const profileName = document.getElementById('profileName');
   const profileEmail = document.getElementById('profileEmail');
   const profilePhone = document.getElementById('profilePhone');

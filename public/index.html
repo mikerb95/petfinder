@@ -45,6 +45,22 @@
         </nav>
       </div>
     </header>
+    <!-- Off-canvas mobile drawer -->
+    <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+    <aside id="mobileDrawer" class="mobile-drawer" aria-hidden="true">
+      <header>
+        <strong>Menú</strong>
+        <button id="drawerClose" class="close" type="button" aria-label="Cerrar">Cerrar</button>
+      </header>
+      <nav aria-label="Menú móvil">
+        <a href="#how-it-works">Cómo funciona</a>
+        <a href="#features">Características</a>
+        <a href="/login" id="mLogin">Iniciar sesión</a>
+        <a href="/register" id="mRegister">Registrarse</a>
+        <a href="/dashboard" id="mDashboard">Panel</a>
+        <button id="mLogout" type="button" style="display:none;">Cerrar sesión</button>
+      </nav>
+    </aside>
 
     <main>
       <section class="hero">
@@ -381,6 +397,42 @@
       })();
     </script>
     <script src="https://unpkg.com/jsqr/dist/jsQR.js" async></script>
+    <script>
+      (function(){
+        // Insert hamburger button next to brand at runtime to avoid duplicating HTML
+        const headerInner = document.querySelector('.header-inner');
+        if (headerInner && !document.getElementById('menuToggle')){
+          const btn = document.createElement('button');
+          btn.id = 'menuToggle';
+          btn.className = 'menu-toggle';
+          btn.type = 'button';
+          btn.setAttribute('aria-label','Abrir menú');
+          btn.textContent = '☰';
+          headerInner.appendChild(btn);
+        }
+        const toggle = document.getElementById('menuToggle');
+        const drawer = document.getElementById('mobileDrawer');
+        const backdrop = document.getElementById('drawerBackdrop');
+        const closeBtn = document.getElementById('drawerClose');
+        function open(){ document.body.classList.add('drawer-open'); drawer?.setAttribute('aria-hidden','false'); toggle?.setAttribute('aria-expanded','true'); backdrop?.removeAttribute('hidden'); }
+        function close(){ document.body.classList.remove('drawer-open'); drawer?.setAttribute('aria-hidden','true'); toggle?.setAttribute('aria-expanded','false'); backdrop?.setAttribute('hidden',''); }
+        toggle?.addEventListener('click', open);
+        closeBtn?.addEventListener('click', close);
+        backdrop?.addEventListener('click', close);
+        document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') close(); });
+        // Reflect auth state in mobile menu
+        try {
+          const t = localStorage.getItem('auth_token');
+          const mLogin = document.getElementById('mLogin');
+          const mRegister = document.getElementById('mRegister');
+          const mDashboard = document.getElementById('mDashboard');
+          const mLogout = document.getElementById('mLogout');
+          if (t) { mLogin && (mLogin.style.display='none'); mRegister && (mRegister.style.display='none'); mLogout && (mLogout.style.display=''); }
+          else { mDashboard && (mDashboard.style.display='none'); }
+          mLogout?.addEventListener('click', ()=>{ try { localStorage.removeItem('auth_token'); } catch(_){} window.location.href='/'; });
+        } catch(_){}
+      })();
+    </script>
   </body>
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) };
