@@ -82,9 +82,10 @@ async function ensurePetsCityColumn() {
       [config.db.database]
     );
     const names = new Set((cols || []).map(c => c.COLUMN_NAME));
-    if (!names.has('city')) {
-      await p.query(`ALTER TABLE pets ADD COLUMN city VARCHAR(120) NULL AFTER color`);
-    }
+  const alters = [];
+  if (!names.has('city')) alters.push("ADD COLUMN city VARCHAR(120) NULL AFTER color");
+  if (!names.has('nfc_id')) alters.push("ADD COLUMN nfc_id VARCHAR(32) NULL UNIQUE AFTER qr_id");
+  if (alters.length) await p.query(`ALTER TABLE pets ${alters.join(', ')}`);
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') {
       console.warn('Schema ensure (pets.city) warning:', err.message);

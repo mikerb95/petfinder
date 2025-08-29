@@ -336,6 +336,10 @@
                     <label class="demo-label" for="e_vaccine_card">URL carnet de vacunas</label>
                     <input id="e_vaccine_card" class="input" type="url" placeholder="https://…" />
                   </div>
+                  <div>
+                    <label class="demo-label" for="e_nfc">ID NFC (opcional)</label>
+                    <input id="e_nfc" class="input" type="text" placeholder="ID corto para chip NFC" />
+                  </div>
                 </div>
               </form>
             </div>
@@ -589,6 +593,7 @@
               <p><strong>Ciudad:</strong> ${p.city || '—'}</p>
               <p><strong>Notas:</strong> ${p.notes || '—'}</p>
               <p><strong>Estado:</strong> ${p.status === 'lost' ? 'Perdida' : 'En casa'}</p>
+              ${p.nfc_id ? `<p><strong>NFC:</strong> <a href="/n/${p.nfc_id}" target="_blank">/n/${p.nfc_id}</a></p>` : ''}
               <p style="color:#6b7280"><strong>Salud:</strong> ${sexTxt} · ${p.sterilized ? 'Esterilizado' : 'Sin esterilizar'} · ${p.weight_kg ? (p.weight_kg + ' kg') : '—'} · ${p.birthdate ? ('Nac.: ' + new Date(p.birthdate).toLocaleDateString()) : 'Nac.: —'} ${p.microchip_id ? ('· Chip: ' + p.microchip_id) : ''}</p>
               ${p.photo_url ? `<img src="${p.photo_url}" alt="${p.name}" style="max-width:200px; border-radius:8px;"/>` : ''}
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -648,6 +653,7 @@
   const e_chip = document.getElementById('e_chip');
   const e_last_vet = document.getElementById('e_last_vet');
   const e_vaccine_card = document.getElementById('e_vaccine_card');
+  const e_nfc = document.getElementById('e_nfc');
 
         function openEditModal(p) {
           currentEditId = p.id;
@@ -681,6 +687,7 @@
           if (e_chip) e_chip.value = p.microchip_id || '';
           if (e_last_vet) e_last_vet.value = p.last_vet_visit ? new Date(p.last_vet_visit).toISOString().slice(0,10) : '';
           if (e_vaccine_card) e_vaccine_card.value = p.vaccine_card_url || '';
+          if (e_nfc) e_nfc.value = p.nfc_id || '';
           editModal.style.display = 'flex';
           setTimeout(() => { if (e_name) e_name.focus(); }, 0);
         }
@@ -712,7 +719,8 @@
             sterilized: !!e_sterilized.checked,
             microchip_id: e_chip.value.trim() || undefined,
             last_vet_visit: e_last_vet.value || undefined,
-            vaccine_card_url: e_vaccine_card.value.trim() || undefined
+            vaccine_card_url: e_vaccine_card.value.trim() || undefined,
+            nfc_id: e_nfc.value.trim() || undefined
           };
           if (!payload.city) { alert('La ciudad es obligatoria'); return; }
           const res = await fetch('/api/pets/' + currentEditId, {

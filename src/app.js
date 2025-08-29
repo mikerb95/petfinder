@@ -101,11 +101,11 @@ app.get('/api/pets', requireAuth, async (req, res) => {
     const userId = req.auth?.sub;
     const pool = getPool();
     const [rows] = await pool.query(
-      `SELECT id, name, species, breed, color, city, notes, status, photo_url,
+  `SELECT id, name, species, breed, color, city, notes, status, photo_url,
               birthdate, sex, weight_kg, sterilized, microchip_id,
               allergies, medical_conditions, medications,
-              last_vet_visit, vet_clinic_name, vet_clinic_phone, vaccine_card_url,
-              qr_id, created_at, updated_at
+      last_vet_visit, vet_clinic_name, vet_clinic_phone, vaccine_card_url,
+      qr_id, nfc_id, created_at, updated_at
          FROM pets
         WHERE owner_id = ?
         ORDER BY created_at DESC`,
@@ -144,20 +144,20 @@ app.post('/api/pets', requireAuth, async (req, res) => {
             birthdate, sex, weight_kg, sterilized, microchip_id,
             allergies, medical_conditions, medications,
             last_vet_visit, vet_clinic_name, vet_clinic_phone, vaccine_card_url,
-            qr_id, updated_at
+            qr_id, nfc_id, updated_at
           ) VALUES (
             ?, ?, ?, ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?, ?,
-            ?, NOW()
+            ?, ?, NOW()
           )`,
           [
             userId, name, species || null, breed || null, color || null, city, notes || null, status || 'home', photo_url || null,
             birthdate || null, (sex || 'unknown'), (weight_kg ?? null), (sterilized ? 1 : 0), microchip_id || null,
             allergies || null, medical_conditions || null, medications || null,
             last_vet_visit || null, vet_clinic_name || null, vet_clinic_phone || null, vaccine_card_url || null,
-            qrId
+            qrId, null
           ]
         );
         return res.status(201).json({ id: result.insertId, qr_id: qrId });
@@ -195,7 +195,7 @@ app.put('/api/pets/:id', requireAuth, async (req, res) => {
     if (status && !['home', 'lost'].includes(status)) return res.status(400).json({ error: 'invalid status' });
 
     await pool.query(
-      `UPDATE pets SET
+  `UPDATE pets SET
          name = COALESCE(?, name),
          species = COALESCE(?, species),
          breed = COALESCE(?, breed),
@@ -216,13 +216,14 @@ app.put('/api/pets/:id', requireAuth, async (req, res) => {
          vet_clinic_name = COALESCE(?, vet_clinic_name),
          vet_clinic_phone = COALESCE(?, vet_clinic_phone),
          vaccine_card_url = COALESCE(?, vaccine_card_url),
+     nfc_id = COALESCE(?, nfc_id),
          updated_at = NOW()
        WHERE id = ?`,
       [
         name ?? null, species ?? null, breed ?? null, color ?? null, city ?? null, notes ?? null, status ?? null, photo_url ?? null,
         birthdate ?? null, sex ?? null, (weight_kg ?? null), (typeof sterilized === 'boolean' ? (sterilized ? 1 : 0) : sterilized ?? null), microchip_id ?? null,
         allergies ?? null, medical_conditions ?? null, medications ?? null,
-        last_vet_visit ?? null, vet_clinic_name ?? null, vet_clinic_phone ?? null, vaccine_card_url ?? null,
+    last_vet_visit ?? null, vet_clinic_name ?? null, vet_clinic_phone ?? null, vaccine_card_url ?? null, (req.body?.nfc_id ?? null),
         id
       ]
     );
@@ -350,6 +351,21 @@ app.get('/privacy', (req, res) => {
 // Pagina publica de mascota por qrId (sirve pagina estatica que obtiene JSON)
 app.get('/p/:qrId', (req, res) => {
   res.sendFile(path.join(publicDir, 'pet.html'));
+});
+
+// NFC short route: /n/:nfcId -> redirects to /p/:qrId
+app.get('/n/:nfcId', async (req, res) => {
+  try {
+    const { nfcId } = req.params;
+    if (!nfcId) return res.status(400).send('bad request');
+    const pool = getPool();
+    const [rows] = await pool.query('SELECT qr_id FROM pets WHERE nfc_id = ? LIMIT 1', [nfcId]);
+    if (!rows.length) return res.status(404).send('not found');
+    const url = '/p/' + rows[0].qr_id;
+    res.redirect(302, url);
+  } catch (err) {
+    res.status(500).send('internal error');
+  }
 });
 
 // Raiz
