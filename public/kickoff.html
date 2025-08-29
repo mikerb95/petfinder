@@ -301,6 +301,33 @@
         </div>
       </section>
 
+      <!-- Escena 9: Analítica con Vercel -->
+      <section class="ko-stage" data-anim="analytics">
+        <div class="container ko-sticky" style="max-width:1100px;">
+          <div class="ko-art">
+            <div id="analyticsCard" class="card-demo anim-el" style="width:min(70vw,560px);">
+              <div class="row"><strong>Proveedor</strong><span>Vercel Analytics (insights script)</span></div>
+              <div class="row"><strong>Integración</strong><span><code>&lt;script defer src="/_vercel/insights/script.js"&gt;&lt;/script&gt;</code></span></div>
+              <div class="row"><strong>Pageviews</strong><span>Se registran automáticamente en cada carga de página</span></div>
+              <div class="row"><strong>Eventos</strong><span><code>window.va('event', 'nombre', { meta })</code></span></div>
+              <div class="row"><strong>Privacidad</strong><span>Sin PII; métricas agregadas (hits, rutas, referrers, geografía)</span></div>
+              <div class="row" style="align-items:center;">
+                <strong>Demo</strong>
+                <span>
+                  <button id="sendVaDemo" class="button" type="button">Enviar evento de demo</button>
+                  <small style="display:block; color:var(--color-muted); margin-top:6px;">Verás este evento en el panel de Vercel (&ldquo;Analytics → Events&rdquo;). Puede tardar un poco.</small>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="ko-copy">
+            <h2 class="anim-text">Analítica integrada</h2>
+            <p class="anim-text">Esta app incluye Vercel Analytics para medir visitas y eventos sin configuración compleja. Insertamos un script ligero en todas las páginas públicas que envía pageviews automáticamente.</p>
+            <p class="anim-text">Para eventos personalizados (por ejemplo, clics clave), puedes invocar <code>window.va('event', 'cta_click', { page: '/kickoff', origin: 'hero' })</code>. Los datos se visualizan en el dashboard de Vercel. En local, los eventos pueden no aparecer hasta desplegar.</p>
+          </div>
+        </div>
+      </section>
+
       <section class="ko-cta">
         <div class="container" style="max-width:1100px;">
           <h2>Listo para probar</h2>
@@ -412,6 +439,7 @@
             else if (type === 'deploy') animCard('deployCard','deployText', p);
             else if (type === 'security') animCard('securityCard','securityText', p);
             else if (type === 'views') animCard('viewsCard','viewsText', p);
+            else if (type === 'analytics') animCard('analyticsCard','analyticsText', p);
           });
           rafId = requestAnimationFrame(onFrame);
         }
@@ -433,6 +461,8 @@
   els.set('deployText', sectionTexts('[data-anim="deploy"]'));
   els.set('securityCard', document.getElementById('securityCard'));
     els.set('securityText', sectionTexts('[data-anim="security"]'));
+  els.set('analyticsCard', document.getElementById('analyticsCard'));
+  els.set('analyticsText', sectionTexts('[data-anim="analytics"]'));
 
         function sectionTexts(sel){
           const s = document.querySelector(sel);
@@ -441,6 +471,19 @@
 
         let rafId = requestAnimationFrame(onFrame);
         window.addEventListener('beforeunload', () => cancelAnimationFrame(rafId));
+
+        // Demo de evento personalizado a Vercel Analytics
+        const btn = document.getElementById('sendVaDemo');
+        btn?.addEventListener('click', () => {
+          try {
+            if (typeof window.va === 'function') {
+              window.va('event', 'kickoff_demo_click', { page: '/kickoff', component: 'analyticsCard' });
+              alert('Evento enviado a Vercel Analytics');
+            } else {
+              alert('El script de Analytics no está disponible en esta vista.');
+            }
+          } catch (_) {}
+        });
       })();
     </script>
   </body>
