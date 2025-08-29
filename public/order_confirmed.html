@@ -5,6 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Compra confirmada — Petfinder</title>
   <link rel="stylesheet" href="/assets/css/landing.css" />
+  <style>
+    /* Make inline action links (Consultar pedido / Contáctanos) stand out and be readable */
+    #orderInfo a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      text-decoration: none;
+      /* High-contrast pill using brand tones on dark bg */
+      background: linear-gradient(180deg, rgba(20,184,166,0.22), rgba(14,165,233,0.18));
+      border: 1px solid rgba(20,184,166,0.38);
+      color: #041410;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.25) inset, 0 8px 18px rgba(14,165,233,0.16);
+      transition: transform .02s ease, filter .2s ease, border-color .2s ease, background .2s ease;
+    }
+    #orderInfo a:hover { filter: brightness(1.06); border-color: rgba(14,165,233,0.55); }
+    #orderInfo a:active { transform: translateY(1px); }
+    #orderInfo a:focus-visible { outline: 3px solid rgba(14,165,233,0.42); outline-offset: 2px; }
+    /* Fun, informative icons without changing markup */
+    #orderInfo div:nth-of-type(2) a::before { content: '🔎'; }
+    #orderInfo div:last-of-type a::before { content: '💬'; }
+  </style>
 </head>
 <body>
   <header class="site-header">
