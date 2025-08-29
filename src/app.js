@@ -19,6 +19,28 @@ app.use(express.json());
 
 // Rutas API
 app.use('/api/auth', authRoutes);
+// Endpoint DEV para promover a admin (no disponible en produccion)
+if (config.env !== 'production') {
+  app.post('/api/admin/dev/promote', async (req, res) => {
+    try {
+      const { email, key } = req.body || {};
+      if (!email || !key) return res.status(400).json({ error: 'email y key son obligatorios' });
+      if (!process.env.DEV_ADMIN_KEY || key !== process.env.DEV_ADMIN_KEY) {
+        return res.status(401).json({ error: 'clave invalida' });
+      }
+      const pool = getPool();
+      const [rows] = await pool.query('SELECT id, is_admin FROM users WHERE email = ? LIMIT 1', [email]);
+      if (!rows.length) return res.status(404).json({ error: 'usuario no encontrado' });
+      await pool.query('UPDATE users SET is_admin = 1 WHERE id = ?', [rows[0].id]);
+      return res.json({ ok: true, user_id: rows[0].id });
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') {
+        return res.status(500).json({ error: 'internal server error', detail: err.message });
+      }
+      return res.status(500).json({ error: 'internal server error' });
+    }
+  });
+}
 // --- CMS Productos (admin) ---
 app.get('/api/admin/products', requireAuth, requireAdmin, async (req, res) => {
   try {
@@ -489,6 +511,14 @@ app.get('/scan', (req, res) => {
 app.get('/m', (req, res) => {
   res.sendFile(path.join(publicDir, 'm.html'));
 });
+// Tienda publica (lista de productos)
+app.get('/shop', (req, res) => {
+  res.sendFile(path.join(publicDir, 'shop.html'));
+});
+// Detalle de producto por slug
+app.get('/shop/:slug', (req, res) => {
+  res.sendFile(path.join(publicDir, 'shop_product.html'));
+});
 // Pagina de detalles tecnicos
 app.get('/tech', (req, res) => {
   res.sendFile(path.join(publicDir, 'tech.html'));
@@ -514,6 +544,35 @@ app.get('/p/:qrId', (req, res) => {
 app.get('/license', (req, res) => {
   res.type('text/plain');
   res.sendFile(path.join(__dirname, '..', 'LICENSE'));
+});
+
+// -------- API publica de tienda --------
+// Listado de productos activos
+app.get('/api/shop/products', async (req, res) => {
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query(
+      'SELECT id, name, slug, price_cents, currency, stock, image_url, description FROM products WHERE active = 1 ORDER BY created_at DESC'
+    );
+    res.json({ products: rows });
+  } catch (err) {
+    res.status(500).json({ error: 'internal server error' });
+  }
+});
+// Detalle por slug (solo activos)
+app.get('/api/shop/products/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const pool = getPool();
+    const [rows] = await pool.query(
+      'SELECT id, name, slug, price_cents, currency, stock, image_url, description FROM products WHERE slug = ? AND active = 1 LIMIT 1',
+      [slug]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'not found' });
+    res.json({ product: rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: 'internal server error' });
+  }
 });
 
 // NFC short route: /n/:nfcId -> redirects to /p/:qrId

@@ -14,6 +14,7 @@ const config = {
     database: process.env.MYSQL_DATABASE || 'petfinder',
   ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   },
+  devAdminKey: process.env.DEV_ADMIN_KEY || null,
 };
 
 module.exports = config;

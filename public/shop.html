@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tienda — Petfinder</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+  </head>
+  <body>
+    <header class="site-header"><div class="container header-inner"><a class="brand" href="/">🐾 Petfinder</a><nav class="main-nav"><a href="/shop">Tienda</a><a href="/login">Ingresar</a></nav></div></header>
+    <main class="container" style="padding:20px 0;">
+      <h1>Tienda</h1>
+      <div id="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;"></div>
+    </main>
+    <div class="container" style="padding: 8px 12px 16px; text-align:center;">
+      <a href="/license" style="color:#9ca3af; text-decoration:none;">Licencia</a>
+    </div>
+    <script>
+      async function load(){
+        const res = await fetch('/api/shop/products');
+        const data = await res.json();
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        (data.products||[]).forEach(p=>{
+          const card = document.createElement('a');
+          card.href = '/shop/' + encodeURIComponent(p.slug);
+          card.style = 'border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:14px;text-decoration:none;color:inherit;';
+          card.innerHTML = `
+            <div style="height:140px;background:rgba(255,255,255,0.06);border-radius:10px;margin-bottom:10px;display:grid;place-items:center">📦</div>
+            <h3 style="margin:0 0 6px">${p.name}</h3>
+            <div style="color:#9ca3af">${p.currency} ${(p.price_cents/100).toLocaleString('es-CO')}</div>`;
+          grid.appendChild(card);
+        });
+      }
+      load();
+    </script>
+  </body>
+</html>
