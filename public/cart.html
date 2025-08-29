@@ -69,7 +69,14 @@
           <img src="${item.image_url}" alt="${item.name}" class="card-cover" style="max-height:80px;object-fit:cover;" />
           <div class="card-body">
             <h2 class="card-title">${item.name}</h2>
-            <div>Cantidad: <input type="number" min="1" max="${item.stock}" value="${item.quantity}" style="width:60px;" data-id="${item.product_id}" /></div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span>Cantidad:</span>
+              <div class="qty-stepper" style="display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,0.15);border-radius:10px;overflow:hidden;">
+                <button class="button" type="button" data-dec="${item.product_id}" aria-label="Disminuir" style="border:0;border-right:1px solid rgba(255,255,255,0.12);padding:6px 10px;line-height:1;">−</button>
+                <input class="input" type="number" min="1" max="${item.stock}" value="${item.quantity}" data-id="${item.product_id}" style="width:64px;border:0;text-align:center;box-shadow:none;margin:0;border-radius:0;" />
+                <button class="button" type="button" data-inc="${item.product_id}" aria-label="Aumentar" style="border:0;border-left:1px solid rgba(255,255,255,0.12);padding:6px 10px;line-height:1;">+</button>
+              </div>
+            </div>
     <div>Precio unitario: ${new Intl.NumberFormat('es-CO',{style:'currency',currency:item.currency||'COP'}).format(item.price_cents/100)}</div>
     <div>Subtotal: ${new Intl.NumberFormat('es-CO',{style:'currency',currency:item.currency||'COP'}).format((item.price_cents*item.quantity)/100)}</div>
             <button class="button" data-remove="${item.product_id}">Eliminar</button>
@@ -78,7 +85,7 @@
         el.appendChild(div);
       });
   document.getElementById('cartTotal').textContent = 'Total: ' + new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP'}).format(total/100);
-      // Actualizar cantidad
+      // Actualizar cantidad manual en input
       el.querySelectorAll('input[type=number]').forEach(inp => {
         inp.onchange = async function() {
           const pid = inp.getAttribute('data-id');
@@ -87,6 +94,26 @@
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ product_id: pid, quantity: qty })
+          });
+          loadCart();
+        };
+      });
+      // Botones + / -
+      el.querySelectorAll('button[data-inc], button[data-dec]').forEach(btn => {
+        btn.onclick = async function(){
+          const pid = btn.getAttribute('data-inc') || btn.getAttribute('data-dec');
+          const card = btn.closest('.card');
+          const inp = card && card.querySelector('input[data-id="'+pid+'"]');
+          if (!inp) return;
+          const max = Math.max(1, parseInt(inp.getAttribute('max')||'99', 10));
+          const cur = Math.max(1, parseInt(inp.value||'1', 10));
+          const next = btn.hasAttribute('data-inc') ? Math.min(cur+1, max) : Math.max(cur-1, 1);
+          if (next === cur) return;
+          inp.value = String(next);
+          await fetch('/api/cart', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_id: pid, quantity: next })
           });
           loadCart();
         };
