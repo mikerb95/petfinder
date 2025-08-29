@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Detalles técnicos — Petfinder</title>
+    <meta name="description" content="Información técnica del proyecto: arquitectura, stack, seguridad, base de datos, API y despliegue." />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%2314b8a6'/><text x='50' y='58' font-size='44' text-anchor='middle' fill='white'>🐾</text></svg>'>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner" style="max-width:1100px;">
+        <a class="brand" href="/" aria-label="Petfinder home">
+          <span class="brand-mark" aria-hidden="true">🐾</span>
+          <span class="brand-name">Petfinder</span>
+        </a>
+        <nav class="main-nav" aria-label="Primary">
+          <a href="/">Inicio</a>
+          <a href="/login">Iniciar sesión</a>
+          <a href="/register" class="button button-primary">Registrarse</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" style="padding-bottom:24px;">
+        <div class="container hero-inner" style="grid-template-columns: 1fr;">
+          <div class="hero-copy">
+            <h1 class="hero-title">Detalles técnicos</h1>
+            <p class="hero-subtitle">Resumen de arquitectura, tecnologías, prácticas de seguridad y puntos de integración del proyecto.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-alt">
+        <div class="container">
+          <h2>Arquitectura</h2>
+          <ul class="bullets">
+            <li>Aplicación web con backend en Node.js/Express y frontend estático.</li>
+            <li>Persistencia en base de datos relacional MySQL.</li>
+            <li>Rutas públicas para fichas de mascotas mediante ID/QR.</li>
+            <li>API REST para autenticación, gestión de perfil y mascotas.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Stack</h2>
+          <div class="features-grid">
+            <div class="feature-item">
+              <h3>Backend</h3>
+              <ul class="bullets">
+                <li>Node.js + Express</li>
+                <li>Generación de códigos con librería QR</li>
+                <li>Envío de correos para recuperación de contraseña</li>
+              </ul>
+            </div>
+            <div class="feature-item">
+              <h3>Base de datos</h3>
+              <ul class="bullets">
+                <li>MySQL/MariaDB</li>
+                <li>Migraciones ligeras al iniciar (ALTER/CREATE IF NOT EXISTS)</li>
+                <li>Tablas: usuarios, mascotas, adopciones, reportes de pérdida, historial médico, fotos, check-ins</li>
+              </ul>
+            </div>
+            <div class="feature-item">
+              <h3>Frontend</h3>
+              <ul class="bullets">
+                <li>HTML/CSS/JS sin framework para landing y vistas públicas</li>
+                <li>Dashboard con modales para CRUD de mascotas y perfil</li>
+              </ul>
+            </div>
+            <div class="feature-item">
+              <h3>Despliegue</h3>
+              <ul class="bullets">
+                <li>Rutas y funciones configuradas vía vercel.json</li>
+                <li>Activos estáticos servidos desde /public</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-alt">
+        <div class="container">
+          <h2>Seguridad y privacidad</h2>
+          <ul class="bullets">
+            <li>Autenticación basada en tokens y hashing de contraseñas.</li>
+            <li>Control granular de qué datos son públicos en la ficha.</li>
+            <li>Protecciones básicas contra inyección y validaciones en servidor.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Modelo de datos (resumen)</h2>
+          <ul class="bullets">
+            <li>Usuarios: perfil, ciudad, enlaces sociales.</li>
+            <li>Mascotas: identificación, ciudad, estado, NFC opcional, QR ID.</li>
+            <li>Relaciones adicionales: adopciones, reportes de pérdida, registros médicos, fotos, check-ins.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section section-alt">
+        <div class="container">
+          <h2>API (alto nivel)</h2>
+          <ul class="bullets">
+            <li>/api/auth: registro, login, recuperación y reseteo de contraseña.</li>
+            <li>/api/me: perfil del usuario autenticado (GET/PUT).</li>
+            <li>/api/pets: CRUD de mascotas, QR y acciones relacionadas.</li>
+            <li>/p/:id: ficha pública de mascota por QR/ID.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Variables de entorno</h2>
+          <ul class="bullets">
+            <li>JWT_SECRET — firma de tokens.</li>
+            <li>DB_HOST, DB_USER, DB_PASSWORD, DB_NAME — conexión a MySQL.</li>
+            <li>RESEND_API_KEY, FROM_EMAIL, APP_BASE_URL — correo y URLs públicas.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner" style="max-width:1100px;">
+        <p>Proyecto académico SENA — Asignatura de Arquitectura de Software.</p>
+        <div class="footer-credit">Creado por Mike Rodríguez</div>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/tech">Detalles técnicos</a>
+          <a href="/terms">Términos</a>
+          <a href="/privacy">Privacidad</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+  </html>
