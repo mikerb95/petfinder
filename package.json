@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "db:init": "node scripts/db-init.js",
     "db:migrate:pet-health": "node scripts/db-migrate-pet-health.js",
-    "smoke:ids": "node scripts/smoke-ids.js"
+  "smoke:ids": "node scripts/smoke-ids.js",
+  "smoke:routes": "node scripts/smoke-routes.js"
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
