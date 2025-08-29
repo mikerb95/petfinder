@@ -200,3 +200,215 @@ async function ensureProductsTable() {
 }
 
 module.exports.ensureProductsTable = ensureProductsTable;
+
+/** Add extra product columns if missing (SKU, weight, tax). */
+async function ensureProductsAugments() {
+  try {
+    const p = getPool();
+    const [cols] = await p.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'products'`,
+      [config.db.database]
+    );
+    const names = new Set((cols || []).map(c => c.COLUMN_NAME));
+    const alters = [];
+    if (!names.has('sku')) alters.push("ADD COLUMN sku VARCHAR(64) NULL UNIQUE AFTER slug");
+    if (!names.has('weight_g')) alters.push("ADD COLUMN weight_g INT NULL AFTER stock");
+    if (!names.has('tax_code')) alters.push("ADD COLUMN tax_code VARCHAR(32) NULL AFTER weight_g");
+    if (alters.length) {
+      await p.query(`ALTER TABLE products ${alters.join(', ')}`);
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Schema ensure (products augments) warning:', err.message);
+    }
+  }
+}
+
+module.exports.ensureProductsAugments = ensureProductsAugments;
+
+/** Ensure full Shop schema exists (categories, images, variants, carts, orders, items, payments, shipments, addresses, coupons, inventory). */
+async function ensureShopSchema() {
+  const p = getPool();
+  // Categories (and product mapping)
+  await p.query(`CREATE TABLE IF NOT EXISTS categories (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(120) NOT NULL,
+    slug VARCHAR(160) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await p.query(`CREATE TABLE IF NOT EXISTS product_categories (
+    product_id BIGINT NOT NULL,
+    category_id BIGINT NOT NULL,
+    PRIMARY KEY (product_id, category_id),
+    CONSTRAINT fk_pc_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pc_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+  )`);
+
+  // Product images
+  await p.query(`CREATE TABLE IF NOT EXISTS product_images (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    product_id BIGINT NOT NULL,
+    image_url VARCHAR(255) NOT NULL,
+    alt VARCHAR(160) NULL,
+    position INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_pimg_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+  )`);
+
+  // Product variants (basic: size/color)
+  await p.query(`CREATE TABLE IF NOT EXISTS product_variants (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    product_id BIGINT NOT NULL,
+    sku VARCHAR(64) NULL UNIQUE,
+    name VARCHAR(160) NULL,
+    size VARCHAR(40) NULL,
+    color VARCHAR(40) NULL,
+    price_cents INT NULL,
+    stock INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
+    CONSTRAINT fk_pv_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+  )`);
+
+  // Addresses for shipping/billing
+  await p.query(`CREATE TABLE IF NOT EXISTS addresses (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NULL,
+    full_name VARCHAR(160) NOT NULL,
+    line1 VARCHAR(180) NOT NULL,
+    line2 VARCHAR(180) NULL,
+    city VARCHAR(120) NOT NULL,
+    region VARCHAR(120) NULL,
+    postal_code VARCHAR(32) NULL,
+    country_code CHAR(2) NOT NULL,
+    phone VARCHAR(40) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_addr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+
+  // Coupons
+  await p.query(`CREATE TABLE IF NOT EXISTS coupons (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    code VARCHAR(64) NOT NULL UNIQUE,
+    type ENUM('percent','fixed') NOT NULL,
+    percent_off INT NULL,
+    amount_off_cents INT NULL,
+    currency VARCHAR(3) NULL,
+    starts_at DATETIME NULL,
+    ends_at DATETIME NULL,
+    max_redemptions INT NULL,
+    usage_count INT NOT NULL DEFAULT 0,
+    active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // Carts and items (for future use / guest sessions)
+  await p.query(`CREATE TABLE IF NOT EXISTS carts (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NULL,
+    session_id VARCHAR(64) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
+    CONSTRAINT fk_cart_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+
+  await p.query(`CREATE TABLE IF NOT EXISTS cart_items (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    cart_id BIGINT NOT NULL,
+    product_id BIGINT NULL,
+    variant_id BIGINT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    unit_price_cents INT NULL,
+    currency VARCHAR(3) NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ci_cart FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ci_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
+    CONSTRAINT fk_ci_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL
+  )`);
+
+  // Orders
+  await p.query(`CREATE TABLE IF NOT EXISTS orders (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    order_number VARCHAR(24) NOT NULL UNIQUE,
+    user_id BIGINT NULL,
+    email VARCHAR(160) NULL,
+    phone VARCHAR(40) NULL,
+    billing_address_id BIGINT NULL,
+    shipping_address_id BIGINT NULL,
+    status ENUM('pending','paid','processing','shipped','delivered','cancelled','refunded') NOT NULL DEFAULT 'pending',
+    currency VARCHAR(3) NOT NULL DEFAULT 'COP',
+    subtotal_cents INT NOT NULL DEFAULT 0,
+    discount_cents INT NOT NULL DEFAULT 0,
+    shipping_cents INT NOT NULL DEFAULT 0,
+    tax_cents INT NOT NULL DEFAULT 0,
+    total_cents INT NOT NULL DEFAULT 0,
+    coupon_id BIGINT NULL,
+    notes TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
+    CONSTRAINT fk_o_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_o_bill_addr FOREIGN KEY (billing_address_id) REFERENCES addresses(id) ON DELETE SET NULL,
+    CONSTRAINT fk_o_ship_addr FOREIGN KEY (shipping_address_id) REFERENCES addresses(id) ON DELETE SET NULL,
+    CONSTRAINT fk_o_coupon FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE SET NULL
+  )`);
+
+  await p.query(`CREATE TABLE IF NOT EXISTS order_items (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    order_id BIGINT NOT NULL,
+    product_id BIGINT NULL,
+    variant_id BIGINT NULL,
+    name VARCHAR(160) NOT NULL,
+    sku VARCHAR(64) NULL,
+    unit_price_cents INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    total_cents INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_oi_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_oi_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
+    CONSTRAINT fk_oi_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL
+  )`);
+
+  // Payments
+  await p.query(`CREATE TABLE IF NOT EXISTS payments (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    order_id BIGINT NOT NULL,
+    provider VARCHAR(40) NOT NULL,
+    provider_payment_id VARCHAR(128) NULL,
+    status ENUM('requires_action','pending','succeeded','failed','refunded') NOT NULL DEFAULT 'pending',
+    amount_cents INT NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    receipt_url VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
+    CONSTRAINT fk_pay_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+  )`);
+
+  // Shipments
+  await p.query(`CREATE TABLE IF NOT EXISTS shipments (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    order_id BIGINT NOT NULL,
+    carrier VARCHAR(80) NULL,
+    tracking_number VARCHAR(120) NULL,
+    status ENUM('label_created','in_transit','delivered','returned') NOT NULL DEFAULT 'label_created',
+    shipped_at DATETIME NULL,
+    delivered_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ship_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+  )`);
+
+  // Inventory movements
+  await p.query(`CREATE TABLE IF NOT EXISTS inventory_movements (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    product_id BIGINT NULL,
+    variant_id BIGINT NULL,
+    change_qty INT NOT NULL,
+    reason ENUM('order','restock','manual','refund') NOT NULL DEFAULT 'manual',
+    reference VARCHAR(160) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_im_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
+    CONSTRAINT fk_im_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE SET NULL
+  )`);
+}
+
+module.exports.ensureShopSchema = ensureShopSchema;

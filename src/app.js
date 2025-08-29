@@ -7,6 +7,7 @@ const QRCode = require('qrcode');
 const { randomId } = require('./utils/id');
 const authRoutes = require('./routes/auth');
 const { requireAdmin } = require('./middleware/admin');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 
@@ -572,6 +573,256 @@ app.get('/api/shop/products/:slug', async (req, res) => {
     res.json({ product: rows[0] });
   } catch (err) {
     res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+// -------- Checkout (crear orden) --------
+app.post('/api/shop/orders', async (req, res) => {
+  const pool = getPool();
+  let conn;
+  try {
+    const {
+      items, // [{ product_id or slug, variant_id?, quantity }]
+      email,
+      phone,
+      shipping_address = {},
+      billing_address = null,
+      coupon_code = null,
+      payment_provider = 'manual'
+    } = req.body || {};
+    if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'items es requerido' });
+    if (!email && !req.headers.authorization) return res.status(400).json({ error: 'email es requerido (o usa token)' });
+
+    // Optional: detect user from Authorization header
+    let userId = null;
+    try {
+      const auth = req.headers.authorization || '';
+      const m = auth.match(/^Bearer\s+(.+)$/i);
+      if (m) {
+        const payload = jwt.verify(m[1], config.jwtSecret);
+        userId = payload.sub || null;
+      }
+    } catch (_) {}
+
+    // Normalize and validate items
+    const normItems = [];
+    for (const raw of items) {
+      const quantity = Number(raw?.quantity || 0);
+      if (!quantity || quantity <= 0) return res.status(400).json({ error: 'quantity inválida' });
+      normItems.push({
+        product_id: raw.product_id || null,
+        slug: raw.slug || null,
+        variant_id: raw.variant_id || null,
+        quantity
+      });
+    }
+
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // Resolve products/variants and compute prices
+    let currency = null;
+    let subtotal = 0;
+    const resolved = [];
+    for (const it of normItems) {
+      let productRow = null;
+      if (it.product_id) {
+        const [r] = await conn.query('SELECT id, name, slug, price_cents, currency, stock, active, sku FROM products WHERE id = ? LIMIT 1', [it.product_id]);
+        productRow = r[0];
+      } else if (it.slug) {
+        const [r] = await conn.query('SELECT id, name, slug, price_cents, currency, stock, active, sku FROM products WHERE slug = ? LIMIT 1', [it.slug]);
+        productRow = r[0];
+      }
+      if (!productRow) throw new Error('producto no encontrado');
+      if (!productRow.active) throw new Error('producto inactivo');
+      let unitPrice = productRow.price_cents;
+      let variantRow = null;
+      if (it.variant_id) {
+        const [vr] = await conn.query('SELECT id, product_id, sku, name, size, color, price_cents, stock FROM product_variants WHERE id = ? AND product_id = ? LIMIT 1', [it.variant_id, productRow.id]);
+        variantRow = vr[0] || null;
+        if (!variantRow) throw new Error('variant inválida');
+        if (variantRow.price_cents != null) unitPrice = variantRow.price_cents;
+      }
+      if (!currency) currency = productRow.currency;
+      if (currency !== productRow.currency) throw new Error('mezcla de monedas no soportada');
+      const lineTotal = unitPrice * it.quantity;
+      subtotal += lineTotal;
+      resolved.push({ product: productRow, variant: variantRow, unitPrice, quantity: it.quantity });
+    }
+
+    // Coupon (optional)
+    let couponId = null;
+    let discount = 0;
+    if (coupon_code) {
+      const [cr] = await conn.query(
+        `SELECT id, type, percent_off, amount_off_cents, currency, starts_at, ends_at, active, max_redemptions, usage_count
+           FROM coupons WHERE code = ? LIMIT 1`,
+        [coupon_code]
+      );
+      const c = cr[0];
+      const now = new Date();
+      const within = c && (!c.starts_at || new Date(c.starts_at) <= now) && (!c.ends_at || new Date(c.ends_at) >= now);
+      const active = c && c.active === 1;
+      const left = c && (c.max_redemptions == null || c.usage_count < c.max_redemptions);
+      const sameCur = c && (!c.currency || c.currency === currency);
+      if (!c || !within || !active || !left || !sameCur) {
+        throw new Error('cupón inválido');
+      }
+      couponId = c.id;
+      if (c.type === 'percent' && c.percent_off) {
+        discount = Math.floor(subtotal * (c.percent_off / 100));
+      } else if (c.type === 'fixed' && c.amount_off_cents) {
+        discount = Math.min(subtotal, c.amount_off_cents);
+      }
+    }
+
+    // Shipping & tax placeholders
+    const shipping = 0;
+    const tax = 0;
+    const total = Math.max(0, subtotal - discount + shipping + tax);
+
+    // Addresses
+    async function insertAddress(addr) {
+      if (!addr) return null;
+      const {
+        full_name, line1, line2 = null, city, region = null, postal_code = null, country_code = 'CO', phone: addrPhone = null
+      } = addr;
+      if (!full_name || !line1 || !city) return null;
+      const [ar] = await conn.query(
+        `INSERT INTO addresses (user_id, full_name, line1, line2, city, region, postal_code, country_code, phone)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId || null, full_name, line1, line2, city, region, postal_code, country_code, addrPhone]
+      );
+      return ar.insertId;
+    }
+    const shippingAddressId = await insertAddress(shipping_address);
+    const billingAddressId = billing_address ? (await insertAddress(billing_address)) : shippingAddressId;
+
+    // Create order shell
+    let orderNumber;
+    for (let i = 0; i < 5; i++) {
+      orderNumber = 'PF' + Date.now() + '-' + randomId(4);
+      try {
+        await conn.query(
+          `INSERT INTO orders (order_number, user_id, email, phone, billing_address_id, shipping_address_id, status, currency,
+                                subtotal_cents, discount_cents, shipping_cents, tax_cents, total_cents, coupon_id, notes)
+           VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, NULL)`,
+          [orderNumber, userId || null, email || null, phone || null, billingAddressId || null, shippingAddressId || null, currency,
+           subtotal, discount, shipping, tax, total, couponId]
+        );
+        break;
+      } catch (e) {
+        if (!e || e.code !== 'ER_DUP_ENTRY') throw e;
+      }
+    }
+
+    // Fetch order id
+    const [orderRows] = await conn.query('SELECT id FROM orders WHERE order_number = ? LIMIT 1', [orderNumber]);
+    const orderId = orderRows[0]?.id;
+    if (!orderId) throw new Error('no se pudo crear la orden');
+
+    // Insert items
+    for (const r of resolved) {
+      const name = r.product.name + (r.variant?.name ? (' - ' + r.variant.name) : '');
+      const sku = r.variant?.sku || r.product.sku || null;
+      const total_cents = r.unitPrice * r.quantity;
+      await conn.query(
+        `INSERT INTO order_items (order_id, product_id, variant_id, name, sku, unit_price_cents, quantity, total_cents)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [orderId, r.product.id, r.variant?.id || null, name, sku, r.unitPrice, r.quantity, total_cents]
+      );
+    }
+
+    // Create payment (pending)
+    const [pr] = await conn.query(
+      `INSERT INTO payments (order_id, provider, status, amount_cents, currency)
+       VALUES (?, ?, 'pending', ?, ?)`,
+      [orderId, payment_provider || 'manual', total, currency]
+    );
+
+    await conn.commit();
+    res.status(201).json({ order_id: orderId, order_number: orderNumber, status: 'pending', payment_id: pr.insertId, currency, total_cents: total });
+  } catch (err) {
+    try { if (conn) await conn.rollback(); } catch(_){}
+    const msg = (err && err.message) || 'internal server error';
+    if (msg === 'producto no encontrado' || msg === 'variant inválida' || msg === 'producto inactivo' || msg === 'mezcla de monedas no soportada' || msg === 'cupón inválido') {
+      return res.status(400).json({ error: msg });
+    }
+    res.status(500).json({ error: 'internal server error', detail: msg });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// -------- Simular pago (DEV): cambia estado y descuenta stock --------
+app.post('/api/shop/payments/simulate', async (req, res) => {
+  if (config.env === 'production') return res.status(403).json({ error: 'no disponible en producción' });
+  const pool = getPool();
+  let conn;
+  try {
+    const { order_id, payment_id, outcome = 'succeeded' } = req.body || {};
+    if (!order_id && !payment_id) return res.status(400).json({ error: 'order_id o payment_id requerido' });
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    // Resolve order & payment
+    let orderId = order_id;
+    if (!orderId && payment_id) {
+      const [pr] = await conn.query('SELECT order_id FROM payments WHERE id = ? LIMIT 1', [payment_id]);
+      if (!pr.length) throw new Error('payment no encontrado');
+      orderId = pr[0].order_id;
+    }
+    const [orows] = await conn.query('SELECT id, status, total_cents, currency, coupon_id FROM orders WHERE id = ? LIMIT 1', [orderId]);
+    if (!orows.length) throw new Error('orden no encontrada');
+    const order = orows[0];
+    if (order.status !== 'pending') throw new Error('orden no pendiente');
+    const [items] = await conn.query('SELECT product_id, variant_id, quantity FROM order_items WHERE order_id = ?', [orderId]);
+
+    if (outcome === 'succeeded') {
+      // check stock then decrement
+      for (const it of items) {
+        if (it.variant_id) {
+          const [vr] = await conn.query('SELECT stock FROM product_variants WHERE id = ? LIMIT 1', [it.variant_id]);
+          const st = vr[0]?.stock ?? 0;
+          if (st < it.quantity) throw new Error('stock insuficiente');
+        } else if (it.product_id) {
+          const [pr] = await conn.query('SELECT stock FROM products WHERE id = ? LIMIT 1', [it.product_id]);
+          const st = pr[0]?.stock ?? 0;
+          if (st < it.quantity) throw new Error('stock insuficiente');
+        }
+      }
+      // decrement
+      for (const it of items) {
+        if (it.variant_id) {
+          await conn.query('UPDATE product_variants SET stock = stock - ? WHERE id = ?', [it.quantity, it.variant_id]);
+          await conn.query('INSERT INTO inventory_movements (variant_id, change_qty, reason, reference) VALUES (?, ?, \'order\', ?)', [it.variant_id, -it.quantity, String(orderId)]);
+        } else if (it.product_id) {
+          await conn.query('UPDATE products SET stock = stock - ? WHERE id = ?', [it.quantity, it.product_id]);
+          await conn.query('INSERT INTO inventory_movements (product_id, change_qty, reason, reference) VALUES (?, ?, \'order\', ?)', [it.product_id, -it.quantity, String(orderId)]);
+        }
+      }
+      // mark payment and order
+      if (payment_id) await conn.query("UPDATE payments SET status = 'succeeded', updated_at = NOW() WHERE id = ?", [payment_id]);
+      else await conn.query("UPDATE payments SET status = 'succeeded', updated_at = NOW() WHERE order_id = ?", [orderId]);
+      await conn.query("UPDATE orders SET status = 'paid', updated_at = NOW() WHERE id = ?", [orderId]);
+      // increment coupon usage if any
+      if (order.coupon_id) await conn.query('UPDATE coupons SET usage_count = usage_count + 1 WHERE id = ?', [order.coupon_id]);
+      await conn.commit();
+      return res.json({ ok: true, order_id: orderId, status: 'paid' });
+    } else {
+      // failure
+      if (payment_id) await conn.query("UPDATE payments SET status = 'failed', updated_at = NOW() WHERE id = ?", [payment_id]);
+      else await conn.query("UPDATE payments SET status = 'failed', updated_at = NOW() WHERE order_id = ?", [orderId]);
+      await conn.query("UPDATE orders SET status = 'cancelled', updated_at = NOW() WHERE id = ?", [orderId]);
+      await conn.commit();
+      return res.json({ ok: true, order_id: orderId, status: 'cancelled' });
+    }
+  } catch (err) {
+    try { if (conn) await conn.rollback(); } catch(_){}
+    const msg = err?.message || 'internal error';
+    const code = (msg === 'orden no encontrada' || msg === 'orden no pendiente' || msg === 'payment no encontrado' || msg === 'stock insuficiente') ? 400 : 500;
+    return res.status(code).json({ error: msg });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
