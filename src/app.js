@@ -51,6 +51,43 @@ app.get('/api/me', requireAuth, async (req, res) => {
   }
 });
 
+// Actualizar perfil de usuario actual
+app.put('/api/me', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const { name, last_name, sex, email, phone } = req.body || {};
+    if (email && typeof email !== 'string') return res.status(400).json({ error: 'email invalido' });
+    if (name && typeof name !== 'string') return res.status(400).json({ error: 'nombre invalido' });
+    if (last_name && typeof last_name !== 'string') return res.status(400).json({ error: 'apellido invalido' });
+    if (sex && !['unknown','male','female'].includes(String(sex))) return res.status(400).json({ error: 'sexo invalido' });
+    const pool = getPool();
+    // Si el email cambia, verificar que no este en uso por otro usuario
+    if (email) {
+      const [dupe] = await pool.query('SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1', [email, userId]);
+      if (dupe.length) return res.status(409).json({ error: 'el correo ya está registrado' });
+    }
+    await pool.query(
+      `UPDATE users SET
+         name = COALESCE(?, name),
+         last_name = COALESCE(?, last_name),
+         sex = COALESCE(?, sex),
+         email = COALESCE(?, email),
+         phone = COALESCE(?, phone),
+         updated_at = NOW()
+       WHERE id = ?`,
+      [name ?? null, (last_name ?? null), (sex ?? null), (email ?? null), (phone ?? null), userId]
+    );
+    const [rows] = await pool.query('SELECT id, name, last_name, sex, email, phone, created_at FROM users WHERE id = ?', [userId]);
+    if (!rows.length) return res.status(404).json({ error: 'user not found' });
+    res.json({ user: rows[0] });
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      return res.status(500).json({ error: 'internal server error', detail: err.code || err.message });
+    }
+    res.status(500).json({ error: 'internal server error' });
+  }
+});
+
 // (QR de dueno y pagina publica de dueno removidos segun requisitos)
 
 // -------- API de mascotas (CRUD + QR) --------

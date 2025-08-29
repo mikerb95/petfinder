@@ -101,6 +101,9 @@
               <dt>Miembro desde</dt>
               <dd id="profileSince">—</dd>
             </dl>
+            <div style="margin-top:10px">
+              <button class="button" id="editProfileBtn" type="button">Editar datos de contacto</button>
+            </div>
           </div>
         </section>
 
@@ -160,6 +163,49 @@
           </form>
           <div id="pets" style="margin-top:16px; display:grid; gap:12px;"></div>
         </section>
+
+        <!-- Edit Profile Modal -->
+        <div id="profileModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+          <div class="modal">
+            <header>
+              <h3 id="profileTitle" style="margin:0;">Editar datos de contacto</h3>
+              <button id="profileClose" class="button secondary" type="button" aria-label="Cerrar">Cerrar</button>
+            </header>
+            <div class="body">
+              <form id="profileForm" class="grid">
+                <div>
+                  <label class="demo-label" for="pf_name">Nombre</label>
+                  <input id="pf_name" class="input" type="text" />
+                </div>
+                <div>
+                  <label class="demo-label" for="pf_last">Apellido</label>
+                  <input id="pf_last" class="input" type="text" />
+                </div>
+                <div>
+                  <label class="demo-label" for="pf_sex">Sexo</label>
+                  <select id="pf_sex" class="input">
+                    <option value="unknown">Prefiero no decir</option>
+                    <option value="male">Masculino</option>
+                    <option value="female">Femenino</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="demo-label" for="pf_email">Correo</label>
+                  <input id="pf_email" class="input" type="email" />
+                </div>
+                <div style="grid-column: 1 / -1;">
+                  <label class="demo-label" for="pf_phone">Teléfono</label>
+                  <input id="pf_phone" class="input" type="text" />
+                </div>
+              </form>
+              <div id="profileMsg" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
+            </div>
+            <div class="footer">
+              <button id="profileCancel" class="button secondary" type="button">Cancelar</button>
+              <button id="profileSave" class="button" type="button">Guardar</button>
+            </div>
+          </div>
+        </div>
 
         <!-- Edit Pet Modal -->
         <div id="editModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="editTitle">
@@ -273,7 +319,19 @@
   const profileEmail = document.getElementById('profileEmail');
   const profilePhone = document.getElementById('profilePhone');
   const profileSince = document.getElementById('profileSince');
-        const logout = document.getElementById('logoutLink');
+  const logout = document.getElementById('logoutLink');
+  // Profile modal elements
+  const profileModal = document.getElementById('profileModal');
+  const profileOpenBtn = document.getElementById('editProfileBtn');
+  const profileClose = document.getElementById('profileClose');
+  const profileCancel = document.getElementById('profileCancel');
+  const profileSave = document.getElementById('profileSave');
+  const pf_name = document.getElementById('pf_name');
+  const pf_last = document.getElementById('pf_last');
+  const pf_sex = document.getElementById('pf_sex');
+  const pf_email = document.getElementById('pf_email');
+  const pf_phone = document.getElementById('pf_phone');
+  const profileMsg = document.getElementById('profileMsg');
 
         if (!token) {
           window.location.href = '/login';
@@ -301,6 +359,39 @@
             }
             const hdrName = document.getElementById('hdrName');
             if (hdrName && data.user?.name) hdrName.textContent = 'Hola, ' + data.user.name;
+            // Preload profile form values
+            if (pf_name) pf_name.value = u.name || '';
+            if (pf_last) pf_last.value = u.last_name || '';
+            if (pf_sex) pf_sex.value = u.sex || 'unknown';
+            if (pf_email) pf_email.value = u.email || '';
+            if (pf_phone) pf_phone.value = u.phone || '';
+        function openProfileModal(){ profileMsg.textContent=''; profileModal.style.display='flex'; setTimeout(()=>{ pf_name?.focus(); },0); }
+        function closeProfileModal(){ profileModal.style.display='none'; }
+        profileOpenBtn?.addEventListener('click', openProfileModal);
+        profileClose?.addEventListener('click', closeProfileModal);
+        profileCancel?.addEventListener('click', closeProfileModal);
+        profileModal?.addEventListener('click', (ev)=>{ if (ev.target === profileModal) closeProfileModal(); });
+        document.addEventListener('keydown', (ev)=>{ if (ev.key === 'Escape' && profileModal.style.display==='flex') closeProfileModal(); });
+        profileSave?.addEventListener('click', async ()=>{
+          profileMsg.textContent = '';
+          const payload = {
+            name: pf_name?.value?.trim() || undefined,
+            last_name: pf_last?.value?.trim() || undefined,
+            sex: pf_sex?.value || undefined,
+            email: pf_email?.value?.trim() || undefined,
+            phone: pf_phone?.value?.trim() || undefined,
+          };
+          const res = await fetch('/api/me', { method:'PUT', headers:{ 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+          const data = await res.json().catch(()=>({}));
+          if (!res.ok) { profileMsg.textContent = (data?.error || 'No se pudo actualizar'); profileMsg.style.color = '#fca5a5'; return; }
+          profileMsg.textContent = 'Datos actualizados'; profileMsg.style.color = '#22c55e';
+          // update profile card fields
+          const u = data.user || {};
+          if (profileName) profileName.textContent = u.name || '—';
+          if (profileEmail) profileEmail.textContent = u.email || '—';
+          if (profilePhone) profilePhone.textContent = u.phone || '—';
+          closeProfileModal();
+        });
       // Load pets
       loadPets();
           })
