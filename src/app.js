@@ -424,6 +424,10 @@ app.get('/dashboard', (req, res) => {
 app.get('/scan', (req, res) => {
   res.sendFile(path.join(publicDir, 'scan.html'));
 });
+// Pagina de detalles tecnicos
+app.get('/tech', (req, res) => {
+  res.sendFile(path.join(publicDir, 'tech.html'));
+});
 // Pagina de kickoff
 app.get('/kickoff', (req, res) => {
   res.sendFile(path.join(publicDir, 'kickoff.html'));
