@@ -54,11 +54,12 @@
       const items = data.items || [];
       let html = '';
       let total = 0;
+      const fmt = (cur, v) => new Intl.NumberFormat('es-CO',{style:'currency',currency:cur||'COP'}).format(v);
       items.forEach(item => {
         total += item.price_cents * item.quantity;
-        html += `<div>${item.name} x${item.quantity} — $${((item.price_cents*item.quantity)/100).toLocaleString('es-CO',{style:'currency',currency:item.currency})}</div>`;
+        html += `<div>${item.name} x${item.quantity} — ${fmt(item.currency, (item.price_cents*item.quantity)/100)}</div>`;
       });
-      html += `<div style='font-weight:bold;margin-top:8px;'>Total: $${(total/100).toLocaleString('es-CO',{style:'currency',currency:'COP'})}</div>`;
+      html += `<div style='font-weight:bold;margin-top:8px;'>Total: ${fmt('COP', total/100)}</div>`;
       document.getElementById('orderSummary').innerHTML = html;
     }
     loadSummary();

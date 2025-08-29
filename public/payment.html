@@ -50,7 +50,7 @@
             <div>Correo: ${o.email}</div>
             <div>Dirección: ${o.address}, ${o.city}</div>
             <div>Teléfono: ${o.phone}</div>
-            <div style="margin:8px 0;font-weight:bold;">Total: $${(o.total_cents/100).toLocaleString('es-CO',{style:'currency',currency:o.currency})}</div>
+            <div style="margin:8px 0;font-weight:bold;">Total: ${new Intl.NumberFormat('es-CO',{style:'currency',currency:o.currency||'COP'}).format(o.total_cents/100)}</div>
             <form id="payForm">
               <label class="demo-label" for="card">Tarjeta (simulado)</label>
               <input class="input" id="card" name="card" type="text" required placeholder="1234 5678 9012 3456" maxlength="19" />

@@ -148,6 +148,39 @@ app.get('/api/db/health', async (req, res) => {
   }
 });
 
+// Contact form endpoint (sends email via Resend if configured; otherwise no-op)
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, message } = req.body || {};
+    if (!name || !email || !message) return res.status(400).json({ error: 'nombre, correo y mensaje son obligatorios' });
+    let ResendClient = null;
+    try { ResendClient = require('resend').Resend; } catch(_) {}
+    const RK = process.env.RESEND_API_KEY;
+    const TO = process.env.CONTACT_TO || process.env.FROM_EMAIL || 'mikerb95@gmail.com';
+    const FROM = process.env.FROM_EMAIL || 'no-reply@petfinder.local';
+    if (ResendClient && RK && process.env.NODE_ENV === 'production') {
+      try {
+        const resend = new ResendClient(RK);
+        const subject = `Nuevo mensaje de contacto — ${name}`;
+        const html = `
+          <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
+            <h2>Contacto Petfinder</h2>
+            <p><strong>Nombre:</strong> ${String(name).replace(/</g,'&lt;')}</p>
+            <p><strong>Correo:</strong> ${String(email).replace(/</g,'&lt;')}</p>
+            <p><strong>Mensaje:</strong></p>
+            <div style="white-space:pre-wrap;border:1px solid #e5e7eb;border-radius:8px;padding:12px;background:#f9fafb;color:#111">${String(message).replace(/</g,'&lt;')}</div>
+          </div>`;
+        await resend.emails.send({ from: FROM, to: TO, subject, html });
+      } catch (e) {
+        if (process.env.NODE_ENV !== 'production') console.warn('contact email error:', e?.message);
+      }
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: 'internal server error' });
+  }
+});
+
 // Autenticado: perfil de usuario actual
 app.get('/api/me', requireAuth, async (req, res) => {
   try {
@@ -577,6 +610,10 @@ app.get('/tech', (req, res) => {
 // Pagina de kickoff
 app.get('/kickoff', (req, res) => {
   res.sendFile(path.join(publicDir, 'kickoff.html'));
+});
+// Pagina de contacto
+app.get('/contact', (req, res) => {
+  res.sendFile(path.join(publicDir, 'contact.html'));
 });
 // Pagina de terminos
 app.get('/terms', (req, res) => {

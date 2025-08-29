@@ -43,7 +43,7 @@
       const el = document.getElementById('cartItems');
       el.innerHTML = '';
       if (!items.length) { el.innerHTML = '<div class="demo-help">Tu carrito está vacío.</div>'; document.getElementById('cartTotal').textContent = ''; return; }
-      let total = 0;
+  let total = 0;
       items.forEach(item => {
         total += item.price_cents * item.quantity;
         const div = document.createElement('div');
@@ -53,14 +53,14 @@
           <div class="card-body">
             <h2 class="card-title">${item.name}</h2>
             <div>Cantidad: <input type="number" min="1" max="${item.stock}" value="${item.quantity}" style="width:60px;" data-id="${item.product_id}" /></div>
-            <div>Precio unitario: $${(item.price_cents/100).toLocaleString('es-CO',{style:'currency',currency:item.currency})}</div>
-            <div>Subtotal: $${((item.price_cents*item.quantity)/100).toLocaleString('es-CO',{style:'currency',currency:item.currency})}</div>
+    <div>Precio unitario: ${new Intl.NumberFormat('es-CO',{style:'currency',currency:item.currency||'COP'}).format(item.price_cents/100)}</div>
+    <div>Subtotal: ${new Intl.NumberFormat('es-CO',{style:'currency',currency:item.currency||'COP'}).format((item.price_cents*item.quantity)/100)}</div>
             <button class="button" data-remove="${item.product_id}">Eliminar</button>
           </div>
         `;
         el.appendChild(div);
       });
-      document.getElementById('cartTotal').textContent = 'Total: $' + (total/100).toLocaleString('es-CO',{style:'currency',currency:'COP'});
+  document.getElementById('cartTotal').textContent = 'Total: ' + new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP'}).format(total/100);
       // Actualizar cantidad
       el.querySelectorAll('input[type=number]').forEach(inp => {
         inp.onchange = async function() {

@@ -47,7 +47,7 @@
         <div>¡Gracias por tu compra, ${o.name}!</div>
         <div>Recibirás confirmación al correo: <strong>${o.email}</strong></div>
         <div>Enviaremos tu pedido a: <strong>${o.address}, ${o.city}</strong></div>
-        <div>Total pagado: <strong>$${(o.total_cents/100).toLocaleString('es-CO',{style:'currency',currency:o.currency})}</strong></div>
+  <div>Total pagado: <strong>${new Intl.NumberFormat('es-CO',{style:'currency',currency:o.currency||'COP'}).format(o.total_cents/100)}</strong></div>
         <div style='margin-top:12px;'>¿Dudas? <a href='/contact'>Contáctanos</a></div>
       `;
     }
