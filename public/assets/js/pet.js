@@ -6,6 +6,17 @@
   function $(id){ return document.getElementById(id); }
   function setText(id, val){ const el=$(id); if (el) el.textContent = val || '—'; }
   function showAlert(msg){ const a=$('alert'); if (a){ a.textContent = msg; a.style.display='block'; } }
+  function setCityLegend(city){
+    var content = $('content'); var legend = $('cityLegend');
+    if (!content || !legend) return;
+    if (!city) { legend.style.display = 'none'; content.style.removeProperty('--city-silhouette'); return; }
+    // Build a simple generic skyline SVG as data URL to avoid external requests
+    var svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 200' preserveAspectRatio='xMidYMax slice'><path fill='%23000' d='M0,200 L0,140 40,140 40,120 70,120 70,90 110,90 110,150 150,150 150,110 190,110 190,130 230,130 230,100 300,100 300,160 360,160 360,80 400,80 400,140 450,140 450,110 520,110 520,170 580,170 580,130 640,130 640,150 700,150 700,120 760,120 760,200 Z'/></svg>";
+    var url = "url(\"data:image/svg+xml;utf8," + encodeURIComponent(svg) + "\")";
+    content.style.setProperty('--city-silhouette', url);
+    legend.textContent = 'Ciudad: ' + city;
+    legend.style.display = 'inline-block';
+  }
 
   // Obtener qrId desde la URL: /p/:qrId
   var qrId = (location.pathname.split('/')[2] || '').trim();
@@ -24,7 +35,7 @@
       }
       return res.json();
     })
-    .then((data) => {
+  .then((data) => {
       var content = $('content'); if (content) content.style.display = 'block';
       // Pet
       setText('petName', data.pet?.name || '—');
@@ -44,7 +55,7 @@
         badge.textContent = data.pet.status === 'lost' ? 'Perdida' : 'En casa';
         statusWrap.appendChild(badge);
       }
-      // Owner
+  // Owner
       setText('ownerName', data.owner?.name || '—');
       setText('ownerPhone', data.owner?.phone || '—');
       setText('ownerEmail', data.owner?.email || '—');
@@ -55,6 +66,22 @@
       if (data.owner?.email) {
         var mailBtn = $('mailBtn'); if (mailBtn){ mailBtn.href = 'mailto:' + data.owner.email + '?subject=Mascota%20encontrada'; mailBtn.style.display='inline-block'; }
       }
+      // City legend: prefer ?city= param; fallback try to infer from phone country code
+      try {
+        var urlCity = new URLSearchParams(location.search).get('city');
+        if (urlCity) setCityLegend(urlCity);
+        else if (data.owner?.phone) {
+          var phone = String(data.owner.phone);
+          var cityGuess = null;
+          if (phone.startsWith('+57')) cityGuess = 'Bogotá';
+          else if (phone.startsWith('+52')) cityGuess = 'CDMX';
+          else if (phone.startsWith('+54')) cityGuess = 'Buenos Aires';
+          else if (phone.startsWith('+56')) cityGuess = 'Santiago';
+          else if (phone.startsWith('+51')) cityGuess = 'Lima';
+          else if (phone.startsWith('+34')) cityGuess = 'Madrid';
+          if (cityGuess) setCityLegend(cityGuess);
+        }
+      } catch (_) {}
     })
     .catch((err) => {
       showAlert(err.message || 'No se pudo cargar la información.');

@@ -7,7 +7,9 @@
     <link rel="stylesheet" href="/assets/css/landing.css" />
     <style>
       body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
-      .card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+  .card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); position: relative; overflow:hidden; }
+  /* City silhouette as a faint background on the card */
+  .card::after { content:""; position:absolute; inset:0; pointer-events:none; background-image: var(--city-silhouette, none); background-repeat:no-repeat; background-position: right -10px bottom -6px; background-size: min(70%, 540px) auto; opacity: 0.08; }
   /* Ensure dark text on white card for readability */
   .card, .card h1, .card h2, .card h3, .card p, .card li, .card a, .card dl { color:#111; }
   .card .button { color:#111; background:#fff; border:1px solid #cfcfcf; }
@@ -19,6 +21,7 @@
       .kv dt { color:#555; }
       .kv dd { margin:0; color:#111; }
       .actions a { text-decoration:none; }
+  .city-legend { position:absolute; right:12px; top:12px; background: rgba(255,255,255,0.85); color:#0f172a; border:1px solid #e5e7eb; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:600; }
     </style>
   </head>
   <body>
@@ -51,6 +54,7 @@
               </dl>
             </div>
           </div>
+          <div id="cityLegend" class="city-legend" style="display:none;"></div>
           <hr style="margin:16px 0; border:none; border-top:1px solid #eee;" />
           <h3>Contacto del propietario</h3>
           <dl class="kv">
