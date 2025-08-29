@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pago — Petfinder</title>
+  <link rel="stylesheet" href="/assets/css/landing.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner" style="max-width:720px;">
+      <a class="brand" href="/">
+        <span class="brand-mark">🐾</span>
+        <span class="brand-name">Petfinder</span>
+      </a>
+      <nav class="main-nav"><a href="/shop">Tienda</a><a href="/cart">Carrito</a><a href="/blog">Blog</a></nav>
+    </div>
+  </header>
+  <main class="section">
+    <div class="container" style="max-width:720px;">
+      <h1>Pago</h1>
+      <div id="paymentFormWrap"></div>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner" style="max-width:720px;">
+      <div class="footer-credit">Creado por Mike Rodríguez</div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="https://github.com/mikerb95" target="_blank" rel="noopener">GitHub</a>
+        <a href="/terms">Términos</a>
+        <a href="/privacy">Privacidad</a>
+        <a href="/license">Licencia</a>
+      </nav>
+    </div>
+  </footer>
+  <script>
+    async function loadPayment() {
+      const url = new URL(window.location.href);
+      const orderId = url.searchParams.get('order');
+      if (!orderId) { document.getElementById('paymentFormWrap').innerHTML = '<div class="demo-help">No se encontró la orden.</div>'; return; }
+      const res = await fetch('/api/payment/' + orderId);
+      const data = await res.json();
+      if (!data.order) { document.getElementById('paymentFormWrap').innerHTML = '<div class="demo-help">Orden no encontrada.</div>'; return; }
+      const o = data.order;
+      document.getElementById('paymentFormWrap').innerHTML = `
+        <div class="card">
+          <div class="card-body">
+            <h2>Resumen de pago</h2>
+            <div>Nombre: ${o.name}</div>
+            <div>Correo: ${o.email}</div>
+            <div>Dirección: ${o.address}, ${o.city}</div>
+            <div>Teléfono: ${o.phone}</div>
+            <div style="margin:8px 0;font-weight:bold;">Total: $${(o.total_cents/100).toLocaleString('es-CO',{style:'currency',currency:o.currency})}</div>
+            <form id="payForm">
+              <label class="demo-label" for="card">Tarjeta (simulado)</label>
+              <input class="input" id="card" name="card" type="text" required placeholder="1234 5678 9012 3456" maxlength="19" />
+              <button class="button button-primary" id="payBtn" type="submit">Pagar</button>
+              <div id="payMsg" class="demo-help" style="margin-top:8px;"></div>
+            </form>
+          </div>
+        </div>
+      `;
+      document.getElementById('payForm').onsubmit = async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('payBtn');
+        const msg = document.getElementById('payMsg');
+        btn.disabled = true; btn.textContent = 'Procesando…';
+        try {
+          const res = await fetch('/api/payment/' + orderId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ card: document.getElementById('card').value.trim() })
+          });
+          const data = await res.json().catch(()=>({}));
+          if (!res.ok) throw new Error(data.error || 'Error en pago');
+          window.location.href = '/order_confirmed?order=' + encodeURIComponent(orderId);
+        } catch (err) {
+          msg.textContent = err.message || 'Error en pago';
+          msg.style.color = '#fca5a5';
+        } finally {
+          btn.disabled = false; btn.textContent = 'Pagar';
+        }
+      };
+    }
+    loadPayment();
+  </script>
+</body>
+</html>

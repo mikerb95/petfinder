@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Checkout — Petfinder</title>
+  <link rel="stylesheet" href="/assets/css/landing.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner" style="max-width:720px;">
+      <a class="brand" href="/">
+        <span class="brand-mark">🐾</span>
+        <span class="brand-name">Petfinder</span>
+      </a>
+      <nav class="main-nav"><a href="/shop">Tienda</a><a href="/cart">Carrito</a><a href="/blog">Blog</a></nav>
+    </div>
+  </header>
+  <main class="section">
+    <div class="container" style="max-width:720px;">
+      <h1>Checkout</h1>
+      <form id="checkoutForm" class="demo-form" novalidate>
+        <label class="demo-label" for="name">Nombre completo</label>
+        <input class="input" id="name" name="name" type="text" required placeholder="Tu nombre" />
+        <label class="demo-label" for="email">Correo electrónico</label>
+        <input class="input" id="email" name="email" type="email" required placeholder="tu@correo.com" />
+        <label class="demo-label" for="address">Dirección de envío</label>
+        <input class="input" id="address" name="address" type="text" required placeholder="Dirección completa" />
+        <label class="demo-label" for="city">Ciudad</label>
+        <input class="input" id="city" name="city" type="text" required placeholder="Ciudad" />
+        <label class="demo-label" for="phone">Teléfono</label>
+        <input class="input" id="phone" name="phone" type="tel" required placeholder="Teléfono" />
+        <div id="orderSummary" style="margin:16px 0;"></div>
+        <button class="button button-primary" id="submitBtn" type="submit">Continuar al pago</button>
+        <div id="msgStatus" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
+      </form>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner" style="max-width:720px;">
+      <div class="footer-credit">Creado por Mike Rodríguez</div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="https://github.com/mikerb95" target="_blank" rel="noopener">GitHub</a>
+        <a href="/terms">Términos</a>
+        <a href="/privacy">Privacidad</a>
+        <a href="/license">Licencia</a>
+      </nav>
+    </div>
+  </footer>
+  <script>
+    async function loadSummary() {
+      const res = await fetch('/api/cart');
+      const data = await res.json();
+      const items = data.items || [];
+      let html = '';
+      let total = 0;
+      items.forEach(item => {
+        total += item.price_cents * item.quantity;
+        html += `<div>${item.name} x${item.quantity} — $${((item.price_cents*item.quantity)/100).toLocaleString('es-CO',{style:'currency',currency:item.currency})}</div>`;
+      });
+      html += `<div style='font-weight:bold;margin-top:8px;'>Total: $${(total/100).toLocaleString('es-CO',{style:'currency',currency:'COP'})}</div>`;
+      document.getElementById('orderSummary').innerHTML = html;
+    }
+    loadSummary();
+    const form = document.getElementById('checkoutForm');
+    const btn = document.getElementById('submitBtn');
+    const msg = document.getElementById('msgStatus');
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      msg.textContent = '';
+      btn.disabled = true; btn.textContent = 'Procesando…';
+      const payload = {
+        name: document.getElementById('name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        address: document.getElementById('address').value.trim(),
+        city: document.getElementById('city').value.trim(),
+        phone: document.getElementById('phone').value.trim()
+      };
+      try {
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(()=>({}));
+        if (!res.ok) throw new Error(data.error || 'Error en checkout');
+        window.location.href = '/payment?order=' + encodeURIComponent(data.order_id);
+      } catch (err) {
+        msg.textContent = err.message || 'Error en checkout';
+        msg.style.color = '#fca5a5';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Continuar al pago';
+      }
+    });
+  </script>
+</body>
+</html>

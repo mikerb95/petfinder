@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Compra confirmada — Petfinder</title>
+  <link rel="stylesheet" href="/assets/css/landing.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner" style="max-width:720px;">
+      <a class="brand" href="/">
+        <span class="brand-mark">🐾</span>
+        <span class="brand-name">Petfinder</span>
+      </a>
+      <nav class="main-nav"><a href="/shop">Tienda</a><a href="/cart">Carrito</a><a href="/blog">Blog</a></nav>
+    </div>
+  </header>
+  <main class="section">
+    <div class="container" style="max-width:720px;">
+      <h1>¡Compra confirmada!</h1>
+      <div id="orderInfo" class="demo-help" style="font-size:1.1em;margin:24px 0;"></div>
+      <a href="/shop" class="button button-primary">Volver a la tienda</a>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner" style="max-width:720px;">
+      <div class="footer-credit">Creado por Mike Rodríguez</div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="https://github.com/mikerb95" target="_blank" rel="noopener">GitHub</a>
+        <a href="/terms">Términos</a>
+        <a href="/privacy">Privacidad</a>
+        <a href="/license">Licencia</a>
+      </nav>
+    </div>
+  </footer>
+  <script>
+    async function loadOrder() {
+      const url = new URL(window.location.href);
+      const orderId = url.searchParams.get('order');
+      if (!orderId) { document.getElementById('orderInfo').textContent = 'No se encontró la orden.'; return; }
+      const res = await fetch('/api/payment/' + orderId);
+      const data = await res.json();
+      if (!data.order) { document.getElementById('orderInfo').textContent = 'Orden no encontrada.'; return; }
+      const o = data.order;
+      document.getElementById('orderInfo').innerHTML = `
+        <div>¡Gracias por tu compra, ${o.name}!</div>
+        <div>Recibirás confirmación al correo: <strong>${o.email}</strong></div>
+        <div>Enviaremos tu pedido a: <strong>${o.address}, ${o.city}</strong></div>
+        <div>Total pagado: <strong>$${(o.total_cents/100).toLocaleString('es-CO',{style:'currency',currency:o.currency})}</strong></div>
+        <div style='margin-top:12px;'>¿Dudas? <a href='/contact'>Contáctanos</a></div>
+      `;
+    }
+    loadOrder();
+  </script>
+</body>
+</html>
