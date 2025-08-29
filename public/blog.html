@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blog - Petfinder</title>
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  <style>
+    .blog-container{max-width:960px;margin:0 auto;padding:16px}
+    .post-card{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:12px 0;background:#fff}
+    .post-title{font-size:1.25rem;font-weight:600;margin:0 0 8px}
+    .post-excerpt{color:#4b5563;margin:0 0 8px}
+    .muted{color:#6b7280;font-size:.9rem}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{background:#111827;color:#fff;border:0;border-radius:6px;padding:8px 12px;cursor:pointer}
+    .btn.secondary{background:#6b7280}
+    .badge{padding:2px 8px;border:1px solid #e5e7eb;border-radius:999px;font-size:.75rem;color:#374151}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+    input,select{border:1px solid #e5e7eb;border-radius:6px;padding:8px}
+  </style>
+</head>
+<body>
+  <div class="blog-container">
+    <h1>Blog</h1>
+    <div class="actions">
+      <a class="btn" href="/blog/editor">Nuevo post</a>
+      <a class="btn secondary" href="/">Inicio</a>
+    </div>
+    <div class="filters">
+      <input id="q" placeholder="Buscar..." />
+      <select id="status">
+        <option value="published">Publicados</option>
+        <option value="draft">Borradores</option>
+        <option value="archived">Archivados</option>
+      </select>
+    </div>
+    <div id="list"></div>
+  </div>
+  <script>
+    async function load() {
+      const q = document.getElementById('q').value.trim();
+      const status = document.getElementById('status').value;
+      const url = new URL('/api/blog/posts', location.origin);
+      if (q) url.searchParams.set('q', q);
+      if (status) url.searchParams.set('status', status);
+      const r = await fetch(url);
+      const data = await r.json();
+      const el = document.getElementById('list');
+      el.innerHTML = '';
+      (data.posts||[]).forEach(p => {
+        const d = document.createElement('div');
+        d.className = 'post-card';
+        d.innerHTML = `
+          <div class="post-title"><a href="/blog/${p.slug}">${p.title}</a></div>
+          <div class="post-excerpt">${(p.excerpt||'').slice(0,180)}</div>
+          <div class="muted">por ${p.author_name||'Anónimo'} · ${(p.published_at||'').replace('T',' ').slice(0,16)}</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <span class="badge">👍 ${p.up_count||0}</span>
+            <span class="badge">👎 ${p.down_count||0}</span>
+            <span class="badge">💬 ${p.comment_count||0}</span>
+          </div>
+        `;
+        el.appendChild(d);
+      });
+    }
+    document.getElementById('q').addEventListener('input', () => setTimeout(load, 200));
+    document.getElementById('status').addEventListener('change', load);
+    load();
+  </script>
+</body>
+</html>

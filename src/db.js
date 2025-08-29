@@ -412,3 +412,114 @@ async function ensureShopSchema() {
 }
 
 module.exports.ensureShopSchema = ensureShopSchema;
+
+/** Ensure Blog schema exists (posts, categories/tags, images, comments, reactions, revisions). */
+async function ensureBlogSchema() {
+  const p = getPool();
+  // Posts
+  await p.query(`CREATE TABLE IF NOT EXISTS blog_posts (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    author_id BIGINT NULL,
+    title VARCHAR(200) NOT NULL,
+    slug VARCHAR(220) NOT NULL UNIQUE,
+    excerpt TEXT NULL,
+    content LONGTEXT NOT NULL,
+    cover_image_url VARCHAR(255) NULL,
+    status ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
+    published_at DATETIME NULL,
+    views_count INT NOT NULL DEFAULT 0,
+    meta_title VARCHAR(200) NULL,
+    meta_description VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
+    CONSTRAINT fk_bpost_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+  // Categories and mapping
+  await p.query(`CREATE TABLE IF NOT EXISTS blog_categories (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(120) NOT NULL,
+    slug VARCHAR(160) NOT NULL UNIQUE,
+    description VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await p.query(`CREATE TABLE IF NOT EXISTS blog_post_categories (
+    post_id BIGINT NOT NULL,
+    category_id BIGINT NOT NULL,
+    PRIMARY KEY (post_id, category_id),
+    CONSTRAINT fk_bpc_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bpc_category FOREIGN KEY (category_id) REFERENCES blog_categories(id) ON DELETE CASCADE
+  )`);
+  // Tags and mapping
+  await p.query(`CREATE TABLE IF NOT EXISTS blog_tags (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(120) NOT NULL,
+    slug VARCHAR(160) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await p.query(`CREATE TABLE IF NOT EXISTS blog_post_tags (
+    post_id BIGINT NOT NULL,
+    tag_id BIGINT NOT NULL,
+    PRIMARY KEY (post_id, tag_id),
+    CONSTRAINT fk_bpt_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bpt_tag FOREIGN KEY (tag_id) REFERENCES blog_tags(id) ON DELETE CASCADE
+  )`);
+  // Images per post
+  await p.query(`CREATE TABLE IF NOT EXISTS blog_post_images (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    post_id BIGINT NOT NULL,
+    image_url VARCHAR(255) NOT NULL,
+    alt VARCHAR(160) NULL,
+    position INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bpimg_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE
+  )`);
+  // Comments
+  await p.query(`CREATE TABLE IF NOT EXISTS blog_comments (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    post_id BIGINT NOT NULL,
+    user_id BIGINT NULL,
+    parent_id BIGINT NULL,
+    body TEXT NOT NULL,
+    status ENUM('visible','pending','hidden','deleted') NOT NULL DEFAULT 'visible',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
+    CONSTRAINT fk_bcomm_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bcomm_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_bcomm_parent FOREIGN KEY (parent_id) REFERENCES blog_comments(id) ON DELETE CASCADE
+  )`);
+  // Reactions
+  await p.query(`CREATE TABLE IF NOT EXISTS blog_post_reactions (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    post_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    reaction ENUM('up','down') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bpr_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bpr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_bpr_post_user (post_id, user_id)
+  )`);
+  await p.query(`CREATE TABLE IF NOT EXISTS blog_comment_reactions (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    comment_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    reaction ENUM('up','down') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bcr_comment FOREIGN KEY (comment_id) REFERENCES blog_comments(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bcr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_bcr_comment_user (comment_id, user_id)
+  )`);
+  // Revisions
+  await p.query(`CREATE TABLE IF NOT EXISTS blog_post_revisions (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    post_id BIGINT NOT NULL,
+    editor_user_id BIGINT NULL,
+    title VARCHAR(200) NULL,
+    content LONGTEXT NOT NULL,
+    reason VARCHAR(200) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bprev_post FOREIGN KEY (post_id) REFERENCES blog_posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bprev_editor FOREIGN KEY (editor_user_id) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+}
+
+module.exports.ensureBlogSchema = ensureBlogSchema;

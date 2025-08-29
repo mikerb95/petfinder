@@ -536,6 +536,16 @@ app.get('/terms', (req, res) => {
 app.get('/privacy', (req, res) => {
   res.sendFile(path.join(publicDir, 'privacy.html'));
 });
+// Blog: listado, editor y detalle (páginas)
+app.get('/blog', (req, res) => {
+  res.sendFile(path.join(publicDir, 'blog.html'));
+});
+app.get('/blog/editor', (req, res) => {
+  res.sendFile(path.join(publicDir, 'blog_editor.html'));
+});
+app.get('/blog/:slug', (req, res) => {
+  res.sendFile(path.join(publicDir, 'blog_post.html'));
+});
 // Pagina publica de mascota por qrId (sirve pagina estatica que obtiene JSON)
 app.get('/p/:qrId', (req, res) => {
   res.sendFile(path.join(publicDir, 'pet.html'));
@@ -574,6 +584,206 @@ app.get('/api/shop/products/:slug', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'internal server error' });
   }
+});
+
+// -------- API Blog --------
+// Listar posts (públicos por defecto, soporta q y status)
+app.get('/api/blog/posts', async (req, res) => {
+  try {
+    const pool = getPool();
+    const { q = '', status = 'published' } = req.query || {};
+    const params = [];
+    let where = 'WHERE 1=1';
+    if (status) { where += ' AND bp.status = ?'; params.push(status); }
+    if (q) { where += ' AND (bp.title LIKE ? OR bp.excerpt LIKE ?)'; params.push(`%${q}%`, `%${q}%`); }
+    const [rows] = await pool.query(
+      `SELECT bp.id, bp.title, bp.slug, bp.excerpt, bp.published_at,
+              u.name AS author_name,
+              COALESCE(SUM(CASE WHEN bpr.reaction='up' THEN 1 ELSE 0 END),0) AS up_count,
+              COALESCE(SUM(CASE WHEN bpr.reaction='down' THEN 1 ELSE 0 END),0) AS down_count,
+              (SELECT COUNT(1) FROM blog_comments bc WHERE bc.post_id = bp.id AND bc.status = 'visible') AS comment_count
+         FROM blog_posts bp
+         LEFT JOIN users u ON u.id = bp.author_id
+         LEFT JOIN blog_post_reactions bpr ON bpr.post_id = bp.id
+         ${where}
+         GROUP BY bp.id
+         ORDER BY COALESCE(bp.published_at, bp.created_at) DESC
+         LIMIT 100`, params);
+    res.json({ posts: rows });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Crear post (requiere auth)
+app.post('/api/blog/posts', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const { title, slug, content, excerpt = null, cover_image_url = null, status = 'draft' } = req.body || {};
+    if (!title || !content) return res.status(400).json({ error: 'title y content son obligatorios' });
+    const pool = getPool();
+    const [r] = await pool.query(
+      `INSERT INTO blog_posts (author_id, title, slug, excerpt, content, cover_image_url, status, published_at)
+       VALUES (?, ?, COALESCE(?, REPLACE(LOWER(?), ' ', '-')), ?, ?, ?, ?, CASE WHEN ?='published' THEN NOW() ELSE NULL END)`,
+      [userId, title, slug || null, title, excerpt, content, cover_image_url, status, status]
+    );
+    res.status(201).json({ id: r.insertId });
+  } catch (err) {
+    if (err && err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'slug ya existe' });
+    res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+// Obtener post por slug (público)
+app.get('/api/blog/posts/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const pool = getPool();
+    const [rows] = await pool.query(
+      `SELECT bp.*, u.name AS author_name FROM blog_posts bp LEFT JOIN users u ON u.id = bp.author_id WHERE bp.slug = ? LIMIT 1`,
+      [slug]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'not found' });
+    const post = rows[0];
+    // Only published visible unless author/admin
+    let isOwnerOrAdmin = false;
+    try {
+      const auth = req.headers.authorization || '';
+      const m = auth.match(/^Bearer\s+(.+)$/i);
+      if (m) {
+        const payload = jwt.verify(m[1], config.jwtSecret);
+        if (payload?.sub && Number(payload.sub) === Number(post.author_id)) isOwnerOrAdmin = true;
+        if (payload?.is_admin) isOwnerOrAdmin = true;
+      }
+    } catch(_){}
+    if (post.status !== 'published' && !isOwnerOrAdmin) return res.status(403).json({ error: 'forbidden' });
+    const [re] = await pool.query(
+      `SELECT SUM(CASE WHEN reaction='up' THEN 1 ELSE 0 END) AS up_count,
+              SUM(CASE WHEN reaction='down' THEN 1 ELSE 0 END) AS down_count
+         FROM blog_post_reactions WHERE post_id = ?`,
+      [post.id]
+    );
+    post.up_count = re[0]?.up_count || 0;
+    post.down_count = re[0]?.down_count || 0;
+    post.can_edit = isOwnerOrAdmin;
+    res.json({ post });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Obtener post por id (para editor)
+app.get('/api/blog/posts/id/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.auth?.sub;
+    const pool = getPool();
+    const [rows] = await pool.query(`SELECT * FROM blog_posts WHERE id = ? LIMIT 1`, [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not found' });
+    if (rows[0].author_id !== Number(userId) && !req.auth?.is_admin) return res.status(403).json({ error: 'forbidden' });
+    res.json({ post: rows[0] });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Actualizar post
+app.put('/api/blog/posts/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.auth?.sub;
+    const { title, slug, content, excerpt, cover_image_url, status } = req.body || {};
+    const pool = getPool();
+    const [rows] = await pool.query('SELECT author_id FROM blog_posts WHERE id = ? LIMIT 1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'not found' });
+    if (rows[0].author_id !== Number(userId) && !req.auth?.is_admin) return res.status(403).json({ error: 'forbidden' });
+    await pool.query(
+      `UPDATE blog_posts SET
+         title = COALESCE(?, title),
+         slug = COALESCE(?, slug),
+         content = COALESCE(?, content),
+         excerpt = COALESCE(?, excerpt),
+         cover_image_url = COALESCE(?, cover_image_url),
+         status = COALESCE(?, status),
+         published_at = CASE WHEN ?='published' THEN COALESCE(published_at, NOW()) ELSE published_at END,
+         updated_at = NOW()
+       WHERE id = ?`,
+      [title ?? null, slug ?? null, content ?? null, excerpt ?? null, cover_image_url ?? null, status ?? null, status ?? '', id]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    if (err && err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'slug ya existe' });
+    res.status(500).json({ error: 'internal server error' });
+  }
+});
+
+// Comentar post (raíz)
+app.post('/api/blog/posts/:slug/comments', requireAuth, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const userId = req.auth?.sub;
+    const { body, parent_id = null } = req.body || {};
+    if (!body) return res.status(400).json({ error: 'body es requerido' });
+    const pool = getPool();
+    const [p] = await pool.query('SELECT id FROM blog_posts WHERE slug = ? LIMIT 1', [slug]);
+    if (!p.length) return res.status(404).json({ error: 'post not found' });
+    if (parent_id) {
+      const [pc] = await pool.query('SELECT id FROM blog_comments WHERE id = ? AND post_id = ? LIMIT 1', [parent_id, p[0].id]);
+      if (!pc.length) return res.status(400).json({ error: 'parent invalido' });
+    }
+    const [r] = await pool.query('INSERT INTO blog_comments (post_id, user_id, parent_id, body, status) VALUES (?, ?, ?, ?, "visible")', [p[0].id, userId, parent_id || null, body]);
+    res.status(201).json({ id: r.insertId });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Listar comentarios en forma de árbol
+app.get('/api/blog/posts/:slug/comments', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const pool = getPool();
+    const [p] = await pool.query('SELECT id FROM blog_posts WHERE slug = ? LIMIT 1', [slug]);
+    if (!p.length) return res.status(404).json({ error: 'post not found' });
+    const [rows] = await pool.query(
+      `SELECT bc.*, u.name AS user_name,
+              COALESCE((SELECT COUNT(1) FROM blog_comment_reactions r WHERE r.comment_id = bc.id AND r.reaction='up'),0) AS up_count,
+              COALESCE((SELECT COUNT(1) FROM blog_comment_reactions r WHERE r.comment_id = bc.id AND r.reaction='down'),0) AS down_count
+         FROM blog_comments bc
+         LEFT JOIN users u ON u.id = bc.user_id
+        WHERE bc.post_id = ? AND bc.status IN ('visible','pending')
+        ORDER BY bc.created_at ASC`, [p[0].id]);
+    // Build tree
+    const byId = new Map();
+    rows.forEach(r => byId.set(r.id, { ...r, children: [] }));
+    const roots = [];
+    byId.forEach(n => {
+      if (n.parent_id && byId.has(n.parent_id)) byId.get(n.parent_id).children.push(n); else roots.push(n);
+    });
+    res.json({ comments: roots });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Reacciones a post (toggle up/down)
+app.post('/api/blog/posts/:slug/react', requireAuth, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { reaction } = req.body || {};
+    if (!['up','down'].includes(reaction)) return res.status(400).json({ error: 'reaction invalida' });
+    const userId = req.auth?.sub;
+    const pool = getPool();
+    const [p] = await pool.query('SELECT id FROM blog_posts WHERE slug = ? LIMIT 1', [slug]);
+    if (!p.length) return res.status(404).json({ error: 'post not found' });
+    await pool.query('INSERT INTO blog_post_reactions (post_id, user_id, reaction) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE reaction = VALUES(reaction)', [p[0].id, userId, reaction]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Reaccionar a comment
+app.post('/api/blog/comments/:id/react', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reaction } = req.body || {};
+    if (!['up','down'].includes(reaction)) return res.status(400).json({ error: 'reaction invalida' });
+    const userId = req.auth?.sub;
+    const pool = getPool();
+    const [c] = await pool.query('SELECT id FROM blog_comments WHERE id = ? LIMIT 1', [id]);
+    if (!c.length) return res.status(404).json({ error: 'comment not found' });
+    await pool.query('INSERT INTO blog_comment_reactions (comment_id, user_id, reaction) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE reaction = VALUES(reaction)', [id, userId, reaction]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
 });
 
 // -------- Checkout (crear orden) --------

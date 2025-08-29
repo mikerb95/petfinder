@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Editor - Blog</title>
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  <style>
+    .wrap{max-width:860px;margin:0 auto;padding:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    input,textarea,select{border:1px solid #e5e7eb;border-radius:6px;padding:8px;width:100%}
+    .btn{background:#111827;color:#fff;border:0;border-radius:6px;padding:8px 12px;cursor:pointer}
+    .muted{color:#6b7280}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a href="/blog">← Volver</a>
+    <h1>Editor de Blog</h1>
+    <div class="row">
+      <input id="title" placeholder="Título" />
+      <input id="slug" placeholder="slug-auto" />
+      <select id="status">
+        <option value="draft">Borrador</option>
+        <option value="published">Publicado</option>
+        <option value="archived">Archivado</option>
+      </select>
+    </div>
+    <textarea id="content" rows="14" placeholder="Contenido..."></textarea>
+    <div class="row">
+      <input id="excerpt" placeholder="Extracto (opcional)" />
+      <input id="cover_image_url" placeholder="URL de portada (opcional)" />
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" id="save">Guardar</button>
+      <span class="muted" id="autosave"></span>
+    </div>
+  </div>
+  <script>
+    const qs = new URLSearchParams(location.search);
+    const postId = qs.get('post_id');
+    let timer;
+    function slugify(s){return s.toLowerCase().trim().normalize('NFD').replace(/\p{Diacritic}/gu,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')}
+    document.getElementById('title').addEventListener('input', (e)=>{
+      const t = e.target.value; const sField = document.getElementById('slug');
+      if (!sField.value) sField.value = slugify(t);
+      schedule();
+    });
+    ;['slug','content','excerpt','cover_image_url','status'].forEach(id=>{
+      document.getElementById(id).addEventListener('input', schedule);
+      document.getElementById(id).addEventListener('change', schedule);
+    });
+    function schedule(){ clearTimeout(timer); timer = setTimeout(saveDraft, 800); }
+    async function saveDraft(){
+      const payload = collect();
+      const url = postId ? `/api/blog/posts/${postId}` : '/api/blog/posts';
+      const method = postId ? 'PUT' : 'POST';
+      const t = localStorage.getItem('auth_token');
+      const r = await fetch(url, { method, headers:{'Content-Type':'application/json', ...(t?{'Authorization':'Bearer '+t}:{})}, body: JSON.stringify(payload)});
+    const d = await r.json();
+    if (!postId && d.id){ location.search = '?post_id='+d.id; }
+      const el = document.getElementById('autosave');
+      el.textContent = 'Guardado a las ' + new Date().toLocaleTimeString();
+    }
+    function collect(){
+      return {
+        title: document.getElementById('title').value,
+        slug: document.getElementById('slug').value,
+        content: document.getElementById('content').value,
+        excerpt: document.getElementById('excerpt').value,
+        cover_image_url: document.getElementById('cover_image_url').value,
+        status: document.getElementById('status').value,
+      };
+    }
+    document.getElementById('save').onclick = saveDraft;
+    async function load(){
+      if (!postId) return;
+  const t = localStorage.getItem('auth_token');
+  const r = await fetch('/api/blog/posts/id/'+postId, { headers: t? { 'Authorization': 'Bearer '+t } : {} });
+      const d = await r.json();
+      const p = d.post;
+      document.getElementById('title').value = p.title||'';
+      document.getElementById('slug').value = p.slug||'';
+      document.getElementById('content').value = p.content||'';
+      document.getElementById('excerpt').value = p.excerpt||'';
+      document.getElementById('cover_image_url').value = p.cover_image_url||'';
+      document.getElementById('status').value = p.status||'draft';
+    }
+    load();
+  </script>
+</body>
+</html>
