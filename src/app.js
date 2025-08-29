@@ -248,6 +248,94 @@ app.delete('/api/pets/:id', requireAuth, async (req, res) => {
   }
 });
 
+// ---- Adopciones / transferencias ----
+// Transferir mascota a otro usuario (por email del adoptante)
+app.post('/api/pets/:id/transfer', requireAuth, async (req, res) => {
+  try {
+    const ownerId = req.auth?.sub;
+    const { id } = req.params;
+    const { adopter_email, adoption_date, notes } = req.body || {};
+    const pool = getPool();
+    // check ownership
+    const [rows] = await pool.query('SELECT id FROM pets WHERE id = ? AND owner_id = ?', [id, ownerId]);
+    if (!rows.length) return res.status(404).json({ error: 'pet not found' });
+    // find adopter
+    const [u] = await pool.query('SELECT id FROM users WHERE email = ? LIMIT 1', [adopter_email]);
+    if (!u.length) return res.status(404).json({ error: 'adopter not found' });
+    const adopterId = u[0].id;
+    // record adoption and transfer ownership
+    await pool.query('INSERT INTO adoptions (pet_id, adopter_id, adoption_date, notes) VALUES (?, ?, ?, ?)', [id, adopterId, adoption_date || new Date(), notes || null]);
+    await pool.query('UPDATE pets SET owner_id = ? WHERE id = ?', [adopterId, id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// ---- Reportes de perdidas ----
+app.post('/api/pets/:id/lost-reports', requireAuth, async (req, res) => {
+  try {
+    const reporterId = req.auth?.sub;
+    const { id } = req.params;
+    const { last_seen_location, notes } = req.body || {};
+    const pool = getPool();
+    const [p] = await pool.query('SELECT id FROM pets WHERE id = ? AND owner_id = ?', [id, reporterId]);
+    if (!p.length) return res.status(404).json({ error: 'pet not found' });
+    const [r] = await pool.query('INSERT INTO lost_reports (pet_id, reporter_id, last_seen_location, notes) VALUES (?, ?, ?, ?)', [id, reporterId, last_seen_location, notes || null]);
+    res.status(201).json({ id: r.insertId });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+app.patch('/api/lost-reports/:reportId', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const { reportId } = req.params;
+    const { status, notes } = req.body || {};
+    const pool = getPool();
+    const [rows] = await pool.query('SELECT lr.id FROM lost_reports lr JOIN pets p ON p.id = lr.pet_id WHERE lr.id = ? AND p.owner_id = ?', [reportId, userId]);
+    if (!rows.length) return res.status(404).json({ error: 'report not found' });
+    if (status && !['active','found','closed'].includes(status)) return res.status(400).json({ error: 'invalid status' });
+    await pool.query('UPDATE lost_reports SET status = COALESCE(?, status), notes = COALESCE(?, notes) WHERE id = ?', [status ?? null, notes ?? null, reportId]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// ---- Fotos adicionales ----
+app.get('/api/pets/:id/photos', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const { id } = req.params;
+    const pool = getPool();
+    const [own] = await pool.query('SELECT id FROM pets WHERE id = ? AND owner_id = ?', [id, userId]);
+    if (!own.length) return res.status(404).json({ error: 'pet not found' });
+    const [rows] = await pool.query('SELECT id, photo_url, uploaded_at FROM pet_photos WHERE pet_id = ? ORDER BY uploaded_at DESC', [id]);
+    res.json({ photos: rows });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+app.post('/api/pets/:id/photos', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const { id } = req.params;
+    const { photo_url } = req.body || {};
+    const pool = getPool();
+    const [own] = await pool.query('SELECT id FROM pets WHERE id = ? AND owner_id = ?', [id, userId]);
+    if (!own.length) return res.status(404).json({ error: 'pet not found' });
+    const [r] = await pool.query('INSERT INTO pet_photos (pet_id, photo_url) VALUES (?, ?)', [id, photo_url]);
+    res.status(201).json({ id: r.insertId });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// ---- Check-ins ----
+app.post('/api/pets/:id/checkins', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const { id } = req.params;
+    const { location, notes } = req.body || {};
+    const pool = getPool();
+    const [exist] = await pool.query('SELECT id FROM pets WHERE id = ?', [id]);
+    if (!exist.length) return res.status(404).json({ error: 'pet not found' });
+    const [r] = await pool.query('INSERT INTO pet_checkins (pet_id, user_id, location, notes) VALUES (?, ?, ?, ?)', [id, userId, location || null, notes || null]);
+    res.status(201).json({ id: r.insertId });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
 // QR de mascota (SVG)
 app.get('/api/qr/pet/:qrId.svg', async (req, res) => {
   try {

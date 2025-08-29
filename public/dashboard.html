@@ -603,6 +603,9 @@
                 <a class="button" href="/p/${p.qr_id}" target="_blank">Ver pública</a>
                 <button class="button" data-edit="${p.id}">Editar</button>
                 <button class="button" data-del="${p.id}">Eliminar</button>
+                <button class="button" data-photos="${p.id}">Fotos</button>
+                <button class="button" data-lost="${p.id}">Reporte perdida</button>
+                <button class="button" data-transfer="${p.id}">Transferir</button>
               </div>
             `;
             listEl.appendChild(card);
@@ -622,6 +625,43 @@
             });
           });
           // bind edit buttons -> open modal
+          // bind photos button
+          listEl.querySelectorAll('button[data-photos]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const id = btn.getAttribute('data-photos');
+              const url = prompt('URL de la foto (https://...)');
+              if (!url) return;
+              const res = await fetch('/api/pets/' + id + '/photos', { method:'POST', headers:{ 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify({ photo_url: url }) });
+              if (!res.ok) return alert('No se pudo subir la foto');
+              alert('Foto agregada');
+            });
+          });
+          // bind lost report
+          listEl.querySelectorAll('button[data-lost]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const id = btn.getAttribute('data-lost');
+              const loc = prompt('Última ubicación vista (dirección o referencia)');
+              if (!loc) return;
+              const notes = prompt('Notas (opcional)') || undefined;
+              const res = await fetch('/api/pets/' + id + '/lost-reports', { method:'POST', headers:{ 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify({ last_seen_location: loc, notes }) });
+              if (!res.ok) return alert('No se pudo crear el reporte');
+              alert('Reporte creado');
+            });
+          });
+          // bind transfer
+          listEl.querySelectorAll('button[data-transfer]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const id = btn.getAttribute('data-transfer');
+              const email = prompt('Correo del adoptante');
+              if (!email) return;
+              const date = prompt('Fecha de adopción (YYYY-MM-DD, opcional)') || undefined;
+              const notes = prompt('Notas (opcional)') || undefined;
+              const res = await fetch('/api/pets/' + id + '/transfer', { method:'POST', headers:{ 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify({ adopter_email: email, adoption_date: date, notes }) });
+              if (!res.ok) return alert('No se pudo transferir');
+              alert('Transferencia realizada');
+              loadPets();
+            });
+          });
           listEl.querySelectorAll('button[data-edit]').forEach(btn => {
             btn.addEventListener('click', () => {
               const id = btn.getAttribute('data-edit');

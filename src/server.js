@@ -1,6 +1,6 @@
 const app = require('./app');
 const config = require('./config');
-const { ensureUserVerificationColumns, ensurePetsCityColumn, ensureUsersCityColumn } = require('./db');
+const { ensureUserVerificationColumns, ensurePetsCityColumn, ensureUsersCityColumn, ensureExtraPetTables } = require('./db');
 
 const PORT = process.env.PORT || 3000;
 
@@ -12,4 +12,6 @@ app.listen(PORT, async () => {
   try { await ensurePetsCityColumn(); } catch {}
   // ensure users.city exists
   try { await ensureUsersCityColumn(); } catch {}
+  // ensure extra tables exist
+  try { await ensureExtraPetTables(); } catch {}
 });

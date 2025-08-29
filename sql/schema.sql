@@ -50,6 +50,67 @@ CREATE TABLE IF NOT EXISTS pets (
 -- Nota: para compatibilidad con versiones antiguas de MySQL, se evita
 -- USING ON UPDATE en updated_at y se maneja desde la capa de aplicacion.
 
+-- Tabla de adopciones / transferencias
+CREATE TABLE IF NOT EXISTS adoptions (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  pet_id BIGINT NOT NULL,
+  adopter_id BIGINT NOT NULL,
+  adoption_date DATE NOT NULL,
+  notes TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_adopt_pet FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
+  CONSTRAINT fk_adopt_user FOREIGN KEY (adopter_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Tabla de reportes de mascotas perdidas
+CREATE TABLE IF NOT EXISTS lost_reports (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  pet_id BIGINT NOT NULL,
+  reporter_id BIGINT NOT NULL,
+  last_seen_location VARCHAR(255) NOT NULL,
+  report_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  status ENUM('active','found','closed') DEFAULT 'active',
+  notes TEXT DEFAULT NULL,
+  CONSTRAINT fk_lost_pet FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
+  CONSTRAINT fk_lost_user FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Tabla de historial médico adicional
+CREATE TABLE IF NOT EXISTS pet_medical_records (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  pet_id BIGINT NOT NULL,
+  visit_date DATE NOT NULL,
+  reason TEXT,
+  treatment TEXT,
+  prescription TEXT,
+  veterinarian VARCHAR(120),
+  clinic VARCHAR(120),
+  document_url VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_med_pet FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+);
+
+-- Tabla de fotos adicionales por mascota
+CREATE TABLE IF NOT EXISTS pet_photos (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  pet_id BIGINT NOT NULL,
+  photo_url VARCHAR(255) NOT NULL,
+  uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_photo_pet FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+);
+
+-- Tabla de check-ins o eventos de seguimiento
+CREATE TABLE IF NOT EXISTS pet_checkins (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  pet_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  location VARCHAR(255),
+  checkin_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  notes TEXT DEFAULT NULL,
+  CONSTRAINT fk_checkin_pet FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
+  CONSTRAINT fk_checkin_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Registros de vacunacion por mascota
 CREATE TABLE IF NOT EXISTS pet_vaccinations (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
