@@ -100,6 +100,12 @@
               <dd id="profilePhone">—</dd>
               <dt>Ciudad</dt>
               <dd id="profileCity">—</dd>
+              <dt>Redes</dt>
+              <dd id="profileSocials">
+                <a id="pfIconInstagram" href="#" target="_blank" rel="noopener" title="Instagram" style="display:none; margin-right:6px; text-decoration:none;">📷</a>
+                <a id="pfIconFacebook" href="#" target="_blank" rel="noopener" title="Facebook" style="display:none; margin-right:6px; text-decoration:none;">📘</a>
+                <a id="pfIconWhatsapp" href="#" target="_blank" rel="noopener" title="WhatsApp" style="display:none; text-decoration:none;">🟢</a>
+              </dd>
               <dt>Miembro desde</dt>
               <dd id="profileSince">—</dd>
             </dl>
@@ -220,6 +226,23 @@
                 <div style="grid-column: 1 / -1;">
                   <label class="demo-label" for="pf_city">Ciudad</label>
                   <input id="pf_city" class="input" type="text" />
+                </div>
+                <div style="grid-column: 1 / -1;">
+                  <label class="demo-label">Redes sociales (opcional)</label>
+                  <div class="grid">
+                    <div>
+                      <label class="demo-label" for="pf_instagram">Instagram</label>
+                      <input id="pf_instagram" class="input" type="url" placeholder="https://instagram.com/tu_usuario" />
+                    </div>
+                    <div>
+                      <label class="demo-label" for="pf_facebook">Facebook</label>
+                      <input id="pf_facebook" class="input" type="url" placeholder="https://facebook.com/tu.perfil" />
+                    </div>
+                    <div>
+                      <label class="demo-label" for="pf_whatsapp">WhatsApp</label>
+                      <input id="pf_whatsapp" class="input" type="url" placeholder="https://wa.me/XXXXXXXXXXX" />
+                    </div>
+                  </div>
                 </div>
               </form>
               <div id="profileMsg" class="demo-help" role="status" aria-live="polite" style="margin-top:10px"></div>
@@ -343,6 +366,9 @@
   const profileEmail = document.getElementById('profileEmail');
   const profilePhone = document.getElementById('profilePhone');
   const profileCity = document.getElementById('profileCity');
+  const pfIconInstagram = document.getElementById('pfIconInstagram');
+  const pfIconFacebook = document.getElementById('pfIconFacebook');
+  const pfIconWhatsapp = document.getElementById('pfIconWhatsapp');
   const profileSince = document.getElementById('profileSince');
   const logout = document.getElementById('logoutLink');
   // Profile modal elements
@@ -358,6 +384,9 @@
   const pf_cc = document.getElementById('pf_cc');
   const pf_phone_num = document.getElementById('pf_phone_num');
   const pf_city = document.getElementById('pf_city');
+  const pf_instagram = document.getElementById('pf_instagram');
+  const pf_facebook = document.getElementById('pf_facebook');
+  const pf_whatsapp = document.getElementById('pf_whatsapp');
   const profileMsg = document.getElementById('profileMsg');
 
         if (!token) {
@@ -385,6 +414,10 @@
                 profileSince.textContent = d ? d.toLocaleDateString() : '—';
               } catch { profileSince.textContent = '—'; }
             }
+            // Show icons if social links exist
+            if (pfIconInstagram) { pfIconInstagram.style.display = u.instagram_url ? '' : 'none'; if (u.instagram_url) pfIconInstagram.href = u.instagram_url; }
+            if (pfIconFacebook) { pfIconFacebook.style.display = u.facebook_url ? '' : 'none'; if (u.facebook_url) pfIconFacebook.href = u.facebook_url; }
+            if (pfIconWhatsapp) { pfIconWhatsapp.style.display = u.whatsapp_url ? '' : 'none'; if (u.whatsapp_url) pfIconWhatsapp.href = u.whatsapp_url; }
             const hdrName = document.getElementById('hdrName');
             if (hdrName && data.user?.name) hdrName.textContent = 'Hola, ' + data.user.name;
             // Preload profile form values
@@ -404,6 +437,9 @@
               }
             })();
             if (pf_city) pf_city.value = u.city || '';
+            if (pf_instagram) pf_instagram.value = u.instagram_url || '';
+            if (pf_facebook) pf_facebook.value = u.facebook_url || '';
+            if (pf_whatsapp) pf_whatsapp.value = u.whatsapp_url || '';
         function openProfileModal(){ profileMsg.textContent=''; profileModal.style.display='flex'; setTimeout(()=>{ pf_name?.focus(); },0); }
         function closeProfileModal(){ profileModal.style.display='none'; }
         profileOpenBtn?.addEventListener('click', openProfileModal);
@@ -424,6 +460,9 @@
               return num ? ((cc ? (cc + ' ') : '') + num) : undefined;
             })(),
             city: pf_city?.value?.trim() || undefined,
+            instagram_url: pf_instagram?.value?.trim() || undefined,
+            facebook_url: pf_facebook?.value?.trim() || undefined,
+            whatsapp_url: pf_whatsapp?.value?.trim() || undefined,
           };
           const res = await fetch('/api/me', { method:'PUT', headers:{ 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
           const data = await res.json().catch(()=>({}));
@@ -435,6 +474,9 @@
           if (profileEmail) profileEmail.textContent = u.email || '—';
           if (profilePhone) profilePhone.textContent = u.phone || '—';
           if (profileCity) profileCity.textContent = u.city || '—';
+          if (pfIconInstagram) { pfIconInstagram.style.display = u.instagram_url ? '' : 'none'; if (u.instagram_url) pfIconInstagram.href = u.instagram_url; }
+          if (pfIconFacebook) { pfIconFacebook.style.display = u.facebook_url ? '' : 'none'; if (u.facebook_url) pfIconFacebook.href = u.facebook_url; }
+          if (pfIconWhatsapp) { pfIconWhatsapp.style.display = u.whatsapp_url ? '' : 'none'; if (u.whatsapp_url) pfIconWhatsapp.href = u.whatsapp_url; }
           closeProfileModal();
         });
       // Load pets

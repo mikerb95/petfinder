@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   phone VARCHAR(40),
   city VARCHAR(120) DEFAULT NULL,
+  instagram_url VARCHAR(255) DEFAULT NULL,
+  facebook_url VARCHAR(255) DEFAULT NULL,
+  whatsapp_url VARCHAR(255) DEFAULT NULL,
   sex ENUM('male','female','unknown') NOT NULL DEFAULT 'unknown',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

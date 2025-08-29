@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
   try {
-  const { name, last_name, sex, email, password, confirm_password, phone, city } = req.body || {};
+  const { name, last_name, sex, email, password, confirm_password, phone, city, instagram_url, facebook_url, whatsapp_url } = req.body || {};
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'nombre, correo y contraseña son obligatorios' });
     }
@@ -23,12 +23,12 @@ router.post('/register', async (req, res) => {
     }
     const passwordHash = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
-      'INSERT INTO users (name, last_name, sex, email, password_hash, phone, city) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [name, last_name || null, sex || 'unknown', email, passwordHash, phone || null, city || null]
+      'INSERT INTO users (name, last_name, sex, email, password_hash, phone, city, instagram_url, facebook_url, whatsapp_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, last_name || null, sex || 'unknown', email, passwordHash, phone || null, city || null, instagram_url || null, facebook_url || null, whatsapp_url || null]
     );
     const userId = result.insertId;
     const token = jwt.sign({ sub: userId, email }, config.jwtSecret, { expiresIn: '7d' });
-  res.status(201).json({ token, user: { id: userId, name, last_name: last_name || null, sex: sex || 'unknown', email, phone: phone || null, city: city || null } });
+  res.status(201).json({ token, user: { id: userId, name, last_name: last_name || null, sex: sex || 'unknown', email, phone: phone || null, city: city || null, instagram_url: instagram_url || null, facebook_url: facebook_url || null, whatsapp_url: whatsapp_url || null } });
   } catch (err) {
   console.error('register error', err);
   if (process.env.NODE_ENV !== 'production') {
@@ -45,16 +45,16 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'correo y contraseña son obligatorios' });
     }
     const pool = getPool();
-    const [rows] = await pool.query(
-  'SELECT id, name, last_name, sex, email, password_hash, phone, city FROM users WHERE email = ?',
-      [email]
+      const [rows] = await pool.query(
+        'SELECT id, name, last_name, sex, email, password_hash, phone, city, instagram_url, facebook_url, whatsapp_url FROM users WHERE email = ?',
+        [email]
     );
   if (!rows.length) return res.status(401).json({ error: 'credenciales inválidas' });
     const user = rows[0];
     const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return res.status(401).json({ error: 'credenciales inválidas' });
     const token = jwt.sign({ sub: user.id, email: user.email }, config.jwtSecret, { expiresIn: '7d' });
-  res.json({ token, user: { id: user.id, name: user.name, last_name: user.last_name, sex: user.sex, email: user.email, phone: user.phone, city: user.city } });
+      res.json({ token, user: { id: user.id, name: user.name, last_name: user.last_name, sex: user.sex, email: user.email, phone: user.phone, city: user.city, instagram_url: user.instagram_url, facebook_url: user.facebook_url, whatsapp_url: user.whatsapp_url } });
   } catch (err) {
     console.error('login error', err);
     res.status(500).json({ error: 'error interno del servidor' });

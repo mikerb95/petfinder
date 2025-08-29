@@ -57,6 +57,14 @@ async function ensureUsersCityColumn() {
     if (!names.has('city')) {
       await p.query(`ALTER TABLE users ADD COLUMN city VARCHAR(120) NULL AFTER phone`);
     }
+    // Social links columns
+    const alters = [];
+    if (!names.has('instagram_url')) alters.push("ADD COLUMN instagram_url VARCHAR(255) NULL AFTER city");
+    if (!names.has('facebook_url')) alters.push("ADD COLUMN facebook_url VARCHAR(255) NULL AFTER instagram_url");
+    if (!names.has('whatsapp_url')) alters.push("ADD COLUMN whatsapp_url VARCHAR(255) NULL AFTER facebook_url");
+    if (alters.length) {
+      await p.query(`ALTER TABLE users ${alters.join(', ')}`);
+    }
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') {
       console.warn('Schema ensure (users.city) warning:', err.message);

@@ -41,7 +41,7 @@ app.get('/api/me', requireAuth, async (req, res) => {
     const userId = req.auth?.sub;
     const pool = getPool();
     const [rows] = await pool.query(
-  'SELECT id, name, last_name, sex, email, phone, city, created_at FROM users WHERE id = ?',
+      'SELECT id, name, last_name, sex, email, phone, city, instagram_url, facebook_url, whatsapp_url, created_at FROM users WHERE id = ?',
       [userId]
     );
     if (!rows.length) return res.status(404).json({ error: 'user not found' });
@@ -55,7 +55,7 @@ app.get('/api/me', requireAuth, async (req, res) => {
 app.put('/api/me', requireAuth, async (req, res) => {
   try {
     const userId = req.auth?.sub;
-  const { name, last_name, sex, email, phone, city } = req.body || {};
+  const { name, last_name, sex, email, phone, city, instagram_url, facebook_url, whatsapp_url } = req.body || {};
     if (email && typeof email !== 'string') return res.status(400).json({ error: 'email invalido' });
     if (name && typeof name !== 'string') return res.status(400).json({ error: 'nombre invalido' });
     if (last_name && typeof last_name !== 'string') return res.status(400).json({ error: 'apellido invalido' });
@@ -73,11 +73,14 @@ app.put('/api/me', requireAuth, async (req, res) => {
          sex = COALESCE(?, sex),
          email = COALESCE(?, email),
          phone = COALESCE(?, phone),
-         city = COALESCE(?, city)
+         city = COALESCE(?, city),
+         instagram_url = COALESCE(?, instagram_url),
+         facebook_url = COALESCE(?, facebook_url),
+         whatsapp_url = COALESCE(?, whatsapp_url)
        WHERE id = ?`,
-      [name ?? null, (last_name ?? null), (sex ?? null), (email ?? null), (phone ?? null), (city ?? null), userId]
+      [name ?? null, (last_name ?? null), (sex ?? null), (email ?? null), (phone ?? null), (city ?? null), (instagram_url ?? null), (facebook_url ?? null), (whatsapp_url ?? null), userId]
     );
-    const [rows] = await pool.query('SELECT id, name, last_name, sex, email, phone, city, created_at FROM users WHERE id = ?', [userId]);
+    const [rows] = await pool.query('SELECT id, name, last_name, sex, email, phone, city, instagram_url, facebook_url, whatsapp_url, created_at FROM users WHERE id = ?', [userId]);
     if (!rows.length) return res.status(404).json({ error: 'user not found' });
     res.json({ user: rows[0] });
   } catch (err) {
@@ -277,7 +280,8 @@ app.get('/api/pets/public/:qrId', async (req, res) => {
     const pool = getPool();
     const [rows] = await pool.query(
       `SELECT p.name AS pet_name, p.species, p.breed, p.color, p.city, p.notes, p.status, p.photo_url,
-              u.name AS owner_name, u.phone AS owner_phone, u.email AS owner_email
+              u.name AS owner_name, u.phone AS owner_phone, u.email AS owner_email,
+              u.instagram_url AS owner_instagram, u.facebook_url AS owner_facebook, u.whatsapp_url AS owner_whatsapp
          FROM pets p
          JOIN users u ON u.id = p.owner_id
         WHERE p.qr_id = ?
@@ -301,6 +305,9 @@ app.get('/api/pets/public/:qrId', async (req, res) => {
         name: r.owner_name || '',
         phone: r.owner_phone || null,
         email: r.owner_email || null,
+        instagram_url: r.owner_instagram || null,
+        facebook_url: r.owner_facebook || null,
+        whatsapp_url: r.owner_whatsapp || null,
       }
     });
   } catch (err) {

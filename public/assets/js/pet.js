@@ -76,6 +76,13 @@
       setText('ownerName', data.owner?.name || '—');
       setText('ownerPhone', data.owner?.phone || '—');
       setText('ownerEmail', data.owner?.email || '—');
+      // Social
+      try {
+        var ig = $('ownerInstagram'), fb = $('ownerFacebook'), wa = $('ownerWhatsapp');
+        if (ig && data.owner?.instagram_url) { ig.href = data.owner.instagram_url; ig.style.display = 'inline-block'; }
+        if (fb && data.owner?.facebook_url) { fb.href = data.owner.facebook_url; fb.style.display = 'inline-block'; }
+        if (wa && data.owner?.whatsapp_url) { wa.href = data.owner.whatsapp_url; wa.style.display = 'inline-block'; }
+      } catch (_) {}
       if (data.owner?.phone) {
         var callBtn = $('callBtn'); if (callBtn){ callBtn.href = 'tel:' + data.owner.phone; callBtn.style.display='inline-block'; }
         var smsBtn = $('smsBtn'); if (smsBtn){ smsBtn.href = 'sms:' + data.owner.phone; smsBtn.style.display='inline-block'; }
@@ -83,6 +90,15 @@
       if (data.owner?.email) {
         var mailBtn = $('mailBtn'); if (mailBtn){ mailBtn.href = 'mailto:' + data.owner.email + '?subject=Mascota%20encontrada'; mailBtn.style.display='inline-block'; }
       }
+      // Optional: show social buttons if present
+      try {
+        var socialsWrap = document.getElementById('ownerSocials');
+        if (socialsWrap) {
+          if (data.owner?.instagram_url) socialsWrap.style.display = '';
+          if (data.owner?.facebook_url) socialsWrap.style.display = '';
+          if (data.owner?.whatsapp_url) socialsWrap.style.display = '';
+        }
+      } catch(_){}
       // City legend: prefer explicit pet.city (API); fallback to ?city=; last resort infer by phone prefix
       try {
         if (data.pet && data.pet.city) setCityLegend(data.pet.city);

@@ -96,6 +96,15 @@
           </div>
           <div id="pwdError" class="demo-help" style="color:#fca5a5;display:none;margin-bottom:8px"></div>
 
+          <label class="demo-label" for="instagram_url">Instagram (opcional)</label>
+          <input class="input" id="instagram_url" name="instagram_url" type="url" placeholder="https://instagram.com/tu_usuario" />
+
+          <label class="demo-label" for="facebook_url">Facebook (opcional)</label>
+          <input class="input" id="facebook_url" name="facebook_url" type="url" placeholder="https://facebook.com/tu.perfil" />
+
+          <label class="demo-label" for="whatsapp_url">WhatsApp (opcional)</label>
+          <input class="input" id="whatsapp_url" name="whatsapp_url" type="url" placeholder="https://wa.me/XXXXXXXXXXX" />
+
           <button class="button button-primary" id="submitBtn" type="submit">Crear cuenta</button>
           <p style="margin-top:8px">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
 
@@ -174,7 +183,10 @@
             email: document.getElementById('email').value.trim(),
             phone: ((cc && cc.value ? cc.value + ' ' : '') + phoneRaw) || undefined,
             password: document.getElementById('password').value,
-            confirm_password: document.getElementById('confirm_password').value
+            confirm_password: document.getElementById('confirm_password').value,
+            instagram_url: document.getElementById('instagram_url').value.trim() || undefined,
+            facebook_url: document.getElementById('facebook_url').value.trim() || undefined,
+            whatsapp_url: document.getElementById('whatsapp_url').value.trim() || undefined
           };
           // client-side password match validation
           const pwdError = document.getElementById('pwdError');

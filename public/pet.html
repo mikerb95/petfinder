@@ -62,6 +62,12 @@
             <dt>Nombre</dt><dd id="ownerName">—</dd>
             <dt>Teléfono</dt><dd id="ownerPhone">—</dd>
             <dt>Correo</dt><dd id="ownerEmail">—</dd>
+            <dt>Redes</dt>
+            <dd id="ownerSocials">
+              <a id="ownerInstagram" href="#" target="_blank" rel="noopener" style="display:none; margin-right:6px; text-decoration:none;">📷 Instagram</a>
+              <a id="ownerFacebook" href="#" target="_blank" rel="noopener" style="display:none; margin-right:6px; text-decoration:none;">📘 Facebook</a>
+              <a id="ownerWhatsapp" href="#" target="_blank" rel="noopener" style="display:none; text-decoration:none;">🟢 WhatsApp</a>
+            </dd>
           </dl>
           <div class="actions" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
             <a id="callBtn" class="button" href="#" style="display:none;">Llamar</a>
@@ -117,6 +123,13 @@
             const phoneA = document.getElementById('ownerPhone');
             phoneA.textContent = owner.phone || 'No disponible';
             phoneA.href = owner.phone ? ('tel:' + owner.phone) : '#';
+            // Social links
+            const ig = document.getElementById('ownerInstagram');
+            const fb = document.getElementById('ownerFacebook');
+            const wa = document.getElementById('ownerWhatsapp');
+            if (owner.instagram_url) { ig.href = owner.instagram_url; ig.style.display = 'inline-block'; }
+            if (owner.facebook_url) { fb.href = owner.facebook_url; fb.style.display = 'inline-block'; }
+            if (owner.whatsapp_url) { wa.href = owner.whatsapp_url; wa.style.display = 'inline-block'; }
             const emailA = document.getElementById('ownerEmail');
             emailA.textContent = owner.email || 'No disponible';
             emailA.href = owner.email ? ('mailto:' + owner.email) : '#';
