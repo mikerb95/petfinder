@@ -51,6 +51,14 @@
       const items = data.items || [];
       const el = document.getElementById('cartItems');
       el.innerHTML = '';
+      // update badge
+      (function(){
+        try{
+          const count = items.reduce((a,it)=>a+Number(it.quantity||0),0);
+          const badge = document.getElementById('cartCount');
+          if (badge) { if (count>0){ badge.textContent=String(count); badge.style.display='inline-block'; } else badge.style.display='none'; }
+        }catch(_){ }
+      })();
       if (!items.length) { el.innerHTML = '<div class="demo-help">Tu carrito está vacío.</div>'; document.getElementById('cartTotal').textContent = ''; return; }
   let total = 0;
       items.forEach(item => {

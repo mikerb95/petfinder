@@ -17,6 +17,15 @@
     </div>
     <script>
   const slug = location.pathname.replace(/\/$/, '').split('/').pop();
+      async function updateCartCount(){
+        try{
+          const r = await fetch('/api/cart', {credentials:'include'});
+          const d = await r.json().catch(()=>({}));
+          const n = (d.items||[]).reduce((a,it)=>a+Number(it.quantity||0),0);
+          const el = document.getElementById('cartCount');
+          if (el) { if (n>0){ el.textContent=String(n); el.style.display='inline-block'; } else el.style.display='none'; }
+        }catch(_){ }
+      }
       async function load(){
         const res = await fetch('/api/shop/products/' + encodeURIComponent(slug));
         const data = await res.json();
@@ -41,7 +50,7 @@
       const btn = document.getElementById('addBtn');
       const qty = document.getElementById('qty');
       const go = document.getElementById('goCart');
-      btn.onclick = async function(){
+    btn.onclick = async function(){
         btn.disabled = true; btn.textContent = 'Agregando…';
         try {
           const res = await fetch('/api/cart', {
@@ -53,6 +62,7 @@
           if (!res.ok) throw new Error(d.error || 'No se pudo agregar');
           btn.textContent = 'Agregado';
           go.style.display = 'inline-block';
+      updateCartCount();
         } catch (err) {
           btn.textContent = err.message || 'Error';
         } finally {
@@ -63,15 +73,7 @@
       load();
     </script>
     <script>
-      (async function(){
-        try{
-          const r = await fetch('/api/cart', {credentials:'include'});
-          const d = await r.json().catch(()=>({}));
-          const n = (d.items||[]).reduce((a,it)=>a+Number(it.quantity||0),0);
-          const el = document.getElementById('cartCount');
-          if (el) { if (n>0){ el.textContent=String(n); el.style.display='inline-block'; } else el.style.display='none'; }
-        }catch(_){ }
-      })();
+    updateCartCount();
     </script>
   </body>
 </html>
