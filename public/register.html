@@ -84,6 +84,17 @@
           </div>
           <!-- Se eliminan restricciones de formato/largo en teléfono -->
 
+          <label class="demo-label" for="citySelect">Ciudad</label>
+          <div id="cityGroup">
+            <div id="deptWrap" style="display:none; margin-bottom:8px;">
+              <label class="demo-label" for="deptSelect">Departamento (Colombia)</label>
+              <select class="input" id="deptSelect" aria-label="Departamento"></select>
+            </div>
+            <select class="input" id="citySelect" name="citySelect" required aria-label="Ciudad"></select>
+            <input class="input" id="cityOther" name="cityOther" type="text" placeholder="Especifica tu ciudad" style="display:none; margin-top:8px;" />
+            <div class="demo-help">Selecciona tu ciudad según el país del teléfono. Para Colombia, elige primero el departamento.</div>
+          </div>
+
           <label class="demo-label" for="password">Contraseña</label>
           <div style="position:relative;">
             <input class="input" id="password" name="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" style="padding-right:42px;" />
@@ -188,6 +199,17 @@
             facebook_url: document.getElementById('facebook_url').value.trim() || undefined,
             whatsapp_url: document.getElementById('whatsapp_url').value.trim() || undefined
           };
+          // City from dependent dropdowns
+          (function(){
+            const ccVal = (cc && cc.value) || '';
+            const citySel = document.getElementById('citySelect');
+            const other = document.getElementById('cityOther');
+            let city = '';
+            if (citySel && citySel.value === 'other') city = (other?.value || '').trim();
+            else city = citySel?.value || '';
+            if (!city) { setMessage('Selecciona tu ciudad', false); btn.disabled = false; btn.textContent = 'Crear cuenta'; return; }
+            payload.city = city;
+          })();
           // client-side password match validation
           const pwdError = document.getElementById('pwdError');
           if (payload.password !== payload.confirm_password) {
@@ -218,6 +240,69 @@
           }
         });
         
+        // City/Department lists and wiring
+        (function setupCityDropdown(){
+          const DATA = {
+            '+57': { co: true, deps: {
+              'Antioquia': ['Medellín','Bello','Envigado','Itagüí','Rionegro'],
+              'Cundinamarca': ['Bogotá','Soacha','Chía','Zipaquirá'],
+              'Valle del Cauca': ['Cali','Palmira','Buenaventura','Tuluá'],
+              'Atlántico': ['Barranquilla','Soledad','Malambo'],
+              'Santander': ['Bucaramanga','Floridablanca','Girón','Piedecuesta'],
+              'Bolívar': ['Cartagena','Turbaco'],
+              'Risaralda': ['Pereira','Dosquebradas'],
+              'Caldas': ['Manizales','Villamaría'],
+              'Tolima': ['Ibagué','Espinal'],
+              'Nariño': ['Pasto','Ipiales']
+            } },
+            '+52': ['Ciudad de México','Guadalajara','Monterrey','Puebla','Tijuana','León','Querétaro','Mérida','Cancún'],
+            '+54': ['Buenos Aires','Córdoba','Rosario','Mendoza','La Plata','Mar del Plata'],
+            '+56': ['Santiago','Valparaíso','Viña del Mar','Concepción','La Serena','Antofagasta'],
+            '+51': ['Lima','Arequipa','Trujillo','Chiclayo','Piura','Cusco'],
+            '+34': ['Madrid','Barcelona','Valencia','Sevilla','Zaragoza','Málaga','Murcia','Palma'],
+            '+1': ['New York','Los Angeles','Chicago','Miami','Houston','Dallas','San Francisco','Seattle'],
+            '+593': ['Quito','Guayaquil','Cuenca','Santo Domingo','Machala'],
+            '+598': ['Montevideo','Salto','Paysandú','Las Piedras','Rivera'],
+            '+505': ['Managua','León','Masaya','Chinandega','Matagalpa'],
+            '+507': ['Ciudad de Panamá','Colón','David','Santiago'],
+            '+58': ['Caracas','Maracaibo','Valencia','Barquisimeto','Maracay']
+          };
+          const cc = document.getElementById('countryCode');
+          const deptWrap = document.getElementById('deptWrap');
+          const dept = document.getElementById('deptSelect');
+          const city = document.getElementById('citySelect');
+          const other = document.getElementById('cityOther');
+          function renderCities(){
+            const code = cc?.value || '';
+            other.style.display = 'none'; other.value = '';
+            city.innerHTML = '';
+            if (DATA[code] && DATA[code].co) {
+              // Colombia
+              deptWrap.style.display = '';
+              const deps = Object.keys(DATA[code].deps);
+              dept.innerHTML = deps.map(d=>`<option value="${d}">${d}</option>`).join('');
+              const first = dept.value || deps[0];
+              const cities = DATA[code].deps[first] || [];
+              city.innerHTML = cities.map(c=>`<option value="${c}">${c}</option>`).join('') + '<option value="other">Otra…</option>';
+            } else {
+              deptWrap.style.display = 'none';
+              const cities = Array.isArray(DATA[code]) ? DATA[code] : [];
+              city.innerHTML = cities.map(c=>`<option value="${c}">${c}</option>`).join('') + '<option value="other">Otra…</option>';
+            }
+          }
+          function renderCitiesForDep(){
+            const code = cc?.value || '';
+            if (!(DATA[code] && DATA[code].co)) return;
+            const cities = DATA[code].deps[dept.value] || [];
+            city.innerHTML = cities.map(c=>`<option value="${c}">${c}</option>`).join('') + '<option value="other">Otra…</option>';
+          }
+          cc?.addEventListener('change', renderCities);
+          dept?.addEventListener('change', renderCitiesForDep);
+          city?.addEventListener('change', ()=>{ other.style.display = (city.value==='other') ? '' : 'none'; if (city.value !== 'other') other.value = ''; });
+          // init
+          renderCities();
+        })();
+
         // Mensajes de validacion en español (HTML5)
         (function attachSpanishValidation(){
           function setMessage(el){

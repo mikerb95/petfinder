@@ -136,8 +136,18 @@
             <div class="demo-help">Ej.: criollo, labrador, siames</div>
             <input type="text" id="petColor" placeholder="Color" />
             <div class="demo-help">Ej.: marron, negro con blanco</div>
-            <input type="text" id="petCity" placeholder="Ciudad (requerido)" required />
-            <div class="demo-help">Ciudad donde vive o se perdió</div>
+            <div style="grid-column: 1 / -1;">
+              <label class="demo-label" for="petCitySel">Ciudad</label>
+              <div id="petCityGroup">
+                <div id="petDeptWrap" style="display:none; margin-bottom:8px;">
+                  <label class="demo-label" for="petDept">Departamento (Colombia)</label>
+                  <select id="petDept" class="input"></select>
+                </div>
+                <select id="petCitySel" class="input" required></select>
+                <input id="petCityOther" class="input" type="text" placeholder="Especifica la ciudad" style="display:none; margin-top:8px;" />
+                <div class="demo-help">Selecciona la ciudad según el país del teléfono en tu perfil.</div>
+              </div>
+            </div>
             <input type="text" id="petNotes" placeholder="Notas" />
             <div class="demo-help">Rasgos, comportamiento o indicaciones</div>
             <div class="segmented" role="group" aria-label="Estado">
@@ -224,8 +234,16 @@
                   </div>
                 </div>
                 <div style="grid-column: 1 / -1;">
-                  <label class="demo-label" for="pf_city">Ciudad</label>
-                  <input id="pf_city" class="input" type="text" />
+                  <label class="demo-label" for="pf_city_sel">Ciudad</label>
+                  <div id="pf_city_group">
+                    <div id="pf_dept_wrap" style="display:none; margin-bottom:8px;">
+                      <label class="demo-label" for="pf_dept">Departamento (Colombia)</label>
+                      <select id="pf_dept" class="input"></select>
+                    </div>
+                    <select id="pf_city_sel" class="input" required></select>
+                    <input id="pf_city_other" class="input" type="text" placeholder="Especifica tu ciudad" style="display:none; margin-top:8px;" />
+                    <div class="demo-help">Selecciona tu ciudad según el país del teléfono.</div>
+                  </div>
                 </div>
                 <div style="grid-column: 1 / -1;">
                   <label class="demo-label">Redes sociales (opcional)</label>
@@ -286,6 +304,17 @@
                   <div>
                     <label class="demo-label" for="e_color">Color</label>
                     <input id="e_color" class="input" type="text" />
+                  </div>
+                  <div>
+                    <label class="demo-label" for="e_city_sel">Ciudad</label>
+                    <div>
+                      <div id="e_dept_wrap" style="display:none; margin-bottom:8px;">
+                        <label class="demo-label" for="e_dept">Departamento (Colombia)</label>
+                        <select id="e_dept" class="input"></select>
+                      </div>
+                      <select id="e_city_sel" class="input" required></select>
+                      <input id="e_city_other" class="input" type="text" placeholder="Especifica la ciudad" style="display:none; margin-top:8px;" />
+                    </div>
                   </div>
                   <div>
                     <label class="demo-label">Estado</label>
@@ -440,7 +469,8 @@
                 if (pf_phone_num) pf_phone_num.value = raw;
               }
             })();
-            if (pf_city) pf_city.value = u.city || '';
+            // Prefill city into dropdown after wiring (below)
+            window.__prefillCity = u.city || '';
             if (pf_instagram) pf_instagram.value = u.instagram_url || '';
             if (pf_facebook) pf_facebook.value = u.facebook_url || '';
             if (pf_whatsapp) pf_whatsapp.value = u.whatsapp_url || '';
@@ -463,7 +493,12 @@
               const num = pf_phone_num?.value?.trim() || '';
               return num ? ((cc ? (cc + ' ') : '') + num) : undefined;
             })(),
-            city: pf_city?.value?.trim() || undefined,
+            city: (function(){
+              const sel = document.getElementById('pf_city_sel');
+              const other = document.getElementById('pf_city_other');
+              const v = sel?.value || '';
+              return (v === 'other') ? (other?.value?.trim() || undefined) : (v || undefined);
+            })(),
             instagram_url: pf_instagram?.value?.trim() || undefined,
             facebook_url: pf_facebook?.value?.trim() || undefined,
             whatsapp_url: pf_whatsapp?.value?.trim() || undefined,
@@ -520,7 +555,7 @@
             species: document.getElementById('petSpecies').value.trim() || undefined,
             breed: document.getElementById('petBreed').value.trim() || undefined,
             color: document.getElementById('petColor').value.trim() || undefined,
-              city: document.getElementById('petCity').value.trim(),
+              city: (function(){ const sel = document.getElementById('petCitySel'); const other = document.getElementById('petCityOther'); const v = sel?.value || ''; return (v === 'other') ? (other?.value?.trim() || '') : v; })(),
             notes: document.getElementById('petNotes').value.trim() || undefined,
             status: document.getElementById('petStatus').value,
             photo_url: document.getElementById('petPhoto').value.trim() || undefined,
@@ -678,7 +713,7 @@
         const e_species = document.getElementById('e_species');
         const e_breed = document.getElementById('e_breed');
         const e_color = document.getElementById('e_color');
-        const e_city = document.getElementById('e_city');
+  // City inputs are wired dynamically (e_city_sel/e_city_other)
   const e_notes = document.getElementById('e_notes');
         const e_status = document.getElementById('e_status');
         const e_photo = document.getElementById('e_photo');
@@ -715,7 +750,16 @@
             }
           })();
           if (e_photo) e_photo.value = p.photo_url || '';
-          if (e_city) e_city.value = p.city || '';
+          (function(){
+            const sel = document.getElementById('e_city_sel');
+            const other = document.getElementById('e_city_other');
+            if (sel && other) {
+              const wanted = p.city || '';
+              const match = Array.from(sel.options).find(o => o.value === wanted);
+              if (match) { sel.value = wanted; other.style.display = 'none'; other.value = ''; }
+              else { sel.value = 'other'; other.style.display = ''; other.value = wanted; }
+            }
+          })();
           if (e_birthdate) e_birthdate.value = p.birthdate ? new Date(p.birthdate).toISOString().slice(0,10) : '';
           if (e_sex) e_sex.value = p.sex || 'unknown';
           if (e_weight) e_weight.value = (p.weight_kg ?? '')
@@ -745,7 +789,7 @@
             species: e_species.value.trim(),
             breed: e_breed.value.trim(),
             color: e_color.value.trim(),
-            city: e_city.value.trim(),
+            city: (function(){ const sel = document.getElementById('e_city_sel'); const other = document.getElementById('e_city_other'); const v = sel?.value || ''; return (v === 'other') ? (other?.value?.trim() || '') : v; })(),
             notes: e_notes.value.trim(),
             status: e_status.value,
             photo_url: e_photo.value.trim(),
@@ -842,6 +886,76 @@
         const e_breed_list = document.getElementById('e_breedList');
         setupTypeahead(e_breed, e_breed_list, () => e_species?.value || '');
         e_species?.addEventListener('change', () => { if (e_breed && e_breed.value) { const ev = new Event('input'); e_breed.dispatchEvent(ev); } });
+
+        // City dataset and wiring (profile + pets)
+        (function setupCities(){
+          const DATA = {
+            '+57': { co: true, deps: {
+              'Antioquia': ['Medellín','Bello','Envigado','Itagüí','Rionegro'],
+              'Cundinamarca': ['Bogotá','Soacha','Chía','Zipaquirá'],
+              'Valle del Cauca': ['Cali','Palmira','Buenaventura','Tuluá'],
+              'Atlántico': ['Barranquilla','Soledad','Malambo'],
+              'Santander': ['Bucaramanga','Floridablanca','Girón','Piedecuesta'],
+              'Bolívar': ['Cartagena','Turbaco'],
+              'Risaralda': ['Pereira','Dosquebradas'],
+              'Caldas': ['Manizales','Villamaría'],
+              'Tolima': ['Ibagué','Espinal'],
+              'Nariño': ['Pasto','Ipiales']
+            } },
+            '+52': ['Ciudad de México','Guadalajara','Monterrey','Puebla','Tijuana','León','Querétaro','Mérida','Cancún'],
+            '+54': ['Buenos Aires','Córdoba','Rosario','Mendoza','La Plata','Mar del Plata'],
+            '+56': ['Santiago','Valparaíso','Viña del Mar','Concepción','La Serena','Antofagasta'],
+            '+51': ['Lima','Arequipa','Trujillo','Chiclayo','Piura','Cusco'],
+            '+34': ['Madrid','Barcelona','Valencia','Sevilla','Zaragoza','Málaga','Murcia','Palma'],
+            '+1': ['New York','Los Angeles','Chicago','Miami','Houston','Dallas','San Francisco','Seattle'],
+            '+593': ['Quito','Guayaquil','Cuenca','Santo Domingo','Machala'],
+            '+598': ['Montevideo','Salto','Paysandú','Las Piedras','Rivera'],
+            '+505': ['Managua','León','Masaya','Chinandega','Matagalpa'],
+            '+507': ['Ciudad de Panamá','Colón','David','Santiago'],
+            '+58': ['Caracas','Maracaibo','Valencia','Barquisimeto','Maracay']
+          };
+          function wireCity(ccSel, deptWrap, deptSel, citySel, otherInput, prefill){
+            function renderCities(){
+              const code = ccSel?.value || '';
+              otherInput.style.display = 'none'; otherInput.value = '';
+              citySel.innerHTML = '';
+              if (DATA[code] && DATA[code].co) {
+                deptWrap.style.display = '';
+                const deps = Object.keys(DATA[code].deps);
+                deptSel.innerHTML = deps.map(d=>`<option value="${d}">${d}</option>`).join('');
+                const first = deptSel.value || deps[0];
+                const cities = DATA[code].deps[first] || [];
+                citySel.innerHTML = cities.map(c=>`<option value="${c}">${c}</option>`).join('') + '<option value="other">Otra…</option>';
+              } else {
+                deptWrap.style.display = 'none';
+                const cities = Array.isArray(DATA[code]) ? DATA[code] : [];
+                citySel.innerHTML = cities.map(c=>`<option value="${c}">${c}</option>`).join('') + '<option value="other">Otra…</option>';
+              }
+              if (prefill && prefill.value) {
+                // try to select prefill city if exists
+                const opt = Array.from(citySel.options).find(o => o.value === prefill.value);
+                if (opt) citySel.value = prefill.value; else { citySel.value = 'other'; otherInput.style.display = ''; otherInput.value = prefill.value; }
+                prefill.value = '';
+              }
+            }
+            function renderCitiesForDep(){
+              const code = ccSel?.value || '';
+              if (!(DATA[code] && DATA[code].co)) return;
+              const cities = DATA[code].deps[deptSel.value] || [];
+              citySel.innerHTML = cities.map(c=>`<option value="${c}">${c}</option>`).join('') + '<option value="other">Otra…</option>';
+            }
+            ccSel?.addEventListener('change', renderCities);
+            deptSel?.addEventListener('change', renderCitiesForDep);
+            citySel?.addEventListener('change', ()=>{ otherInput.style.display = (citySel.value==='other') ? '' : 'none'; if (citySel.value !== 'other') otherInput.value = ''; });
+            renderCities();
+          }
+          // Wire profile
+          wireCity(pf_cc, document.getElementById('pf_dept_wrap'), document.getElementById('pf_dept'), document.getElementById('pf_city_sel'), document.getElementById('pf_city_other'), { value: (window.__prefillCity || '') });
+          // Wire pet create (uses phone country from profile cc as guidance)
+          wireCity(pf_cc, document.getElementById('petDeptWrap'), document.getElementById('petDept'), document.getElementById('petCitySel'), document.getElementById('petCityOther'), { value: '' });
+          // Wire pet edit
+          wireCity(pf_cc, document.getElementById('e_dept_wrap'), document.getElementById('e_dept'), document.getElementById('e_city_sel'), document.getElementById('e_city_other'), { value: '' });
+        })();
 
         // --- Mensajes de validacion en español (HTML5) ---
         (function attachSpanishValidation(){
