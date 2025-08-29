@@ -16,6 +16,17 @@
     </style>
   </head>
   <body>
+    <script>
+      (function(){
+        try {
+          var isNarrow = window.matchMedia && window.matchMedia('(max-width: 820px)').matches;
+          var forceDesktop = /(?:[?&])desktop=1\b/.test(location.search);
+          if (isNarrow && !forceDesktop && location.pathname === '/scan') {
+            location.replace('/m');
+          }
+        } catch(_) {}
+      })();
+    </script>
     <header class="site-header">
       <div class="container header-inner" style="max-width:900px;">
         <a class="brand" href="/">

@@ -424,6 +424,10 @@ app.get('/dashboard', (req, res) => {
 app.get('/scan', (req, res) => {
   res.sendFile(path.join(publicDir, 'scan.html'));
 });
+// Pagina movil principal de escaneo
+app.get('/m', (req, res) => {
+  res.sendFile(path.join(publicDir, 'm.html'));
+});
 // Pagina de detalles tecnicos
 app.get('/tech', (req, res) => {
   res.sendFile(path.join(publicDir, 'tech.html'));

@@ -1,0 +1,24 @@
+{
+  "name": "Petfinder",
+  "short_name": "Petfinder",
+  "start_url": "/m",
+  "display": "standalone",
+  "scope": "/",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "description": "Escanea el QR del collar y contacta al dueño.",
+  "icons": [
+    {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABb8K+5AAAACXBIWXMAAAsSAAALEgHS3X78AAABmUlEQVR4nO3SQQ3CMBQF0VgN2Q5yQ8xjzC6l0ZrYQyJm2yqg0qR3C3h2/bnYQyJz0xwB1a5m9i7b3w9y9w8AAAAAAAAAAAAAAAAAAAAAALwyo8wzvGq3v3z9fV9v6v5r8m0hYwqY0f0Q7rQn0nX4wz9n9u1z7qzD7H0P9Vw2m4F2G0mJZ9mQ4a+f8b6f1s4r1eK2k8m1qz/6y8G0kS4Q9b1D4kqkqg8C2y0bY4qXc9V8v2pQpJw7iC5QwO0rj0m9x1k6h7Qf+3fE1tS2r1y3wU5c7k6h5Qqk4QhEJpOXLH5vVv2z5k7r3K1i9YkNOx7o9V4o1U2m8T6oZb8Wk0o5e4h0z2Y6p8w+o0AAAAAAAAAAAAAAAAAAAAAAH8kXwH3mC3l0+4s8AAAAABJRU5ErkJggg==",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT6AAAACXBIWXMAAAsSAAALEgHS3X78AAAB2UlEQVR4nO3QMQEAAAgDIN8/9GEhF1qgQ2m6GgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYD0zQAAe7Qk0gAAAABJRU5ErkJggg==",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

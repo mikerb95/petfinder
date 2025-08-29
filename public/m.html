@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Petfinder — Escanear</title>
+    <meta name="description" content="Vista móvil para escanear el QR del collar de una mascota y contactar a su dueño." />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+    <style>
+      html, body { height: 100%; }
+      body { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
+      header.mobile-top { display:flex; align-items:center; justify-content:center; padding: 14px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      header .brand { gap: 8px; font-size: 18px; }
+      main.mobile-main { display:grid; place-items:center; padding: 16px; }
+      .scan-circle { width: 220px; height: 220px; border-radius: 50%; display:grid; place-items:center; cursor:pointer; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.14), rgba(255,255,255,0.06)); border: 2px solid rgba(255,255,255,0.18); box-shadow: 0 12px 40px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.06); }
+      .scan-circle:hover { border-color: rgba(255,255,255,0.28); }
+      .scan-circle .dot { width: 86px; height: 86px; border-radius: 50%; background: var(--color-primary); box-shadow: 0 0 0 8px rgba(20,184,166,0.15); display:grid; place-items:center; color:#041410; font-size: 28px; }
+      .hint { margin-top: 16px; color: var(--color-muted); font-size: 1rem; text-align:center; }
+      footer.mobile-bottom { display:flex; gap: 10px; padding: 12px 16px 18px; border-top: 1px solid rgba(255,255,255,0.08); position: sticky; bottom: 0; background: linear-gradient(180deg, rgba(11,18,32,0), rgba(11,18,32,0.6) 20%, rgba(11,18,32,0.9) 60%, rgba(11,18,32,1) 100%); backdrop-filter: blur(4px); }
+      footer.mobile-bottom .button { flex: 1; }
+
+      /* Minimal modal for scanner */
+      .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
+      .modal { background: #fff; color: #111; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); width: 100%; max-width: 720px; }
+      .modal header { padding: 14px 16px; border-bottom: 1px solid #eee; display:flex; align-items:center; justify-content: space-between; }
+      .modal .body { padding: 12px 16px; }
+      .modal .footer { padding: 12px 16px; border-top: 1px solid #eee; display:flex; gap:8px; justify-content: flex-end; }
+      .modal .button.secondary { background:#eee; color:#333; border:1px solid #d1d5db; }
+      .modal video { width: 100%; border-radius: 12px; border:1px solid #e5e7eb; max-height: 70vh; object-fit: cover; background:#000; }
+      .modal .hint { color:#555; margin-top:8px; }
+      .modal .warn { display:none; background:#fff5f5; color:#111; border-left:4px solid #c00; padding:10px 12px; border-radius:8px; }
+    </style>
+  </head>
+  <body>
+    <header class="mobile-top">
+      <a class="brand" href="/" aria-label="Petfinder">
+        <span class="brand-mark" aria-hidden="true">🐾</span>
+        <span class="brand-name">Petfinder</span>
+      </a>
+    </header>
+
+    <main class="mobile-main">
+      <button id="scanCircle" class="scan-circle" type="button" aria-label="Escanear código QR">
+        <div class="dot" aria-hidden="true">📷</div>
+      </button>
+      <div class="hint">Toca para escanear el QR del collar</div>
+    </main>
+
+    <div class="alt-link" style="text-align:center; margin: 6px 0 0;">
+      <a href="/?desktop=1" style="color: var(--color-muted); font-size: .95rem; text-decoration: underline; text-underline-offset: 2px; opacity: .9;">Ir a versión completa</a>
+    </div>
+
+    <footer class="mobile-bottom">
+      <a class="button button-primary" href="/register">Registrarse</a>
+      <a class="button" href="/login">Iniciar sesión</a>
+    </footer>
+
+    <!-- Scanner Overlay -->
+    <div id="scannerModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="scannerTitle">
+      <div class="modal">
+        <header>
+          <h3 id="scannerTitle" style="margin:0;">Escanear código QR</h3>
+          <button id="scannerClose" class="button secondary" type="button" aria-label="Cerrar">Cerrar</button>
+        </header>
+        <div class="body">
+          <div id="scanWarn" class="warn">No se pudo acceder a la cámara. Verifica permisos y que estés usando HTTPS.</div>
+          <video id="scanVideo" playsinline autoplay muted></video>
+          <p class="hint">Apunta la cámara hacia el QR. Al detectarlo, te llevaremos a la ficha pública.</p>
+          <div id="scanResult" class="hint" style="display:none;"></div>
+        </div>
+        <div class="footer">
+          <button id="scanStop" class="button secondary" type="button" style="display:none;">Detener</button>
+          <button id="scanStart" class="button" type="button">Iniciar escaneo</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function(){
+        const scanBtn = document.getElementById('scanCircle');
+        const modal = document.getElementById('scannerModal');
+        const closeBtn = document.getElementById('scannerClose');
+        const startBtn = document.getElementById('scanStart');
+        const stopBtn = document.getElementById('scanStop');
+        const video = document.getElementById('scanVideo');
+        const warn = document.getElementById('scanWarn');
+        const result = document.getElementById('scanResult');
+        let stream = null; let rafId = null; let detecting = false;
+
+        function show(){ modal.style.display='flex'; result.style.display='none'; warn.style.display='none'; }
+        function hide(){ modal.style.display='none'; stop(); }
+
+        async function start(){
+          try {
+            warn.style.display = 'none'; result.style.display = 'none';
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+            video.srcObject = stream; await video.play();
+            stopBtn.style.display='inline-flex'; startBtn.style.display='none';
+            if ('BarcodeDetector' in window) {
+              const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+              detecting = true;
+              const loop = async () => {
+                if (!detecting) return;
+                try {
+                  const codes = await detector.detect(video);
+                  if (codes && codes.length) { handleCode(codes[0].rawValue || ''); return; }
+                } catch {}
+                rafId = requestAnimationFrame(loop);
+              };
+              rafId = requestAnimationFrame(loop);
+            } else {
+              const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+              detecting = true;
+              const loop = () => {
+                if (!detecting) return;
+                try {
+                  const w = video.videoWidth, h = video.videoHeight;
+                  if (w && h) {
+                    canvas.width = w; canvas.height = h; ctx.drawImage(video, 0, 0, w, h);
+                    if (window.jsQR) {
+                      const imageData = ctx.getImageData(0, 0, w, h);
+                      const qr = window.jsQR(imageData.data, w, h);
+                      if (qr && qr.data) { handleCode(qr.data); return; }
+                    }
+                  }
+                } catch {}
+                rafId = requestAnimationFrame(loop);
+              };
+              rafId = requestAnimationFrame(loop);
+            }
+          } catch (e) { warn.style.display='block'; }
+        }
+
+        function stop(){
+          detecting = false;
+          if (rafId) cancelAnimationFrame(rafId); rafId = null;
+          if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+          stopBtn.style.display='none'; startBtn.style.display='inline-flex';
+        }
+
+        function handleCode(text){
+          stop();
+          try {
+            result.style.display='block'; result.textContent='Código detectado';
+            const url = new URL(text, window.location.origin);
+            const path = url.pathname;
+            const matchPet = path.match(/^\/p\/([A-Za-z0-9_-]{6,})$/);
+            if (matchPet) { window.location.href = path; return; }
+            const tokenMatch = text.match(/\b([A-Za-z0-9_-]{6,})\b/);
+            if (tokenMatch) { window.location.href = '/p/' + tokenMatch[1]; return; }
+          } catch {
+            const tokenMatch = (text || '').match(/\b([A-Za-z0-9_-]{6,})\b/);
+            if (tokenMatch) { window.location.href = '/p/' + tokenMatch[1]; return; }
+          }
+        }
+
+        scanBtn?.addEventListener('click', () => { show(); start(); });
+        startBtn?.addEventListener('click', start);
+        stopBtn?.addEventListener('click', stop);
+        closeBtn?.addEventListener('click', hide);
+        modal?.addEventListener('click', (ev) => { if (ev.target === modal) hide(); });
+        document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && modal.style.display === 'flex') hide(); });
+
+        // Registrar Service Worker para PWA (solo si es soportado)
+        try {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+          }
+        } catch(_){}
+      })();
+    </script>
+    <script src="https://unpkg.com/jsqr/dist/jsQR.js" async></script>
+  </body>
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</html>
