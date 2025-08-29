@@ -19,7 +19,11 @@ CREATE TABLE IF NOT EXISTS users (
   is_admin TINYINT(1) NOT NULL DEFAULT 0,
   -- Puntuación del usuario basada en acciones dentro del portal
   score INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  -- Referidos
+  referral_code VARCHAR(24) DEFAULT NULL UNIQUE,
+  referred_by_user_id BIGINT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_users_referrer FOREIGN KEY (referred_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- Tabla de mascotas
