@@ -529,3 +529,76 @@ CREATE TABLE IF NOT EXISTS blog_post_revisions (
   CONSTRAINT fk_bprev_editor FOREIGN KEY (editor_user_id) REFERENCES users(id) ON DELETE SET NULL,
   KEY idx_bprev_post (post_id)
 );
+
+-- =============================
+-- Sección PetBnB (Guardería y cuidadores)
+-- =============================
+
+CREATE TABLE IF NOT EXISTS bnb_sitters (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT DEFAULT NULL,
+  name VARCHAR(120) NOT NULL,
+  bio TEXT DEFAULT NULL,
+  city VARCHAR(120) DEFAULT NULL,
+  services VARCHAR(255) DEFAULT NULL,
+  price_cents INT DEFAULT NULL,
+  currency VARCHAR(10) DEFAULT 'COP',
+  experience_years INT DEFAULT 0,
+  photo_url VARCHAR(500) DEFAULT NULL,
+  rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+  reviews_count INT NOT NULL DEFAULT 0,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bnb_availability (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  sitter_id BIGINT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  notes VARCHAR(500) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS bnb_bookings (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  owner_id BIGINT NOT NULL,
+  sitter_id BIGINT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  status ENUM('pending','confirmed','cancelled','completed') NOT NULL DEFAULT 'pending',
+  total_cents INT DEFAULT NULL,
+  currency VARCHAR(10) DEFAULT 'COP',
+  notes TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bnb_messages (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  booking_id BIGINT NOT NULL,
+  sender_user_id BIGINT NOT NULL,
+  message TEXT NOT NULL,
+  sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS bnb_reviews (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  booking_id BIGINT NOT NULL,
+  owner_id BIGINT NOT NULL,
+  sitter_id BIGINT NOT NULL,
+  rating INT NOT NULL,
+  comment TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS bnb_payouts (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  sitter_id BIGINT NOT NULL,
+  booking_id BIGINT DEFAULT NULL,
+  amount_cents INT NOT NULL,
+  currency VARCHAR(10) DEFAULT 'COP',
+  status ENUM('pending','paid','failed') NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
