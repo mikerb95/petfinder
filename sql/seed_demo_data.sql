@@ -70,7 +70,7 @@ VALUES
   (16,'Cuidados para gatos senior', 'cuidados-gatos-senior', 'Atención especial.', 'Contenido demo...', NULL, 'published', NOW());
 
 -- Classifieds: 10 items across various users
-INSERT INTO classifieds (user_id, title, category, condition, description, price_cents, currency, city, photo_url, status)
+INSERT INTO classifieds (user_id, title, category, `condition`, description, price_cents, currency, city, photo_url, status)
 VALUES
   (2,  'Transportadora plástica', 'Transporte', 'buen_estado', 'Transportadora pequeña en buen estado.', 95000, 'COP', 'Medellín', NULL, 'active'),
   (4,  'Cama para perro talla M', 'Accesorios', 'como_nuevo', 'Lavable, casi nueva.', 120000, 'COP', 'Bogotá', NULL, 'active'),

@@ -622,7 +622,7 @@ CREATE TABLE IF NOT EXISTS classifieds (
   user_id BIGINT NOT NULL,
   title VARCHAR(160) NOT NULL,
   category VARCHAR(80) DEFAULT NULL,
-  condition ENUM('nuevo','como_nuevo','buen_estado','usado') NOT NULL DEFAULT 'buen_estado',
+  `condition` ENUM('nuevo','como_nuevo','buen_estado','usado') NOT NULL DEFAULT 'buen_estado',
   description TEXT DEFAULT NULL,
   price_cents INT NOT NULL DEFAULT 0,
   currency VARCHAR(3) NOT NULL DEFAULT 'COP',

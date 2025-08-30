@@ -786,7 +786,7 @@ app.get('/api/classifieds', async (req, res) => {
     if (city) { where += ' AND c.city LIKE ?'; params.push(`%${city}%`); }
     if (category) { where += ' AND c.category = ?'; params.push(category); }
     const [rows] = await pool.query(
-      `SELECT c.id, c.title, c.category, c.condition, c.price_cents, c.currency, c.city, c.photo_url, c.status, c.views, c.created_at,
+  `SELECT c.id, c.title, c.category, c.\`condition\`, c.price_cents, c.currency, c.city, c.photo_url, c.status, c.views, c.created_at,
               u.name AS seller_name
          FROM classifieds c
          LEFT JOIN users u ON u.id = c.user_id
@@ -826,7 +826,7 @@ app.post('/api/classifieds', requireAuth, async (req, res) => {
     if (condition && !allowedCond.includes(String(condition))) return res.status(400).json({ error: 'condition invalida' });
     const pool = getPool();
     const [r] = await pool.query(
-      `INSERT INTO classifieds (user_id, title, category, condition, description, price_cents, currency, city, photo_url, status)
+  `INSERT INTO classifieds (user_id, title, category, \`condition\`, description, price_cents, currency, city, photo_url, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
       [userId, title, category || null, condition || 'buen_estado', description || null, Math.max(0, Number(price_cents || 0)), currency || 'COP', city || null, photo_url || null]
     );
@@ -840,7 +840,7 @@ app.get('/api/me/classifieds', requireAuth, async (req, res) => {
     const userId = req.auth?.sub;
     const pool = getPool();
     const [rows] = await pool.query(
-      `SELECT id, title, category, condition, price_cents, currency, city, photo_url, status, views, created_at, updated_at
+  `SELECT id, title, category, \`condition\`, price_cents, currency, city, photo_url, status, views, created_at, updated_at
          FROM classifieds WHERE user_id = ? ORDER BY created_at DESC`, [userId]
     );
     res.json({ classifieds: rows });
@@ -860,14 +860,14 @@ app.put('/api/me/classifieds/:id', requireAuth, async (req, res) => {
     const [ex] = await pool.query('SELECT id FROM classifieds WHERE id = ? AND user_id = ? LIMIT 1', [id, userId]);
     if (!ex.length) return res.status(404).json({ error: 'not found' });
     await pool.query(
-      `UPDATE classifieds SET
+  `UPDATE classifieds SET
          title = COALESCE(?, title),
          description = COALESCE(?, description),
          price_cents = COALESCE(?, price_cents),
          currency = COALESCE(?, currency),
          city = COALESCE(?, city),
          category = COALESCE(?, category),
-         condition = COALESCE(?, condition),
+         \`condition\` = COALESCE(?, \`condition\`),
          status = COALESCE(?, status),
          photo_url = COALESCE(?, photo_url),
          updated_at = NOW()

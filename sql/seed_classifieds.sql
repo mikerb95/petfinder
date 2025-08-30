@@ -1,6 +1,6 @@
 -- 10 publicaciones de ejemplo para clasificados
 -- Nota: Ajusta los user_id existentes en tu base de datos si es necesario.
-INSERT INTO classifieds (user_id, title, category, condition, description, price_cents, currency, city, photo_url, status)
+INSERT INTO classifieds (user_id, title, category, `condition`, description, price_cents, currency, city, photo_url, status)
 VALUES
   (1, 'Rascador para gato mediano', 'Accesorios', 'buen_estado', 'Rascador de sisal en buen estado, poco uso.', 80000, 'COP', 'Bogotá', 'https://images.unsplash.com/photo-1612536052698-7b9c4780a4f2?q=80&w=800&auto=format&fit=crop', 'active'),
   (1, 'Cama acolchada para perro', 'Accesorios', 'como_nuevo', 'Cama talla M lavable, casi nueva.', 120000, 'COP', 'Bogotá', 'https://images.unsplash.com/photo-1626132647523-66f78f001387?q=80&w=800&auto=format&fit=crop', 'active'),
