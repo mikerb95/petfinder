@@ -118,16 +118,16 @@ SET @city := 'Bogotá';
 SET @currency := 'COP';
 INSERT INTO bnb_sitters (user_id, name, bio, city, lat, lng, address, pet_types, hours_json, services, price_cents, currency, experience_years, photo_url, rating, reviews_count, active)
 VALUES
-  (1,  'Hogar Pet Bogotá 1', 'Cuidado amoroso para perros y gatos.', @city, 4.7110, -74.0721, 'Cra 7 #10-20', 'perro,gato', '{"mon":["08:00-18:00"],"sat":["09:00-13:00"]}', 'boarding,walking,daycare', 45000, @currency, 3, NULL, 4.8, 23, 1),
-  (4,  'Hogar Pet Bogotá 2', 'Experiencia con perros senior.', @city, 4.7105, -74.0715, 'Cll 72 #15-33', 'perro', '{"mon":["08:00-20:00"],"sun":["10:00-14:00"]}', 'boarding,daycare', 50000, @currency, 5, NULL, 4.6, 12, 1),
-  (5,  'Hogar Pet Bogotá 3', 'Paseos diarios y cuidado en casa.', @city, 4.7109, -74.0709, 'Av 19 #100-05', 'perro,gato', '{"mon":["07:00-19:00"],"sat":["09:00-12:00"]}', 'walking,daycare', 30000, @currency, 2, NULL, 4.5, 9, 1), 
-  (8,  'Hogar Pet Bogotá 4', 'Amplio apartamento, sin niños.', @city, 4.7102, -74.0727, 'Cll 26 #68-80', 'gato', '{"mon":["09:00-18:00"],"fri":["09:00-16:00"]}', 'boarding', 40000, @currency, 4, NULL, 4.9, 44, 1),
-  (11, 'Hogar Pet Bogotá 5', 'Patio cercado y cámaras.', @city, 4.7113, -74.0718, 'Cra 30 #45-12', 'perro', '{"mon":["06:30-18:30"],"sat":["08:00-12:00"]}', 'boarding,walking', 55000, @currency, 6, NULL, 4.7, 31, 1),
-  (12, 'Hogar Pet Bogotá 6', 'Cuidado especializado post-operatorio.', @city, 4.7118, -74.0730, 'Cll 45 #20-90', 'perro,gato', '{"mon":["08:00-18:00"],"sun":["10:00-14:00"]}', 'daycare', 35000, @currency, 3, NULL, 4.4, 8, 1),
-  (13, 'Hogar Pet Bogotá 7', 'Educador canino certificado.', @city, 4.7122, -74.0712, 'Cra 13 #85-30', 'perro', '{"mon":["08:00-20:00"],"sat":["09:00-13:00"]}', 'walking,daycare', 38000, @currency, 5, NULL, 4.6, 27, 1),
-  (16, 'Hogar Pet Bogotá 8', 'Ambiente tranquilo para gatos.', @city, 4.7116, -74.0702, 'Cll 90 #14-18', 'gato', '{"mon":["09:00-18:00"],"sun":["10:00-12:00"]}', 'boarding', 42000, @currency, 4, NULL, 4.8, 19, 1),
-  (17, 'Hogar Pet Bogotá 9', 'Zona verde cercana para paseos.', @city, 4.7108, -74.0733, 'Av 68 #80-10', 'perro', '{"mon":["07:00-19:00"],"fri":["07:00-17:00"]}', 'walking,daycare,boarding', 48000, @currency, 4, NULL, 4.5, 22, 1),
-  (18, 'Hogar Pet Bogotá 10', 'Experiencia con razas pequeñas.', @city, 4.7101, -74.0705, 'Cra 11 #82-05', 'perro,gato', '{"mon":["08:00-18:00"],"sat":["09:00-13:00"]}', 'daycare,boarding', 37000, @currency, 3, NULL, 4.6, 15, 1);
+  (1,  'Hogar Pet Bogotá 1', 'Cuidado amoroso para perros y gatos.', @city, 4.7110, -74.0721, 'Cra 7 #10-20', 'perro,gato', '{"mon":["08:00-18:00"],"sat":["09:00-13:00"]}', 'hospedaje,paseo,guarderia_diurna', 45000, @currency, 3, NULL, 4.8, 23, 1),
+  (4,  'Hogar Pet Bogotá 2', 'Experiencia con perros senior.', @city, 4.7105, -74.0715, 'Cll 72 #15-33', 'perro', '{"mon":["08:00-20:00"],"sun":["10:00-14:00"]}', 'hospedaje,guarderia_diurna', 50000, @currency, 5, NULL, 4.6, 12, 1),
+  (5,  'Hogar Pet Bogotá 3', 'Paseos diarios y cuidado en casa.', @city, 4.7109, -74.0709, 'Av 19 #100-05', 'perro,gato', '{"mon":["07:00-19:00"],"sat":["09:00-12:00"]}', 'paseo,guarderia_diurna', 30000, @currency, 2, NULL, 4.5, 9, 1), 
+  (8,  'Hogar Pet Bogotá 4', 'Amplio apartamento, sin niños.', @city, 4.7102, -74.0727, 'Cll 26 #68-80', 'gato', '{"mon":["09:00-18:00"],"fri":["09:00-16:00"]}', 'hospedaje', 40000, @currency, 4, NULL, 4.9, 44, 1),
+  (11, 'Hogar Pet Bogotá 5', 'Patio cercado y cámaras.', @city, 4.7113, -74.0718, 'Cra 30 #45-12', 'perro', '{"mon":["06:30-18:30"],"sat":["08:00-12:00"]}', 'hospedaje,paseo', 55000, @currency, 6, NULL, 4.7, 31, 1),
+  (12, 'Hogar Pet Bogotá 6', 'Cuidado especializado post-operatorio.', @city, 4.7118, -74.0730, 'Cll 45 #20-90', 'perro,gato', '{"mon":["08:00-18:00"],"sun":["10:00-14:00"]}', 'guarderia_diurna', 35000, @currency, 3, NULL, 4.4, 8, 1),
+  (13, 'Hogar Pet Bogotá 7', 'Educador canino certificado.', @city, 4.7122, -74.0712, 'Cra 13 #85-30', 'perro', '{"mon":["08:00-20:00"],"sat":["09:00-13:00"]}', 'paseo,guarderia_diurna', 38000, @currency, 5, NULL, 4.6, 27, 1),
+  (16, 'Hogar Pet Bogotá 8', 'Ambiente tranquilo para gatos.', @city, 4.7116, -74.0702, 'Cll 90 #14-18', 'gato', '{"mon":["09:00-18:00"],"sun":["10:00-12:00"]}', 'hospedaje', 42000, @currency, 4, NULL, 4.8, 19, 1),
+  (17, 'Hogar Pet Bogotá 9', 'Zona verde cercana para paseos.', @city, 4.7108, -74.0733, 'Av 68 #80-10', 'perro', '{"mon":["07:00-19:00"],"fri":["07:00-17:00"]}', 'paseo,guarderia_diurna,hospedaje', 48000, @currency, 4, NULL, 4.5, 22, 1),
+  (18, 'Hogar Pet Bogotá 10', 'Experiencia con razas pequeñas.', @city, 4.7101, -74.0705, 'Cra 11 #82-05', 'perro,gato', '{"mon":["08:00-18:00"],"sat":["09:00-13:00"]}', 'guarderia_diurna,hospedaje', 37000, @currency, 3, NULL, 4.6, 15, 1);
 
 -- Products (shop) — consolidated here
 INSERT INTO products (name, slug, sku, price_cents, currency, stock, active, image_url, description)
