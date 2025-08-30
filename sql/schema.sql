@@ -53,6 +53,11 @@ CREATE TABLE IF NOT EXISTS pets (
   vaccine_card_url VARCHAR(255) DEFAULT NULL,
   qr_id VARCHAR(32) NOT NULL UNIQUE,
   nfc_id VARCHAR(32) DEFAULT NULL UNIQUE,
+  -- Adopciones
+  adoption_status ENUM('none','listed','pending','adopted') NOT NULL DEFAULT 'none',
+  adoption_fee_cents INT DEFAULT NULL,
+  adoption_desc TEXT DEFAULT NULL,
+  adoption_listed_at TIMESTAMP NULL DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NULL DEFAULT NULL,
   CONSTRAINT fk_pets_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE

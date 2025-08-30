@@ -631,6 +631,10 @@ app.get('/terms', (req, res) => {
 app.get('/privacy', (req, res) => {
   res.sendFile(path.join(publicDir, 'privacy.html'));
 });
+// Página pública de adopciones
+app.get('/adopt', (req, res) => {
+  res.sendFile(path.join(publicDir, 'adopt.html'));
+});
 // Blog: listado, editor y detalle (páginas)
 app.get('/blog', (req, res) => {
   res.sendFile(path.join(publicDir, 'blog.html'));
@@ -666,6 +670,75 @@ app.get('/api/shop/products', async (req, res) => {
   }
 });
 
+// -------- API pública de adopciones --------
+// Listado público de mascotas en adopción (paginado simple)
+app.get('/api/adoptions', async (req, res) => {
+  try {
+    const { q = '', city = '', species = '', offset = 0, limit = 50 } = req.query || {};
+    const off = Math.max(0, parseInt(offset, 10) || 0);
+    const lim = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const pool = getPool();
+    let sql = `SELECT p.id, p.name, p.species, p.breed, p.color, p.city, p.photo_url, p.adoption_fee_cents, p.adoption_desc, u.name AS owner_name
+                 FROM pets p
+                 LEFT JOIN users u ON u.id = p.owner_id
+                WHERE p.adoption_status = 'listed'`;
+    const args = [];
+    if (q) { sql += ' AND (p.name LIKE ? OR p.breed LIKE ? OR p.color LIKE ?)'; args.push('%'+q+'%', '%'+q+'%', '%'+q+'%'); }
+    if (city) { sql += ' AND p.city LIKE ?'; args.push('%'+city+'%'); }
+    if (species) { sql += ' AND p.species = ?'; args.push(species); }
+  sql += ' ORDER BY (p.adoption_listed_at IS NULL), p.adoption_listed_at DESC, p.created_at DESC LIMIT ? OFFSET ?';
+    args.push(lim, off);
+    const [rows] = await pool.query(sql, args);
+    res.json({ pets: rows, offset: off, limit: lim });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Propietario: listar tus mascotas adoptables y todas para selección
+app.get('/api/me/adoptions', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const pool = getPool();
+    const [allPets] = await pool.query('SELECT id, name, species, city, photo_url, adoption_status FROM pets WHERE owner_id = ? ORDER BY created_at DESC', [userId]);
+    res.json({ pets: allPets });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Propietario: publicar mascota en adopción (seleccionar existente o crear nueva básica)
+app.post('/api/me/adoptions', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const { pet_id, name, species, breed, color, city, photo_url, adoption_fee_cents, adoption_desc } = req.body || {};
+    const pool = getPool();
+    let targetPetId = pet_id || null;
+    if (!targetPetId) {
+      if (!name || !city) return res.status(400).json({ error: 'name y city son obligatorios si no se selecciona mascota existente' });
+      const [r] = await pool.query(
+        'INSERT INTO pets (owner_id, name, species, breed, color, city, status, photo_url, adoption_status, adoption_fee_cents, adoption_desc, adoption_listed_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, "home", ?, "listed", ?, ?, NOW(), NOW())',
+        [userId, name, species || null, breed || null, color || null, city, photo_url || null, adoption_fee_cents ?? null, adoption_desc || null]
+      );
+      targetPetId = r.insertId;
+    } else {
+      // Verify ownership
+      const [rows] = await pool.query('SELECT id FROM pets WHERE id = ? AND owner_id = ? LIMIT 1', [targetPetId, userId]);
+      if (!rows.length) return res.status(404).json({ error: 'mascota no encontrada' });
+      await pool.query('UPDATE pets SET adoption_status = "listed", adoption_fee_cents = ?, adoption_desc = ?, adoption_listed_at = NOW(), updated_at = NOW() WHERE id = ?', [adoption_fee_cents ?? null, adoption_desc || null, targetPetId]);
+    }
+    res.status(201).json({ id: targetPetId });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Propietario: cambiar estado de adopción
+app.put('/api/me/adoptions/:petId', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub; const { petId } = req.params; const { adoption_status } = req.body || {};
+    if (!['none','listed','pending','adopted'].includes(String(adoption_status))) return res.status(400).json({ error: 'estado invalido' });
+    const pool = getPool();
+    const [rows] = await pool.query('SELECT id FROM pets WHERE id = ? AND owner_id = ? LIMIT 1', [petId, userId]);
+    if (!rows.length) return res.status(404).json({ error: 'mascota no encontrada' });
+    await pool.query('UPDATE pets SET adoption_status = ?, updated_at = NOW() WHERE id = ?', [adoption_status, petId]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
 // -------- PetBnB API (sitters, bookings) --------
 // Listado de cuidadores públicos (filtros básicos)
 app.get('/api/bnb/sitters', async (req, res) => {

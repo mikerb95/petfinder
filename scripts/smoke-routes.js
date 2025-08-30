@@ -22,7 +22,8 @@ server.listen(0, async () => {
     results.push(await check('/'));
     results.push(await check('/m'));
     results.push(await check('/tech'));
-    results.push(await check('/dashboard'));
+  results.push(await check('/dashboard'));
+  results.push(await check('/adopt'));
   results.push(await check('/bnb'));
     // shop
     results.push(await check('/shop'));

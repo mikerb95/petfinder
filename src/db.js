@@ -224,6 +224,32 @@ async function ensureUsersReferralColumns() {
 
 module.exports.ensureUsersReferralColumns = ensureUsersReferralColumns;
 
+/** Ensure adoption columns on pets table. */
+async function ensurePetsAdoptionColumns() {
+  try {
+    const p = getPool();
+    const [cols] = await p.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'pets'`,
+      [config.db.database]
+    );
+    const names = new Set((cols || []).map(c => c.COLUMN_NAME));
+    const alters = [];
+    if (!names.has('adoption_status')) alters.push("ADD COLUMN adoption_status ENUM('none','listed','pending','adopted') NOT NULL DEFAULT 'none' AFTER status");
+    if (!names.has('adoption_fee_cents')) alters.push("ADD COLUMN adoption_fee_cents INT NULL AFTER adoption_status");
+    if (!names.has('adoption_desc')) alters.push("ADD COLUMN adoption_desc TEXT NULL AFTER adoption_fee_cents");
+    if (!names.has('adoption_listed_at')) alters.push("ADD COLUMN adoption_listed_at TIMESTAMP NULL AFTER adoption_desc");
+    if (alters.length) {
+      await p.query(`ALTER TABLE pets ${alters.join(', ')}`);
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Schema ensure (pets adoption) warning:', err.message);
+    }
+  }
+}
+
+module.exports.ensurePetsAdoptionColumns = ensurePetsAdoptionColumns;
+
 /** Ensure products table exists for the shop CMS. */
 async function ensureProductsTable() {
   try {

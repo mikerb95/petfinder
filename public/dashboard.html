@@ -139,7 +139,10 @@
 
         <section class="feature-item" style="margin:16px 0;">
           <h3>Mascotas</h3>
-          <p><button class="button" id="showPetFormBtn" type="button">Agregar nueva mascota</button></p>
+          <p>
+            <button class="button" id="showPetFormBtn" type="button">Agregar nueva mascota</button>
+            <button class="button button-primary" id="openAdoptModal" type="button" style="margin-left:8px;">Dar en adopción</button>
+          </p>
           <form id="petForm" style="display:none; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr));">
             <input type="text" id="petName" placeholder="Nombre de la mascota" required />
             <div class="demo-help">Ej.: Rocky, Luna, Max</div>
@@ -203,6 +206,66 @@
           </form>
           <div id="pets" style="margin-top:16px; display:grid; gap:12px;"></div>
         </section>
+
+        <!-- Adoption Modal -->
+        <div id="adoptModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="adoptTitle">
+          <div class="modal">
+            <header>
+              <h3 id="adoptTitle" style="margin:0;">Publicar mascota en adopción</h3>
+              <button id="adoptClose" class="button secondary" type="button" aria-label="Cerrar">Cerrar</button>
+            </header>
+            <div class="body">
+              <div class="demo-help" style="margin-bottom:8px;">Selecciona una de tus mascotas o crea una nueva ficha básica para publicarla en <a href="/adopt" target="_blank" rel="noopener">/adopt</a>.</div>
+              <form id="adoptForm" class="grid">
+                <div style="grid-column: 1 / -1;">
+                  <label class="demo-label" for="adoptPetSel">Seleccionar mascota existente</label>
+                  <select id="adoptPetSel" class="input"><option value="">— Crear nueva —</option></select>
+                </div>
+                <div>
+                  <label class="demo-label" for="adoptName">Nombre</label>
+                  <input id="adoptName" class="input" type="text" placeholder="Nombre" />
+                </div>
+                <div>
+                  <label class="demo-label" for="adoptCity">Ciudad</label>
+                  <input id="adoptCity" class="input" type="text" placeholder="Ciudad" />
+                </div>
+                <div>
+                  <label class="demo-label" for="adoptSpecies">Especie</label>
+                  <select id="adoptSpecies" class="input">
+                    <option value="">—</option>
+                    <option value="perro">Perro</option>
+                    <option value="gato">Gato</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="demo-label" for="adoptBreed">Raza</label>
+                  <input id="adoptBreed" class="input" type="text" placeholder="Raza" />
+                </div>
+                <div>
+                  <label class="demo-label" for="adoptColor">Color</label>
+                  <input id="adoptColor" class="input" type="text" placeholder="Color" />
+                </div>
+                <div style="grid-column: 1 / -1;">
+                  <label class="demo-label" for="adoptPhoto">Foto (URL)</label>
+                  <input id="adoptPhoto" class="input" type="url" placeholder="https://…" />
+                </div>
+                <div>
+                  <label class="demo-label" for="adoptFee">Cuota de adopción (COP)</label>
+                  <input id="adoptFee" class="input" type="number" min="0" step="1000" placeholder="50000" />
+                </div>
+                <div style="grid-column: 1 / -1;">
+                  <label class="demo-label" for="adoptDesc">Descripción</label>
+                  <textarea id="adoptDesc" class="input" rows="3" placeholder="Cuenta sobre su carácter, vacunas, esterilización, etc."></textarea>
+                </div>
+              </form>
+              <div id="adoptMsg" class="demo-help" role="status" aria-live="polite" style="margin-top:8px;"></div>
+            </div>
+            <div class="footer">
+              <button id="adoptCancel" class="button secondary" type="button">Cancelar</button>
+              <button id="adoptPublish" class="button" type="button">Publicar</button>
+            </div>
+          </div>
+        </div>
 
         <!-- Edit Profile Modal -->
         <div id="profileModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
@@ -850,199 +913,71 @@
           loadPets();
         });
 
-        // --- Typeahead de raza (perro/gato) ---
-        const DOG_BREEDS = [
-          'Criollo', 'Labrador retriever', 'Golden retriever', 'Pastor alemán', 'Bulldog francés', 'Bulldog', 'Caniche (Poodle)', 'Beagle', 'Rottweiler', 'Yorkshire terrier', 'Bóxer', 'Dóberman', 'Shih tzu', 'Pug (Carlino)', 'Chihuahua', 'Border collie', 'Husky siberiano', 'Pit bull', 'Cocker spaniel', 'Maltés', 'Teckel (Salchicha)', 'Pastor australiano', 'Boston terrier', 'Gran danés', 'Bichón frisé', 'Cane corso', 'Akita', 'Samoyedo', 'Shar pei', 'Weimaraner', 'Basset hound', 'Terranova', 'Terrier escocés', 'Airedale terrier', 'Whippet', 'Galgo', 'Jack russell terrier', 'Pointer', 'Staffordshire bull terrier', 'Springer spaniel inglés'
-        ];
-        const CAT_BREEDS = [
-          'Criollo', 'Siamés', 'Persa', 'Maine coon', 'Bengala', 'Sphynx (Esfinge)', 'Británico de pelo corto', 'Fold escocés', 'Ragdoll', 'Abisinio', 'Azul ruso', 'Bosque de Noruega', 'Savannah', 'Bombay', 'Americano de pelo corto', 'Oriental de pelo corto', 'Birmano', 'Cartujo', 'Himalayo', 'Angora turco', 'Manx', 'Devon rex', 'Cornish rex', 'Exótico de pelo corto'
-        ];
+        // Adoption modal wiring
+        const adoptModal = document.getElementById('adoptModal');
+        const adoptOpen = document.getElementById('openAdoptModal');
+        const adoptClose = document.getElementById('adoptClose');
+        const adoptCancel = document.getElementById('adoptCancel');
+        const adoptPublish = document.getElementById('adoptPublish');
+        const adoptMsg = document.getElementById('adoptMsg');
+        const adoptPetSel = document.getElementById('adoptPetSel');
+        const adoptName = document.getElementById('adoptName');
+        const adoptCity = document.getElementById('adoptCity');
+        const adoptSpecies = document.getElementById('adoptSpecies');
+        const adoptBreed = document.getElementById('adoptBreed');
+        const adoptColor = document.getElementById('adoptColor');
+        const adoptPhoto = document.getElementById('adoptPhoto');
+        const adoptFee = document.getElementById('adoptFee');
+        const adoptDesc = document.getElementById('adoptDesc');
 
-        function getBreedListForSpecies(spec) {
-          if ((spec || '').toLowerCase() === 'gato') return CAT_BREEDS;
-          if ((spec || '').toLowerCase() === 'perro') return DOG_BREEDS;
-          return DOG_BREEDS.concat(CAT_BREEDS);
+        function openAdopt(){ adoptModal.style.display='flex'; adoptMsg.textContent=''; loadAdoptPets(); }
+        function closeAdopt(){ adoptModal.style.display='none'; }
+
+        async function loadAdoptPets(){
+          try {
+            const res = await fetch('/api/me/adoptions', { headers: { 'Authorization': 'Bearer ' + token } });
+            if (!res.ok) throw new Error('No se pudieron cargar tus mascotas');
+            const data = await res.json();
+            // Fill select
+            adoptPetSel.innerHTML = '<option value="">— Crear nueva —</option>' + (data.pets||[]).map(p=>`<option value="${p.id}">${p.name} (${p.species||''} • ${p.city||''})</option>`).join('');
+          } catch (e) {
+            adoptMsg.textContent = e.message || 'Error al cargar listado';
+          }
         }
 
-        function setupTypeahead(inputEl, listEl, speciesProvider) {
-          if (!inputEl || !listEl) return;
-          let items = [];
-          let activeIndex = -1;
-          function close() { listEl.style.display = 'none'; inputEl.setAttribute('aria-expanded', 'false'); activeIndex = -1; }
-          function open() { listEl.style.display = items.length ? 'block' : 'none'; inputEl.setAttribute('aria-expanded', listEl.style.display === 'block' ? 'true' : 'false'); }
-          function render() {
-            listEl.innerHTML = '';
-            const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            const q = norm((inputEl.value || '').trim());
-            if (!q) { items = []; close(); return; }
-            const src = getBreedListForSpecies(speciesProvider());
-            const seen = new Set();
-            items = src
-              .filter(b => norm(b).includes(q))
-              .filter(b => { const k = norm(b); if (seen.has(k)) return false; seen.add(k); return true; })
-              .slice(0, 12);
-            if (!items.length) { close(); return; }
-            for (let i = 0; i < items.length; i++) {
-              const li = document.createElement('li');
-              li.id = listEl.id + '-' + i;
-              li.setAttribute('role', 'option');
-              li.textContent = items[i];
-              li.addEventListener('mousedown', (ev) => { ev.preventDefault(); inputEl.value = items[i]; close(); });
-              listEl.appendChild(li);
+        adoptPetSel?.addEventListener('change', ()=>{
+          const creating = adoptPetSel.value === '';
+          // When selecting existing pet, allow fee/desc only; otherwise allow full entry
+          adoptName.disabled = !creating; adoptCity.disabled = !creating; adoptSpecies.disabled = !creating;
+          adoptBreed.disabled = !creating; adoptColor.disabled = !creating; adoptPhoto.disabled = !creating;
+        });
+
+        adoptOpen?.addEventListener('click', openAdopt);
+        adoptClose?.addEventListener('click', closeAdopt);
+        adoptCancel?.addEventListener('click', closeAdopt);
+        adoptModal?.addEventListener('click', (e)=>{ if (e.target === adoptModal) closeAdopt(); });
+
+        adoptPublish?.addEventListener('click', async ()=>{
+          adoptMsg.textContent='';
+          const body = { adoption_fee_cents: adoptFee.value ? Math.round(Number(adoptFee.value)*100) : null, adoption_desc: adoptDesc.value || null };
+          if (adoptPetSel.value) {
+            // publish existing
+            body.pet_id = Number(adoptPetSel.value);
+          } else {
+            // create new
+            if (!adoptName.value || !adoptCity.value) { adoptMsg.textContent='Nombre y ciudad son obligatorios.'; return; }
+            body.name = adoptName.value; body.city = adoptCity.value; body.species = adoptSpecies.value || null;
+            body.breed = adoptBreed.value || null; body.color = adoptColor.value || null; body.photo_url = adoptPhoto.value || null;
+          }
+          try {
+            const res = await fetch('/api/me/adoptions', { method:'POST', headers:{ 'Authorization': 'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+            if (!res.ok) {
+              const e = await res.json().catch(()=>({})); throw new Error(e.error || 'No se pudo publicar');
             }
-            activeIndex = 0; markActive(); open();
-          }
-          function markActive() {
-            const children = Array.from(listEl.children);
-            children.forEach((el, idx) => el.setAttribute('aria-selected', String(idx === activeIndex)));
-            if (children[activeIndex]) children[activeIndex].scrollIntoView({ block: 'nearest' });
-          }
-          function move(delta) {
-            if (!items.length) return; activeIndex = Math.max(0, Math.min(items.length - 1, activeIndex + delta)); markActive();
-          }
-          inputEl.addEventListener('input', render);
-          inputEl.addEventListener('focus', render);
-          inputEl.addEventListener('blur', () => setTimeout(close, 120));
-          inputEl.addEventListener('keydown', (ev) => {
-            if (listEl.style.display !== 'block') return;
-            if (ev.key === 'ArrowDown') { ev.preventDefault(); move(1); }
-            else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
-            else if (ev.key === 'Enter') { if (activeIndex >= 0 && items[activeIndex]) { ev.preventDefault(); inputEl.value = items[activeIndex]; close(); } }
-            else if (ev.key === 'Escape') { close(); }
-          });
-        }
-
-        // Wire create form typeahead
-        const breedInput = document.getElementById('petBreed');
-        const breedList = document.getElementById('petBreedList');
-        const speciesSelect = document.getElementById('petSpecies');
-        setupTypeahead(breedInput, breedList, () => speciesSelect?.value || '');
-        speciesSelect?.addEventListener('change', () => { if (breedInput && breedInput.value) { /* re-render options based on species */ const ev = new Event('input'); breedInput.dispatchEvent(ev); } });
-
-        // Wire edit modal typeahead
-        const e_breed_list = document.getElementById('e_breedList');
-        setupTypeahead(e_breed, e_breed_list, () => e_species?.value || '');
-        e_species?.addEventListener('change', () => { if (e_breed && e_breed.value) { const ev = new Event('input'); e_breed.dispatchEvent(ev); } });
-
-        // City dataset and wiring (profile + pets)
-        (function setupCities(){
-          const DATA = {
-            '+57': { co: true, deps: {
-              'Antioquia': ['Medellín','Bello','Envigado','Itagüí','Rionegro'],
-              'Cundinamarca': ['Bogotá','Soacha','Chía','Zipaquirá'],
-              'Valle del Cauca': ['Cali','Palmira','Buenaventura','Tuluá'],
-              'Atlántico': ['Barranquilla','Soledad','Malambo'],
-              'Santander': ['Bucaramanga','Floridablanca','Girón','Piedecuesta'],
-              'Bolívar': ['Cartagena','Turbaco'],
-              'Risaralda': ['Pereira','Dosquebradas'],
-              'Caldas': ['Manizales','Villamaría'],
-              'Tolima': ['Ibagué','Espinal'],
-              'Nariño': ['Pasto','Ipiales']
-            } },
-            '+52': ['Ciudad de México','Guadalajara','Monterrey','Puebla','Tijuana','León','Querétaro','Mérida','Cancún'],
-            '+54': ['Buenos Aires','Córdoba','Rosario','Mendoza','La Plata','Mar del Plata'],
-            '+56': ['Santiago','Valparaíso','Viña del Mar','Concepción','La Serena','Antofagasta'],
-            '+51': ['Lima','Arequipa','Trujillo','Chiclayo','Piura','Cusco'],
-            '+34': ['Madrid','Barcelona','Valencia','Sevilla','Zaragoza','Málaga','Murcia','Palma'],
-            '+1': ['New York','Los Angeles','Chicago','Miami','Houston','Dallas','San Francisco','Seattle'],
-            '+593': ['Quito','Guayaquil','Cuenca','Santo Domingo','Machala'],
-            '+598': ['Montevideo','Salto','Paysandú','Las Piedras','Rivera'],
-            '+505': ['Managua','León','Masaya','Chinandega','Matagalpa'],
-            '+507': ['Ciudad de Panamá','Colón','David','Santiago'],
-            '+58': ['Caracas','Maracaibo','Valencia','Barquisimeto','Maracay']
-          };
-          function wireCity(ccSel, deptWrap, deptSel, citySel, otherInput, prefill){
-            function renderCities(){
-              const code = ccSel?.value || '';
-              otherInput.style.display = 'none'; otherInput.value = '';
-              citySel.innerHTML = '';
-              if (DATA[code] && DATA[code].co) {
-                deptWrap.style.display = '';
-                const deps = Object.keys(DATA[code].deps);
-                deptSel.innerHTML = deps.map(d=>`<option value="${d}">${d}</option>`).join('');
-                const first = deptSel.value || deps[0];
-                const cities = DATA[code].deps[first] || [];
-                citySel.innerHTML = cities.map(c=>`<option value="${c}">${c}</option>`).join('') + '<option value="other">Otra…</option>';
-              } else {
-                deptWrap.style.display = 'none';
-                const cities = Array.isArray(DATA[code]) ? DATA[code] : [];
-                citySel.innerHTML = cities.map(c=>`<option value="${c}">${c}</option>`).join('') + '<option value="other">Otra…</option>';
-              }
-              if (prefill && prefill.value) {
-                // try to select prefill city if exists
-                const opt = Array.from(citySel.options).find(o => o.value === prefill.value);
-                if (opt) citySel.value = prefill.value; else { citySel.value = 'other'; otherInput.style.display = ''; otherInput.value = prefill.value; }
-                prefill.value = '';
-              }
-            }
-            function renderCitiesForDep(){
-              const code = ccSel?.value || '';
-              if (!(DATA[code] && DATA[code].co)) return;
-              const cities = DATA[code].deps[deptSel.value] || [];
-              citySel.innerHTML = cities.map(c=>`<option value="${c}">${c}</option>`).join('') + '<option value="other">Otra…</option>';
-            }
-            ccSel?.addEventListener('change', renderCities);
-            deptSel?.addEventListener('change', renderCitiesForDep);
-            citySel?.addEventListener('change', ()=>{ otherInput.style.display = (citySel.value==='other') ? '' : 'none'; if (citySel.value !== 'other') otherInput.value = ''; });
-            renderCities();
-          }
-          // Wire profile
-          wireCity(pf_cc, document.getElementById('pf_dept_wrap'), document.getElementById('pf_dept'), document.getElementById('pf_city_sel'), document.getElementById('pf_city_other'), { value: (window.__prefillCity || '') });
-          // Wire pet create (uses phone country from profile cc as guidance)
-          wireCity(pf_cc, document.getElementById('petDeptWrap'), document.getElementById('petDept'), document.getElementById('petCitySel'), document.getElementById('petCityOther'), { value: '' });
-          // Wire pet edit
-          wireCity(pf_cc, document.getElementById('e_dept_wrap'), document.getElementById('e_dept'), document.getElementById('e_city_sel'), document.getElementById('e_city_other'), { value: '' });
-        })();
-
-        // --- Mensajes de validacion en español (HTML5) ---
-        (function attachSpanishValidation(){
-          function normalize(s){ return (s||'').toLowerCase(); }
-          function setMessage(el){
-            el.setCustomValidity('');
-            const v = el.validity;
-            if (v.valid) return;
-            let msg = '';
-            if (v.valueMissing) msg = 'Este campo es obligatorio';
-            else if (v.typeMismatch) {
-              const type = normalize(el.getAttribute('type'));
-              if (type === 'email') msg = 'Ingresa un correo electrónico válido';
-              else if (type === 'url') msg = 'Ingresa una URL válida (https://...)';
-              else if (type === 'tel') msg = 'Ingresa un número de teléfono válido';
-              else msg = 'Ingresa un valor válido';
-            } else if (v.patternMismatch) msg = 'El formato no es válido';
-            else if (v.tooShort) msg = 'Debe tener al menos ' + (el.minLength || '') + ' caracteres';
-            else if (v.tooLong) msg = 'Debe tener como máximo ' + (el.maxLength || '') + ' caracteres';
-            else if (v.rangeUnderflow) msg = 'El valor debe ser al menos ' + (el.min || '');
-            else if (v.rangeOverflow) msg = 'El valor debe ser como máximo ' + (el.max || '');
-            else if (v.stepMismatch) msg = 'Selecciona un valor válido';
-            else if (v.badInput) msg = 'Ingresa un valor válido';
-            el.setCustomValidity(msg);
-          }
-          const all = document.querySelectorAll('input, select, textarea');
-          all.forEach(el => {
-            el.addEventListener('invalid', (e) => setMessage(e.target));
-            el.addEventListener('input', (e) => e.target.setCustomValidity(''));
-          });
-        })();
-        // Wire segmented control (create)
-        (function(){
-          const hidden = document.getElementById('petStatus');
-          const bHome = document.getElementById('petStatusHome');
-          const bLost = document.getElementById('petStatusLost');
-          function set(val){ if (hidden) hidden.value = val; if (val==='home'){ bHome?.classList.add('active'); bHome?.setAttribute('aria-pressed','true'); bLost?.classList.remove('active'); bLost?.setAttribute('aria-pressed','false'); } else { bLost?.classList.add('active'); bLost?.setAttribute('aria-pressed','true'); bHome?.classList.remove('active'); bHome?.setAttribute('aria-pressed','false'); } }
-          bHome?.addEventListener('click', () => set('home'));
-          bLost?.addEventListener('click', () => set('lost'));
-        })();
-
-        // Wire segmented control (edit)
-        ;(function(){
-          const hidden = document.getElementById('e_status');
-          const bHome = document.getElementById('e_status_home');
-          const bLost = document.getElementById('e_status_lost');
-          function set(val){ if (hidden) hidden.value = val; if (val==='home'){ bHome?.classList.add('active'); bHome?.setAttribute('aria-pressed','true'); bLost?.classList.remove('active'); bLost?.setAttribute('aria-pressed','false'); } else { bLost?.classList.add('active'); bLost?.setAttribute('aria-pressed','true'); bHome?.classList.remove('active'); bHome?.setAttribute('aria-pressed','false'); } }
-          bHome?.addEventListener('click', () => set('home'));
-          bLost?.addEventListener('click', () => set('lost'));
-        })();
+            adoptMsg.textContent='Publicado. Ver en /adopt';
+            setTimeout(closeAdopt, 800);
+          } catch (e) { adoptMsg.textContent = e.message || 'Error'; }
+        });
       })();
     </script>
   </body>
