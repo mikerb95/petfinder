@@ -672,7 +672,7 @@ app.get('/api/bnb/sitters', async (req, res) => {
   try {
     const { city = '', service = '' } = req.query || {};
     const pool = getPool();
-  let sql = 'SELECT id, name, city, lat, lng, address, services, experience_years, photo_url, rating, reviews_count FROM bnb_sitters WHERE active = 1';
+  let sql = 'SELECT id, name, city, lat, lng, address, pet_types, hours_json, services, price_cents, currency, experience_years, photo_url, rating, reviews_count FROM bnb_sitters WHERE active = 1';
     const args = [];
     if (city) { sql += ' AND city LIKE ?'; args.push('%' + city + '%'); }
   if (service) { sql += " AND FIND_IN_SET(?, REPLACE(services, ' ', '')) > 0"; args.push(service); }

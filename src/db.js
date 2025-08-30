@@ -625,7 +625,7 @@ async function ensureBnbSchema() {
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX(city), INDEX(active), INDEX(rating), INDEX(user_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
-  // Ensure geo columns exist for mapping (lat/lng + address)
+  // Ensure extra columns exist (geo + pet types + hours)
   try {
     const [cols] = await p.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'bnb_sitters'`,
@@ -636,12 +636,14 @@ async function ensureBnbSchema() {
     if (!names.has('lat')) alters.push("ADD COLUMN lat DECIMAL(9,6) NULL AFTER city");
     if (!names.has('lng')) alters.push("ADD COLUMN lng DECIMAL(9,6) NULL AFTER lat");
     if (!names.has('address')) alters.push("ADD COLUMN address VARCHAR(255) NULL AFTER lng");
+    if (!names.has('pet_types')) alters.push("ADD COLUMN pet_types VARCHAR(255) NULL AFTER address");
+    if (!names.has('hours_json')) alters.push("ADD COLUMN hours_json TEXT NULL AFTER pet_types");
     if (alters.length) {
       await p.query(`ALTER TABLE bnb_sitters ${alters.join(', ')}`);
     }
   } catch (e) {
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('Schema ensure (bnb_sitters geo) warning:', e.message);
+      console.warn('Schema ensure (bnb_sitters extras) warning:', e.message);
     }
   }
   // Availability (optional, simple ranges)
