@@ -1041,6 +1041,60 @@
             setTimeout(closeAdopt, 800);
           } catch (e) { adoptMsg.textContent = e.message || 'Error'; }
         });
+
+        // Sell (Classifieds) modal wiring
+        const sellModal = document.getElementById('sellModal');
+        const openSellModal = document.getElementById('openSellModal');
+        const sellClose = document.getElementById('sellClose');
+        const sellCancel = document.getElementById('sellCancel');
+        const sellPublish = document.getElementById('sellPublish');
+        const sellMsg = document.getElementById('sellMsg');
+        const s_title = document.getElementById('s_title');
+        const s_price = document.getElementById('s_price');
+        const s_city = document.getElementById('s_city');
+        const s_category = document.getElementById('s_category');
+        const s_condition = document.getElementById('s_condition');
+        const s_photo = document.getElementById('s_photo');
+        const s_desc = document.getElementById('s_desc');
+        const myClassifieds = document.getElementById('myClassifieds');
+
+        function openSell(){ sellMsg.textContent=''; sellModal.style.display='flex'; listMine(); setTimeout(()=>{ s_title?.focus(); },0); }
+        function closeSell(){ sellModal.style.display='none'; }
+        async function listMine(){
+          try{
+            const res = await fetch('/api/me/classifieds', { headers:{ 'Authorization':'Bearer ' + token } });
+            const data = await res.json().catch(()=>({classifieds:[]}));
+            const arr = data.classifieds || [];
+            if (!arr.length) { myClassifieds.innerHTML = '<div class="demo-help">Aún no tienes publicaciones.</div>'; return; }
+            myClassifieds.innerHTML = '<h4>Mis publicaciones</h4>' + arr.map(x=>`<div class="feature-item"><strong>${x.title}</strong> — $${(x.price_cents/100).toLocaleString('es-CO')} ${x.currency||'COP'} <span style="color:#6b7280">${x.status}</span></div>`).join('');
+          } catch{ myClassifieds.innerHTML = ''; }
+        }
+        openSellModal?.addEventListener('click', openSell);
+        sellClose?.addEventListener('click', closeSell);
+        sellCancel?.addEventListener('click', closeSell);
+        sellModal?.addEventListener('click', (e)=>{ if (e.target === sellModal) closeSell(); });
+        document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && sellModal.style.display==='flex') closeSell(); });
+        sellPublish?.addEventListener('click', async ()=>{
+          sellMsg.textContent='';
+          const payload = {
+            title: s_title?.value?.trim(),
+            price_cents: s_price?.value ? Math.round(Number(s_price.value)*100) : 0,
+            city: s_city?.value?.trim() || undefined,
+            category: s_category?.value || undefined,
+            condition: s_condition?.value || undefined,
+            photo_url: s_photo?.value?.trim() || undefined,
+            description: s_desc?.value?.trim() || undefined,
+            currency: 'COP'
+          };
+          if (!payload.title) { sellMsg.textContent = 'El título es obligatorio'; sellMsg.style.color = '#fca5a5'; return; }
+          try {
+            const res = await fetch('/api/classifieds', { method:'POST', headers:{ 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+            const data = await res.json().catch(()=>({}));
+            if (!res.ok) throw new Error(data?.error || 'No se pudo publicar');
+            sellMsg.textContent = 'Publicado'; sellMsg.style.color = '#22c55e';
+            listMine();
+          } catch(e){ sellMsg.textContent = e.message || 'Error'; sellMsg.style.color = '#fca5a5'; }
+        });
       })();
     </script>
   </body>

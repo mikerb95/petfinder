@@ -612,3 +612,32 @@ CREATE TABLE IF NOT EXISTS bnb_payouts (
   status ENUM('pending','paid','failed') NOT NULL DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- =============================
+-- Sección Clasificados (venta entre usuarios)
+-- =============================
+
+CREATE TABLE IF NOT EXISTS classifieds (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  title VARCHAR(160) NOT NULL,
+  category VARCHAR(80) DEFAULT NULL,
+  condition ENUM('nuevo','como_nuevo','buen_estado','usado') NOT NULL DEFAULT 'buen_estado',
+  description TEXT DEFAULT NULL,
+  price_cents INT NOT NULL DEFAULT 0,
+  currency VARCHAR(3) NOT NULL DEFAULT 'COP',
+  city VARCHAR(120) DEFAULT NULL,
+  photo_url VARCHAR(500) DEFAULT NULL,
+  status ENUM('active','sold','hidden') NOT NULL DEFAULT 'active',
+  views INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS classified_images (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  classified_id BIGINT NOT NULL,
+  image_url VARCHAR(500) NOT NULL,
+  position INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
