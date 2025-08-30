@@ -69,6 +69,36 @@ VALUES
   (13,'Socialización de cachorros', 'socializacion-cachorros', 'Tips iniciales.', 'Contenido demo...', NULL, 'published', NOW()),
   (16,'Cuidados para gatos senior', 'cuidados-gatos-senior', 'Atención especial.', 'Contenido demo...', NULL, 'published', NOW());
 
+-- Blog categories and tags (consolidated here)
+INSERT IGNORE INTO blog_categories (name, slug, description) VALUES
+ ('Cuidado', 'cuidado', 'Consejos de cuidado y salud'),
+ ('Adiestramiento', 'adiestramiento', 'Entrenamiento y comportamiento');
+
+INSERT IGNORE INTO blog_tags (name, slug) VALUES
+ ('perros', 'perros'), ('gatos', 'gatos'), ('salud', 'salud'), ('alimentacion', 'alimentacion'), ('comportamiento', 'comportamiento');
+
+-- Map our demo posts to categories
+INSERT INTO blog_post_categories (post_id, category_id)
+SELECT bp.id, bc.id FROM blog_posts bp, blog_categories bc
+ WHERE bp.slug IN ('cuidar-perro-bogota','cuidados-gatos-senior') AND bc.slug = 'cuidado';
+INSERT INTO blog_post_categories (post_id, category_id)
+SELECT bp.id, bc.id FROM blog_posts bp, blog_categories bc
+ WHERE bp.slug IN ('socializacion-cachorros') AND bc.slug = 'adiestramiento';
+
+-- Tag mappings for our demo posts
+INSERT INTO blog_post_tags (post_id, tag_id)
+SELECT bp.id, bt.id FROM blog_posts bp, blog_tags bt WHERE bp.slug = 'cuidar-perro-bogota' AND bt.slug IN ('perros','salud');
+INSERT INTO blog_post_tags (post_id, tag_id)
+SELECT bp.id, bt.id FROM blog_posts bp, blog_tags bt WHERE bp.slug = 'alimentacion-gatos-criollos' AND bt.slug IN ('gatos','alimentacion');
+INSERT INTO blog_post_tags (post_id, tag_id)
+SELECT bp.id, bt.id FROM blog_posts bp, blog_tags bt WHERE bp.slug = 'paseos-seguros-parques' AND bt.slug IN ('perros');
+INSERT INTO blog_post_tags (post_id, tag_id)
+SELECT bp.id, bt.id FROM blog_posts bp, blog_tags bt WHERE bp.slug = 'vacunacion-al-dia' AND bt.slug IN ('salud');
+INSERT INTO blog_post_tags (post_id, tag_id)
+SELECT bp.id, bt.id FROM blog_posts bp, blog_tags bt WHERE bp.slug = 'socializacion-cachorros' AND bt.slug IN ('perros','comportamiento');
+INSERT INTO blog_post_tags (post_id, tag_id)
+SELECT bp.id, bt.id FROM blog_posts bp, blog_tags bt WHERE bp.slug = 'cuidados-gatos-senior' AND bt.slug IN ('gatos','salud');
+
 -- Classifieds: 10 items across various users
 INSERT INTO classifieds (user_id, title, category, `condition`, description, price_cents, currency, city, photo_url, status)
 VALUES
@@ -98,5 +128,14 @@ VALUES
   (16, 'Hogar Pet Bogotá 8', 'Ambiente tranquilo para gatos.', @city, 4.7116, -74.0702, 'Cll 90 #14-18', 'gato', '{"mon":["09:00-18:00"],"sun":["10:00-12:00"]}', 'boarding', 42000, @currency, 4, NULL, 4.8, 19, 1),
   (17, 'Hogar Pet Bogotá 9', 'Zona verde cercana para paseos.', @city, 4.7108, -74.0733, 'Av 68 #80-10', 'perro', '{"mon":["07:00-19:00"],"fri":["07:00-17:00"]}', 'walking,daycare,boarding', 48000, @currency, 4, NULL, 4.5, 22, 1),
   (18, 'Hogar Pet Bogotá 10', 'Experiencia con razas pequeñas.', @city, 4.7101, -74.0705, 'Cra 11 #82-05', 'perro,gato', '{"mon":["08:00-18:00"],"sat":["09:00-13:00"]}', 'daycare,boarding', 37000, @currency, 3, NULL, 4.6, 15, 1);
+
+-- Products (shop) — consolidated here
+INSERT INTO products (name, slug, sku, price_cents, currency, stock, active, image_url, description)
+VALUES
+  ('Collar QR — Azul', 'collar-qr-azul', 'COL-QR-AZUL', 49900, 'COP', 50, 1, NULL, 'Collar para perro con placa QR en color azul.'),
+  ('Collar QR — Rosa', 'collar-qr-rosa', 'COL-QR-ROSA', 49900, 'COP', 40, 1, NULL, 'Collar para perro con placa QR en color rosa.'),
+  ('Placa QR — Acero', 'placa-qr-acero', 'PLA-QR-ACERO', 29900, 'COP', 100, 1, NULL, 'Placa de identificación con QR en acero inoxidable.'),
+  ('Tag NFC — Llavero', 'tag-nfc-llavero', 'TAG-NFC-LLA', 39900, 'COP', 60, 1, NULL, 'Tag NFC en formato llavero para lectura rápida.'),
+  ('Kit QR + NFC', 'kit-qr-nfc', 'KIT-QR-NFC', 79900, 'COP', 30, 1, NULL, 'Kit combinado de placa QR y tag NFC.');
 
 COMMIT;
