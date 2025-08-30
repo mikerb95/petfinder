@@ -672,10 +672,10 @@ app.get('/api/bnb/sitters', async (req, res) => {
   try {
     const { city = '', service = '' } = req.query || {};
     const pool = getPool();
-    let sql = 'SELECT id, name, city, services, experience_years, photo_url, rating, reviews_count FROM bnb_sitters WHERE active = 1';
+  let sql = 'SELECT id, name, city, lat, lng, address, services, experience_years, photo_url, rating, reviews_count FROM bnb_sitters WHERE active = 1';
     const args = [];
     if (city) { sql += ' AND city LIKE ?'; args.push('%' + city + '%'); }
-    if (service) { sql += ' AND FIND_IN_SET(?, REPLACE(services, \' \, \'\')) > 0'; args.push(service); }
+  if (service) { sql += " AND FIND_IN_SET(?, REPLACE(services, ' ', '')) > 0"; args.push(service); }
     sql += ' ORDER BY rating DESC, reviews_count DESC, id DESC LIMIT 100';
     const [rows] = await pool.query(sql, args);
     res.json({ sitters: rows });

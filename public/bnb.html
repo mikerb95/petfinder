@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PetBnB — Guardería y cuidadores</title>
     <link rel="stylesheet" href="/assets/css/landing.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <style>
       .bnb-hero { padding: 40px 0 10px; }
       .filters { display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 16px; }
@@ -16,6 +19,10 @@
       .sitter-photo { width: 100%; aspect-ratio: 4 / 3; border-radius:10px; object-fit: cover; border:1px solid rgba(255,255,255,0.08); background:#0b1220; }
       .badge { margin-right: 6px; }
       .modal .input, .modal select, .modal textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border:1px solid #d1d5db; background:#fff; color:#111; }
+      /* Map split layout */
+      .bnb-layout { display:grid; grid-template-columns: 1.2fr 1fr; gap:18px; align-items:start; }
+      #bnbMap { width: 100%; height: 520px; border-radius: 12px; border:1px solid rgba(255,255,255,0.1); overflow:hidden; }
+      @media (max-width: 1000px) { .bnb-layout { grid-template-columns: 1fr; } #bnbMap { height: 360px; } }
     </style>
   </head>
   <body>
@@ -67,8 +74,11 @@
             <button id="btnSearch" class="button button-primary" type="button">Buscar</button>
           </div>
         </section>
-        <section>
+        <section class="bnb-layout">
           <div id="sitterList" class="grid3"></div>
+          <div>
+            <div id="bnbMap" aria-label="Mapa de cuidadores"></div>
+          </div>
         </section>
       </div>
     </main>
@@ -83,7 +93,9 @@
       </div>
     </footer>
 
-    <script src="/assets/js/header-user.js" defer></script>
+  <script src="/assets/js/header-user.js" defer></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script>
       (function(){
         // Mobile drawer wiring
@@ -102,6 +114,38 @@
         // Simple fetch of sitters (public)
         const list = document.getElementById('sitterList');
         const btn = document.getElementById('btnSearch');
+        // Map init (Leaflet)
+        let map, cluster;
+        function ensureMap() {
+          if (map) return map;
+          map = L.map('bnbMap', { zoomControl: true });
+          const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+          });
+          tiles.addTo(map);
+          cluster = L.markerClusterGroup();
+          map.addLayer(cluster);
+          map.setView([4.65, -74.1], 5); // Colombia approx
+          return map;
+        }
+        function clearMarkers() { if (cluster) cluster.clearLayers(); }
+        function addMarker(s) {
+          if (s.lat == null || s.lng == null) return;
+          const m = L.marker([s.lat, s.lng]);
+          const services = (s.services || '').split(',').filter(Boolean).map(x=>x.trim()).join(' · ');
+          const city = s.city || '';
+          const addr = s.address || '';
+          m.bindPopup(`<div style="min-width:220px">
+            ${s.photo_url ? `<img src="${s.photo_url}" alt="${s.name}" style="width:100%; border-radius:8px; margin-bottom:6px;">` : ''}
+            <strong>${s.name}</strong><br>
+            <small>${city}${addr ? ' • ' + addr : ''}</small><br>
+            <div style="margin:6px 0;">${services}</div>
+            <button class="button button-primary" data-book="${s.id}">Reservar</button>
+          </div>`);
+          m._sitter = s;
+          cluster.addLayer(m);
+          return m;
+        }
         async function load(){
           const params = new URLSearchParams();
           const city = document.getElementById('qCity').value.trim(); if (city) params.set('city', city);
@@ -114,6 +158,9 @@
           const data = await res.json();
           if (!data.sitters || !data.sitters.length) { list.textContent = 'No hay resultados.'; return; }
           list.innerHTML = '';
+          ensureMap();
+          clearMarkers();
+          const bounds = L.latLngBounds([]);
           for (const s of data.sitters) {
             const el = document.createElement('div');
             el.className = 'sitter-card';
@@ -130,7 +177,10 @@
               </div>
             `;
             list.appendChild(el);
+            const marker = addMarker(s);
+            if (marker && s.lat != null && s.lng != null) bounds.extend([s.lat, s.lng]);
           }
+          if (bounds.isValid()) map.fitBounds(bounds.pad(0.2));
           // Bind book buttons -> prompt minimal flow
           list.querySelectorAll('button[data-book]').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -144,6 +194,16 @@
               const res = await fetch('/api/bnb/bookings', { method:'POST', headers:{ 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify({ sitter_id: id, start_date: from, end_date: to, notes }) });
               if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'No se pudo reservar'); return; }
               alert('Reserva creada. Revisa tu dashboard.');
+            });
+          });
+          // Click on list card centers the map
+          list.querySelectorAll('.sitter-card').forEach(card => {
+            const id = card.querySelector('button[data-book]')?.getAttribute('data-book');
+            card.addEventListener('click', () => {
+              const s = (data.sitters || []).find(x => String(x.id) === String(id));
+              if (s && s.lat != null && s.lng != null && map) {
+                map.flyTo([s.lat, s.lng], 14, { duration: 0.6 });
+              }
             });
           });
         }

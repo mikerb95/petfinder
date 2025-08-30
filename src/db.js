@@ -625,6 +625,25 @@ async function ensureBnbSchema() {
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX(city), INDEX(active), INDEX(rating), INDEX(user_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+  // Ensure geo columns exist for mapping (lat/lng + address)
+  try {
+    const [cols] = await p.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'bnb_sitters'`,
+      [config.db.database]
+    );
+    const names = new Set((cols || []).map(c => c.COLUMN_NAME));
+    const alters = [];
+    if (!names.has('lat')) alters.push("ADD COLUMN lat DECIMAL(9,6) NULL AFTER city");
+    if (!names.has('lng')) alters.push("ADD COLUMN lng DECIMAL(9,6) NULL AFTER lat");
+    if (!names.has('address')) alters.push("ADD COLUMN address VARCHAR(255) NULL AFTER lng");
+    if (alters.length) {
+      await p.query(`ALTER TABLE bnb_sitters ${alters.join(', ')}`);
+    }
+  } catch (e) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Schema ensure (bnb_sitters geo) warning:', e.message);
+    }
+  }
   // Availability (optional, simple ranges)
   await p.query(`CREATE TABLE IF NOT EXISTS bnb_availability (
     id INT AUTO_INCREMENT PRIMARY KEY,
