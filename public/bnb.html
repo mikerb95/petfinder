@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PetBnB — Guardería y cuidadores</title>
+    <link rel="stylesheet" href="/assets/css/landing.css" />
+    <style>
+      .bnb-hero { padding: 40px 0 10px; }
+      .filters { display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 16px; }
+      .filters .input { background:#fff; color:#111; border-color:#e5e7eb; }
+      .grid3 { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+      .sitter-card { background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px; }
+      .sitter-card h4 { margin: 0 0 6px; }
+      .sitter-card .muted { display:block; margin: 2px 0 8px; }
+      .sitter-photo { width: 100%; aspect-ratio: 4 / 3; border-radius:10px; object-fit: cover; border:1px solid rgba(255,255,255,0.08); background:#0b1220; }
+      .badge { margin-right: 6px; }
+      .modal .input, .modal select, .modal textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border:1px solid #d1d5db; background:#fff; color:#111; }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/"><span class="brand-mark">🐾</span><span>Petfinder</span></a>
+        <button id="menuToggle" class="menu-toggle" type="button">☰</button>
+        <nav class="main-nav">
+          <a href="/shop">Tienda</a>
+          <a href="/blog">Blog</a>
+          <a href="/dashboard">Dashboard</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Off-canvas mobile drawer -->
+    <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+    <aside id="mobileDrawer" class="mobile-drawer" aria-hidden="true">
+      <header>
+        <strong>Menú</strong>
+        <button id="drawerClose" class="close" type="button" aria-label="Cerrar">Cerrar</button>
+      </header>
+      <nav aria-label="Menú móvil">
+        <a href="/">Inicio</a>
+        <a href="/bnb">Guardería</a>
+        <a href="/shop">Tienda</a>
+        <a href="/blog">Blog</a>
+        <a href="/dashboard">Panel</a>
+        <button id="mLogout" type="button">Cerrar sesión</button>
+      </nav>
+    </aside>
+
+    <main class="section">
+      <div class="container">
+        <section class="bnb-hero">
+          <h1>PetBnB — Encuentra cuidadores de confianza</h1>
+          <p class="hero-subtitle">Busca por ciudad, disponibilidad y tipo de servicio. Reserva y paga con seguridad.</p>
+          <div class="filters">
+            <input id="qCity" class="input" placeholder="Ciudad" />
+            <select id="qService" class="input">
+              <option value="">Servicio…</option>
+              <option value="boarding">Guardería (día/noche)</option>
+              <option value="walking">Paseo</option>
+              <option value="daycare">Cuidado diurno</option>
+              <option value="vetdrive">Traslado al vet</option>
+            </select>
+            <input id="qFrom" class="input" type="date" />
+            <input id="qTo" class="input" type="date" />
+            <button id="btnSearch" class="button button-primary" type="button">Buscar</button>
+          </div>
+        </section>
+        <section>
+          <div id="sitterList" class="grid3"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div class="footer-credit">Creado por Mike Rodríguez</div>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/terms">Términos</a>
+          <a href="/privacy">Privacidad</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script src="/assets/js/header-user.js" defer></script>
+    <script>
+      (function(){
+        // Mobile drawer wiring
+        const toggle = document.getElementById('menuToggle');
+        const drawer = document.getElementById('mobileDrawer');
+        const backdrop = document.getElementById('drawerBackdrop');
+        const closeBtn = document.getElementById('drawerClose');
+        function open(){ document.body.classList.add('drawer-open'); drawer?.setAttribute('aria-hidden','false'); toggle?.setAttribute('aria-expanded','true'); backdrop?.removeAttribute('hidden'); }
+        function close(){ document.body.classList.remove('drawer-open'); drawer?.setAttribute('aria-hidden','true'); toggle?.setAttribute('aria-expanded','false'); backdrop?.setAttribute('hidden',''); }
+        toggle?.addEventListener('click', open);
+        closeBtn?.addEventListener('click', close);
+        backdrop?.addEventListener('click', close);
+        document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') close(); });
+        document.getElementById('mLogout')?.addEventListener('click', (e)=>{ e.preventDefault(); localStorage.removeItem('auth_token'); window.location.href='/'; });
+
+        // Simple fetch of sitters (public)
+        const list = document.getElementById('sitterList');
+        const btn = document.getElementById('btnSearch');
+        async function load(){
+          const params = new URLSearchParams();
+          const city = document.getElementById('qCity').value.trim(); if (city) params.set('city', city);
+          const svc = document.getElementById('qService').value; if (svc) params.set('service', svc);
+          const from = document.getElementById('qFrom').value; if (from) params.set('from', from);
+          const to = document.getElementById('qTo').value; if (to) params.set('to', to);
+          list.innerHTML = 'Cargando…';
+          const res = await fetch('/api/bnb/sitters?' + params.toString());
+          if (!res.ok) { list.textContent = 'No se pudo cargar'; return; }
+          const data = await res.json();
+          if (!data.sitters || !data.sitters.length) { list.textContent = 'No hay resultados.'; return; }
+          list.innerHTML = '';
+          for (const s of data.sitters) {
+            const el = document.createElement('div');
+            el.className = 'sitter-card';
+            el.innerHTML = `
+              ${s.photo_url ? `<img class="sitter-photo" src="${s.photo_url}" alt="${s.name}">` : ''}
+              <h4>${s.name}</h4>
+              <span class="muted">${s.city || ''} • ${s.experience_years ? (s.experience_years + ' años de experiencia') : 'Sin especificar'}</span>
+              <div class="chips">
+                ${(s.services || '').split(',').filter(Boolean).map(x=>`<span class='chip'>${x.trim()}</span>`).join(' ')}
+              </div>
+              <div style="display:flex; gap:8px;flex-wrap:wrap; margin-top:8px;">
+                <button class="button" data-view="${s.id}">Ver perfil</button>
+                <button class="button button-primary" data-book="${s.id}">Reservar</button>
+              </div>
+            `;
+            list.appendChild(el);
+          }
+          // Bind book buttons -> prompt minimal flow
+          list.querySelectorAll('button[data-book]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const id = btn.getAttribute('data-book');
+              const token = localStorage.getItem('auth_token');
+              if (!token) { alert('Inicia sesión para reservar'); window.location.href='/login'; return; }
+              const from = prompt('Fecha inicio (YYYY-MM-DD)');
+              const to = prompt('Fecha fin (YYYY-MM-DD)');
+              if (!from || !to) return;
+              const notes = prompt('Notas para el cuidador (opcional)') || undefined;
+              const res = await fetch('/api/bnb/bookings', { method:'POST', headers:{ 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify({ sitter_id: id, start_date: from, end_date: to, notes }) });
+              if (!res.ok) { const e = await res.json().catch(()=>({})); alert(e.error || 'No se pudo reservar'); return; }
+              alert('Reserva creada. Revisa tu dashboard.');
+            });
+          });
+        }
+        btn?.addEventListener('click', load);
+        load();
+      })();
+    </script>
+  </body>
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</html>

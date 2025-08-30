@@ -6,6 +6,7 @@
   { "src": "^/blog/([A-Za-z0-9-_]+)/?$", "dest": "/api/index.js" },
   { "src": "^/shop/?$", "dest": "/api/index.js" },
   { "src": "^/shop/([A-Za-z0-9-_]+)/?$", "dest": "/api/index.js" },
+  { "src": "^/bnb/?$", "dest": "/api/index.js" },
   { "src": "^/cart/?$", "dest": "/api/index.js" },
   { "src": "^/checkout/?$", "dest": "/api/index.js" },
   { "src": "^/payment/?$", "dest": "/api/index.js" },

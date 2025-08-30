@@ -602,3 +602,90 @@ async function ensureBlogSchema() {
 }
 
 module.exports.ensureBlogSchema = ensureBlogSchema;
+
+/** Ensure PetBnB schema exists (sitters, bookings, messages, availability, payouts, reviews). */
+async function ensureBnbSchema() {
+  const p = getPool();
+  // Sitters directory
+  await p.query(`CREATE TABLE IF NOT EXISTS bnb_sitters (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    name VARCHAR(120) NOT NULL,
+    bio TEXT NULL,
+    city VARCHAR(120) NULL,
+    services VARCHAR(255) NULL, -- CSV: boarding,walking,daycare,vetdrive
+    price_cents INT NULL,
+    currency VARCHAR(10) DEFAULT 'COP',
+    experience_years INT DEFAULT 0,
+    photo_url VARCHAR(500) NULL,
+    rating DECIMAL(3,2) DEFAULT 0.00,
+    reviews_count INT DEFAULT 0,
+    active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX(city), INDEX(active), INDEX(rating), INDEX(user_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+  // Availability (optional, simple ranges)
+  await p.query(`CREATE TABLE IF NOT EXISTS bnb_availability (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sitter_id INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    notes VARCHAR(500) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sitter_id) REFERENCES bnb_sitters(id) ON DELETE CASCADE,
+    INDEX(sitter_id), INDEX(start_date), INDEX(end_date)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+  // Bookings
+  await p.query(`CREATE TABLE IF NOT EXISTS bnb_bookings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    owner_id INT NOT NULL,
+    sitter_id INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    status ENUM('pending','confirmed','cancelled','completed') DEFAULT 'pending',
+    total_cents INT NULL,
+    currency VARCHAR(10) DEFAULT 'COP',
+    notes TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX(owner_id), INDEX(sitter_id), INDEX(status), INDEX(start_date), INDEX(end_date),
+    FOREIGN KEY (sitter_id) REFERENCES bnb_sitters(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+  // Messages (simple thread by booking)
+  await p.query(`CREATE TABLE IF NOT EXISTS bnb_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL,
+    sender_user_id INT NOT NULL,
+    message TEXT NOT NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (booking_id) REFERENCES bnb_bookings(id) ON DELETE CASCADE,
+    INDEX(booking_id), INDEX(sender_user_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+  // Reviews (owner -> sitter)
+  await p.query(`CREATE TABLE IF NOT EXISTS bnb_reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL,
+    owner_id INT NOT NULL,
+    sitter_id INT NOT NULL,
+    rating INT NOT NULL,
+    comment TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (booking_id) REFERENCES bnb_bookings(id) ON DELETE CASCADE,
+    INDEX(sitter_id), INDEX(owner_id), INDEX(rating)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+  // Payouts (stub)
+  await p.query(`CREATE TABLE IF NOT EXISTS bnb_payouts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sitter_id INT NOT NULL,
+    booking_id INT NULL,
+    amount_cents INT NOT NULL,
+    currency VARCHAR(10) DEFAULT 'COP',
+    status ENUM('pending','paid','failed') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sitter_id) REFERENCES bnb_sitters(id) ON DELETE CASCADE,
+    INDEX(sitter_id), INDEX(status)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+}
+
+module.exports.ensureBnbSchema = ensureBnbSchema;

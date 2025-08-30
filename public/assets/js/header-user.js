@@ -5,6 +5,25 @@
   var container = nav || headerInner; // fallback to header container if no nav
   if (!container) return;
 
+    // Ensure Guardería link exists in main nav
+    try {
+      if (nav) {
+        var hasBnb = !!nav.querySelector('a[href="/bnb"]');
+        if (!hasBnb) {
+          var a = document.createElement('a');
+          a.href = '/bnb';
+          a.textContent = 'Guardería';
+          // Insert after Blog if present, else append
+          var blog = nav.querySelector('a[href="/blog"]');
+          if (blog && blog.nextSibling) {
+            blog.parentNode.insertBefore(a, blog.nextSibling);
+          } else {
+            nav.appendChild(a);
+          }
+        }
+      }
+    } catch(_) {}
+
     // Reuse existing wrap if present, otherwise create it
     var wrap = document.getElementById('userWrap');
     if (!wrap) {

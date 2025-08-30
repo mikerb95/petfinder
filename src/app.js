@@ -615,6 +615,10 @@ app.get('/tech', (req, res) => {
 app.get('/kickoff', (req, res) => {
   res.sendFile(path.join(publicDir, 'kickoff.html'));
 });
+// PetBnB (Guardería)
+app.get('/bnb', (req, res) => {
+  res.sendFile(path.join(publicDir, 'bnb.html'));
+});
 // Pagina de contacto
 app.get('/contact', (req, res) => {
   res.sendFile(path.join(publicDir, 'contact.html'));
@@ -660,6 +664,40 @@ app.get('/api/shop/products', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'internal server error' });
   }
+});
+
+// -------- PetBnB API (sitters, bookings) --------
+// Listado de cuidadores públicos (filtros básicos)
+app.get('/api/bnb/sitters', async (req, res) => {
+  try {
+    const { city = '', service = '' } = req.query || {};
+    const pool = getPool();
+    let sql = 'SELECT id, name, city, services, experience_years, photo_url, rating, reviews_count FROM bnb_sitters WHERE active = 1';
+    const args = [];
+    if (city) { sql += ' AND city LIKE ?'; args.push('%' + city + '%'); }
+    if (service) { sql += ' AND FIND_IN_SET(?, REPLACE(services, \' \, \'\')) > 0'; args.push(service); }
+    sql += ' ORDER BY rating DESC, reviews_count DESC, id DESC LIMIT 100';
+    const [rows] = await pool.query(sql, args);
+    res.json({ sitters: rows });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Crear una reserva (dueño autenticado)
+app.post('/api/bnb/bookings', requireAuth, async (req, res) => {
+  try {
+    const ownerId = req.auth?.sub;
+    const { sitter_id, start_date, end_date, notes } = req.body || {};
+    if (!sitter_id || !start_date || !end_date) return res.status(400).json({ error: 'sitter_id, start_date y end_date son obligatorios' });
+    const pool = getPool();
+    // validar cuidador activo
+    const [s] = await pool.query('SELECT id FROM bnb_sitters WHERE id = ? AND active = 1 LIMIT 1', [sitter_id]);
+    if (!s.length) return res.status(404).json({ error: 'cuidador no disponible' });
+    const [r] = await pool.query(
+      'INSERT INTO bnb_bookings (owner_id, sitter_id, start_date, end_date, status, notes) VALUES (?, ?, ?, ?, \'pending\', ?)',
+      [ownerId, sitter_id, start_date, end_date, notes || null]
+    );
+    res.status(201).json({ id: r.insertId });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
 });
 // Detalle por slug (solo activos)
 app.get('/api/shop/products/:slug', async (req, res) => {
