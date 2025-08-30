@@ -736,3 +736,36 @@ async function ensureBnbSchema() {
 }
 
 module.exports.ensureBnbSchema = ensureBnbSchema;
+
+/** Ensure Classifieds schema exists (listings and images). */
+async function ensureClassifiedsSchema() {
+  const p = getPool();
+  await p.query(`CREATE TABLE IF NOT EXISTS classifieds (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(160) NOT NULL,
+    category VARCHAR(80) NULL,
+    condition ENUM('nuevo','como_nuevo','buen_estado','usado') NOT NULL DEFAULT 'buen_estado',
+    description TEXT NULL,
+    price_cents INT NOT NULL DEFAULT 0,
+    currency VARCHAR(3) NOT NULL DEFAULT 'COP',
+    city VARCHAR(120) NULL,
+    photo_url VARCHAR(500) NULL,
+    status ENUM('active','sold','hidden') NOT NULL DEFAULT 'active',
+    views INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
+    INDEX(user_id), INDEX(status), INDEX(category), INDEX(city)
+  )`);
+  await p.query(`CREATE TABLE IF NOT EXISTS classified_images (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    classified_id BIGINT NOT NULL,
+    image_url VARCHAR(500) NOT NULL,
+    position INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cimg_class FOREIGN KEY (classified_id) REFERENCES classifieds(id) ON DELETE CASCADE,
+    INDEX(classified_id)
+  )`);
+}
+
+module.exports.ensureClassifiedsSchema = ensureClassifiedsSchema;

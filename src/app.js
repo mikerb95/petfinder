@@ -772,6 +772,122 @@ app.post('/api/bnb/bookings', requireAuth, async (req, res) => {
     res.status(201).json({ id: r.insertId });
   } catch (err) { res.status(500).json({ error: 'internal server error' }); }
 });
+
+// -------- API Clasificados (publicaciones de venta entre usuarios) --------
+// Listado público con filtros básicos
+app.get('/api/classifieds', async (req, res) => {
+  try {
+    const { q = '', city = '', category = '', status = 'active' } = req.query || {};
+    const pool = getPool();
+    const params = [];
+    let where = 'WHERE 1=1';
+    if (status) { where += ' AND c.status = ?'; params.push(status); }
+    if (q) { where += ' AND (c.title LIKE ? OR c.description LIKE ?)'; params.push(`%${q}%`, `%${q}%`); }
+    if (city) { where += ' AND c.city LIKE ?'; params.push(`%${city}%`); }
+    if (category) { where += ' AND c.category = ?'; params.push(category); }
+    const [rows] = await pool.query(
+      `SELECT c.id, c.title, c.category, c.condition, c.price_cents, c.currency, c.city, c.photo_url, c.status, c.views, c.created_at,
+              u.name AS seller_name
+         FROM classifieds c
+         LEFT JOIN users u ON u.id = c.user_id
+         ${where}
+         ORDER BY c.created_at DESC
+         LIMIT 100`, params);
+    res.json({ classifieds: rows });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Detalle público por id (+ conteo de vistas)
+app.get('/api/classifieds/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+    const [rows] = await pool.query(
+      `SELECT c.*, u.name AS seller_name, u.phone AS seller_phone, u.city AS seller_city
+         FROM classifieds c
+         LEFT JOIN users u ON u.id = c.user_id
+        WHERE c.id = ?
+        LIMIT 1`, [id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'not found' });
+    // best-effort increment views
+    pool.query('UPDATE classifieds SET views = views + 1 WHERE id = ?', [id]).catch(()=>{});
+    res.json({ classified: rows[0] });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Crear publicación (auth)
+app.post('/api/classifieds', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const { title, description = null, price_cents = 0, currency = 'COP', city = null, category = null, condition = 'buen_estado', photo_url = null } = req.body || {};
+    if (!title || typeof title !== 'string') return res.status(400).json({ error: 'title requerido' });
+    const allowedCond = ['nuevo','como_nuevo','buen_estado','usado'];
+    if (condition && !allowedCond.includes(String(condition))) return res.status(400).json({ error: 'condition invalida' });
+    const pool = getPool();
+    const [r] = await pool.query(
+      `INSERT INTO classifieds (user_id, title, category, condition, description, price_cents, currency, city, photo_url, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+      [userId, title, category || null, condition || 'buen_estado', description || null, Math.max(0, Number(price_cents || 0)), currency || 'COP', city || null, photo_url || null]
+    );
+    res.status(201).json({ id: r.insertId });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Mis publicaciones
+app.get('/api/me/classifieds', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub;
+    const pool = getPool();
+    const [rows] = await pool.query(
+      `SELECT id, title, category, condition, price_cents, currency, city, photo_url, status, views, created_at, updated_at
+         FROM classifieds WHERE user_id = ? ORDER BY created_at DESC`, [userId]
+    );
+    res.json({ classifieds: rows });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Actualizar mi publicación (solo propietario)
+app.put('/api/me/classifieds/:id', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub; const { id } = req.params;
+    const { title, description, price_cents, currency, city, category, condition, status, photo_url } = req.body || {};
+    const allowedStatus = ['active','sold','hidden'];
+    const allowedCond = ['nuevo','como_nuevo','buen_estado','usado'];
+    if (status && !allowedStatus.includes(String(status))) return res.status(400).json({ error: 'status invalido' });
+    if (condition && !allowedCond.includes(String(condition))) return res.status(400).json({ error: 'condition invalida' });
+    const pool = getPool();
+    const [ex] = await pool.query('SELECT id FROM classifieds WHERE id = ? AND user_id = ? LIMIT 1', [id, userId]);
+    if (!ex.length) return res.status(404).json({ error: 'not found' });
+    await pool.query(
+      `UPDATE classifieds SET
+         title = COALESCE(?, title),
+         description = COALESCE(?, description),
+         price_cents = COALESCE(?, price_cents),
+         currency = COALESCE(?, currency),
+         city = COALESCE(?, city),
+         category = COALESCE(?, category),
+         condition = COALESCE(?, condition),
+         status = COALESCE(?, status),
+         photo_url = COALESCE(?, photo_url),
+         updated_at = NOW()
+       WHERE id = ?`,
+      [title ?? null, description ?? null, (price_cents ?? null), currency ?? null, city ?? null, category ?? null, condition ?? null, status ?? null, photo_url ?? null, id]
+    );
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
+
+// Eliminar mi publicación
+app.delete('/api/me/classifieds/:id', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.sub; const { id } = req.params; const pool = getPool();
+    const [ex] = await pool.query('SELECT id FROM classifieds WHERE id = ? AND user_id = ? LIMIT 1', [id, userId]);
+    if (!ex.length) return res.status(404).json({ error: 'not found' });
+    await pool.query('DELETE FROM classifieds WHERE id = ?', [id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'internal server error' }); }
+});
 // Detalle por slug (solo activos)
 app.get('/api/shop/products/:slug', async (req, res) => {
   try {

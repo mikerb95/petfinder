@@ -1,6 +1,6 @@
 const app = require('./app');
 const config = require('./config');
-const { ensureUserVerificationColumns, ensurePetsCityColumn, ensureUsersCityColumn, ensureExtraPetTables, ensureUsersAdminColumn, ensureUsersScoreColumn, ensureUsersReferralColumns, ensureProductsTable, ensureProductsAugments, ensureShopSchema, ensureBlogSchema, ensureBnbSchema, ensurePetsAdoptionColumns } = require('./db');
+const { ensureUserVerificationColumns, ensurePetsCityColumn, ensureUsersCityColumn, ensureExtraPetTables, ensureUsersAdminColumn, ensureUsersScoreColumn, ensureUsersReferralColumns, ensureProductsTable, ensureProductsAugments, ensureShopSchema, ensureBlogSchema, ensureBnbSchema, ensurePetsAdoptionColumns, ensureClassifiedsSchema } = require('./db');
 
 const PORT = process.env.PORT || 3000;
 
@@ -24,4 +24,5 @@ app.listen(PORT, async () => {
   try { await ensureShopSchema(); } catch {}
   try { await ensureBlogSchema(); } catch {}
   try { await ensureBnbSchema(); } catch {}
+  try { await ensureClassifiedsSchema(); } catch {}
 });

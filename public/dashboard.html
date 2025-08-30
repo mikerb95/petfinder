@@ -142,6 +142,8 @@
           <p>
             <button class="button" id="showPetFormBtn" type="button">Agregar nueva mascota</button>
             <button class="button button-primary" id="openAdoptModal" type="button" style="margin-left:8px;">Dar en adopción</button>
+            <a class="button" href="/classifieds" target="_blank" style="margin-left:8px;">Ver clasificados</a>
+            <button class="button" id="openSellModal" type="button" style="margin-left:8px;">Vender</button>
           </p>
           <form id="petForm" style="display:none; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr));">
             <input type="text" id="petName" placeholder="Nombre de la mascota" required />
@@ -279,6 +281,67 @@
                 <div>
                   <label class="demo-label" for="pf_name">Nombre</label>
                   <input id="pf_name" class="input" type="text" />
+              <!-- Sell (Classified) Modal -->
+              <div id="sellModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sellTitle">
+                <div class="modal">
+                  <header>
+                    <h3 id="sellTitle" style="margin:0;">Publicar artículo en clasificados</h3>
+                    <button id="sellClose" class="button secondary" type="button" aria-label="Cerrar">Cerrar</button>
+                  </header>
+                  <div class="body">
+                    <form id="sellForm" class="grid">
+                      <div style="grid-column:1/-1">
+                        <label class="demo-label" for="s_title">Título</label>
+                        <input id="s_title" class="input" type="text" placeholder="Título del artículo" required />
+                      </div>
+                      <div>
+                        <label class="demo-label" for="s_price">Precio (COP)</label>
+                        <input id="s_price" class="input" type="number" min="0" step="1000" placeholder="50000" />
+                      </div>
+                      <div>
+                        <label class="demo-label" for="s_city">Ciudad</label>
+                        <input id="s_city" class="input" type="text" placeholder="Ciudad" />
+                      </div>
+                      <div>
+                        <label class="demo-label" for="s_category">Categoría</label>
+                        <select id="s_category" class="input">
+                          <option value="">—</option>
+                          <option>Juguetes</option>
+                          <option>Accesorios</option>
+                          <option>Alimentos</option>
+                          <option>Transporte</option>
+                          <option>Higiene</option>
+                          <option>Ropa</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="demo-label" for="s_condition">Condición</label>
+                        <select id="s_condition" class="input">
+                          <option value="buen_estado">Buen estado</option>
+                          <option value="como_nuevo">Como nuevo</option>
+                          <option value="nuevo">Nuevo</option>
+                          <option value="usado">Usado</option>
+                        </select>
+                      </div>
+                      <div style="grid-column:1/-1">
+                        <label class="demo-label" for="s_photo">Foto (URL)</label>
+                        <input id="s_photo" class="input" type="url" placeholder="https://…" />
+                      </div>
+                      <div style="grid-column:1/-1">
+                        <label class="demo-label" for="s_desc">Descripción</label>
+                        <textarea id="s_desc" class="input" rows="3" placeholder="Detalles del artículo"></textarea>
+                      </div>
+                    </form>
+                    <div id="sellMsg" class="demo-help" role="status" aria-live="polite" style="margin-top:8px"></div>
+                    <div id="myClassifieds" style="margin-top:12px"></div>
+                  </div>
+                  <div class="footer">
+                    <button id="sellCancel" class="button secondary" type="button">Cancelar</button>
+                    <button id="sellPublish" class="button" type="button">Publicar</button>
+                  </div>
+                </div>
+              </div>
+
                 </div>
                 <div>
                   <label class="demo-label" for="pf_last">Apellido</label>

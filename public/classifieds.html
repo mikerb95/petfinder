@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clasificados — Petfinder</title>
+  <link rel="stylesheet" href="/assets/css/landing.css" />
+  <style>
+    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
+    .card { background:#fff; border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(0,0,0,0.06); display:flex; flex-direction:column; }
+    .card img { width:100%; aspect-ratio: 4/3; object-fit:cover; border-radius:8px; background:#f3f4f6; }
+    .price { font-weight:700; }
+    .filter { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:8px; margin:12px 0; }
+    @media (max-width: 720px){ .filter{ grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/"><span class="brand-mark">🐾</span><span class="brand-name">Petfinder</span></a>
+    <nav class="main-nav">
+      <a href="/adopt">Adopta</a>
+      <a href="/bnb">Guardería</a>
+      <a href="/shop">Tienda</a>
+      <a href="/blog">Blog</a>
+    </nav>
+  </div>
+</header>
+<main class="section">
+  <div class="container">
+    <h1>Clasificados</h1>
+    <p class="hero-subtitle">Compra y vende artículos para mascotas en buen estado.</p>
+    <form id="flt" class="filter">
+      <input id="q" class="input" type="search" placeholder="Buscar..." />
+      <input id="city" class="input" type="text" placeholder="Ciudad" />
+      <select id="category" class="input">
+        <option value="">Categoría</option>
+        <option>Juguetes</option>
+        <option>Accesorios</option>
+        <option>Alimentos</option>
+        <option>Transporte</option>
+        <option>Higiene</option>
+        <option>Ropa</option>
+      </select>
+      <button class="button" type="submit">Buscar</button>
+    </form>
+    <div id="list" class="grid"></div>
+  </div>
+</main>
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-credit">Creado por Mike Rodríguez</div>
+    <nav class="footer-nav"><a href="/privacy">Privacidad</a></nav>
+  </div>
+</footer>
+<script>
+  (function(){
+    const list = document.getElementById('list');
+    const form = document.getElementById('flt');
+    async function load(){
+      const p = new URLSearchParams();
+      const q = document.getElementById('q').value.trim(); if (q) p.set('q', q);
+      const c = document.getElementById('city').value.trim(); if (c) p.set('city', c);
+      const cat = document.getElementById('category').value.trim(); if (cat) p.set('category', cat);
+      const res = await fetch('/api/classifieds?' + p.toString());
+      const data = await res.json().catch(()=>({classifieds:[]}));
+      const arr = data.classifieds || [];
+      if (!arr.length) { list.innerHTML = '<p>No hay publicaciones.</p>'; return; }
+      list.innerHTML = arr.map(x=>`
+        <article class="card">
+          <img alt="${(x.title||'').replace(/</g,'&lt;')}" src="${x.photo_url || 'https://placehold.co/600x450?text=Mascotas'}" />
+          <h3 style="margin:8px 0 6px">${x.title}</h3>
+          <div class="price">$${(x.price_cents/100).toLocaleString('es-CO')} ${x.currency||'COP'}</div>
+          <div style="color:#6b7280; font-size:.95em; margin-top:2px;">${x.city || ''} · ${x.category || ''} · ${x.condition || ''}</div>
+        </article>`).join('');
+    }
+    form.addEventListener('submit', (e)=>{ e.preventDefault(); load(); });
+    load();
+  })();
+</script>
+</body>
+</html>
