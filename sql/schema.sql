@@ -631,7 +631,11 @@ CREATE TABLE IF NOT EXISTS classifieds (
   status ENUM('active','sold','hidden') NOT NULL DEFAULT 'active',
   views INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NULL DEFAULT NULL
+  updated_at TIMESTAMP NULL DEFAULT NULL,
+  KEY idx_class_user (user_id),
+  KEY idx_class_status (status),
+  KEY idx_class_category (category),
+  KEY idx_class_city (city)
 );
 
 CREATE TABLE IF NOT EXISTS classified_images (
@@ -639,5 +643,68 @@ CREATE TABLE IF NOT EXISTS classified_images (
   classified_id BIGINT NOT NULL,
   image_url VARCHAR(500) NOT NULL,
   position INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_cimg_class (classified_id),
+  CONSTRAINT fk_cimg_class FOREIGN KEY (classified_id) REFERENCES classifieds(id) ON DELETE CASCADE
 );
+
+-- =============================
+-- Índices y claves foráneas adicionales (post-creación)
+-- Ejecutables múltiples veces sin efectos adversos si ya existen
+-- =============================
+
+-- Pets: índices útiles para consultas comunes
+ALTER TABLE pets
+  ADD INDEX idx_pets_owner (owner_id),
+  ADD INDEX idx_pets_status (status),
+  ADD INDEX idx_pets_adopt (adoption_status),
+  ADD INDEX idx_pets_city (city);
+
+-- Carts & cart items
+ALTER TABLE carts
+  ADD UNIQUE KEY uq_carts_session (session_id);
+ALTER TABLE cart_items
+  ADD INDEX idx_ci_cart_prod_var (cart_id, product_id, variant_id);
+
+-- Orders
+ALTER TABLE orders
+  ADD INDEX idx_orders_status (status),
+  ADD INDEX idx_orders_created (created_at);
+
+-- Inventory movements
+ALTER TABLE inventory_movements
+  ADD INDEX idx_im_prod (product_id),
+  ADD INDEX idx_im_var (variant_id);
+
+-- Classifieds: FK a users
+ALTER TABLE classifieds
+  ADD CONSTRAINT fk_class_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- PetBnB: claves foráneas e índices mínimos
+ALTER TABLE bnb_availability
+  ADD CONSTRAINT fk_ba_sitter FOREIGN KEY (sitter_id) REFERENCES bnb_sitters(id) ON DELETE CASCADE;
+
+ALTER TABLE bnb_bookings
+  ADD CONSTRAINT fk_bb_sitter FOREIGN KEY (sitter_id) REFERENCES bnb_sitters(id) ON DELETE CASCADE,
+  ADD CONSTRAINT fk_bb_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
+  ADD INDEX idx_bb_status (status),
+  ADD INDEX idx_bb_start (start_date),
+  ADD INDEX idx_bb_end (end_date);
+
+ALTER TABLE bnb_messages
+  ADD CONSTRAINT fk_bm_booking FOREIGN KEY (booking_id) REFERENCES bnb_bookings(id) ON DELETE CASCADE,
+  ADD CONSTRAINT fk_bm_sender FOREIGN KEY (sender_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  ADD INDEX idx_bm_booking (booking_id);
+
+ALTER TABLE bnb_reviews
+  ADD CONSTRAINT fk_br_booking FOREIGN KEY (booking_id) REFERENCES bnb_bookings(id) ON DELETE CASCADE,
+  ADD CONSTRAINT fk_br_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
+  ADD CONSTRAINT fk_br_sitter FOREIGN KEY (sitter_id) REFERENCES bnb_sitters(id) ON DELETE CASCADE,
+  ADD INDEX idx_br_sitter (sitter_id),
+  ADD INDEX idx_br_owner (owner_id),
+  ADD INDEX idx_br_rating (rating);
+
+ALTER TABLE bnb_payouts
+  ADD CONSTRAINT fk_bp_sitter FOREIGN KEY (sitter_id) REFERENCES bnb_sitters(id) ON DELETE CASCADE,
+  ADD INDEX idx_bp_status (status);
+
