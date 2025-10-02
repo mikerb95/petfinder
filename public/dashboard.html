@@ -162,15 +162,14 @@
             <input type="text" id="petColor" placeholder="Color" />
             <div class="demo-help">Ej.: marron, negro con blanco</div>
             <div style="grid-column: 1 / -1;">
-              <label class="demo-label" for="petCitySel">Ciudad</label>
+              <label class="demo-label" for="petCountrySel">País y ciudad</label>
               <div id="petCityGroup">
-                <div id="petDeptWrap" style="display:none; margin-bottom:8px;">
-                  <label class="demo-label" for="petDept">Departamento (Colombia)</label>
-                  <select id="petDept" class="input"></select>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <select id="petCountrySel" class="input" style="flex:1; min-width:180px;" required aria-label="País"></select>
+                  <select id="petCitySel" class="input" style="flex:1; min-width:200px;" required aria-label="Ciudad"></select>
                 </div>
-                <select id="petCitySel" class="input" required></select>
                 <input id="petCityOther" class="input" type="text" placeholder="Especifica la ciudad" style="display:none; margin-top:8px;" />
-                <div class="demo-help">Selecciona la ciudad según el país del teléfono en tu perfil.</div>
+                <div class="demo-help">Selecciona un país y luego una ciudad (o 'Otra').</div>
               </div>
             </div>
             <input type="text" id="petNotes" placeholder="Notas" />
@@ -452,14 +451,13 @@
                     <input id="e_color" class="input" type="text" />
                   </div>
                   <div>
-                    <label class="demo-label" for="e_city_sel">Ciudad</label>
-                    <div>
-                      <div id="e_dept_wrap" style="display:none; margin-bottom:8px;">
-                        <label class="demo-label" for="e_dept">Departamento (Colombia)</label>
-                        <select id="e_dept" class="input"></select>
+                    <label class="demo-label" for="e_country_sel">País y ciudad</label>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <select id="e_country_sel" class="input" style="flex:1; min-width:160px;" aria-label="País (edición)"></select>
+                        <select id="e_city_sel" class="input" style="flex:1; min-width:180px;" required aria-label="Ciudad (edición)"></select>
                       </div>
-                      <select id="e_city_sel" class="input" required></select>
-                      <input id="e_city_other" class="input" type="text" placeholder="Especifica la ciudad" style="display:none; margin-top:8px;" />
+                      <input id="e_city_other" class="input" type="text" placeholder="Especifica la ciudad" style="display:none;" />
                     </div>
                   </div>
                   <div>
