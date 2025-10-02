@@ -541,6 +541,48 @@
   <script>
       (function () {
         const token = localStorage.getItem('auth_token');
+        // --- Countries & Cities dataset (minimal curated list; can be extended) ---
+        const COUNTRY_CITY_DATA = [
+          { code: 'CO', name: 'Colombia', cities: ['Bogotá','Medellín','Cali','Barranquilla','Cartagena','Bucaramanga','Pereira','Manizales','Santa Marta','Cúcuta','Ibagué','Pasto','Armenia'] },
+          { code: 'MX', name: 'México', cities: ['Ciudad de México','Guadalajara','Monterrey','Puebla','Tijuana','Cancún','Querétaro','Mérida','León','Toluca'] },
+          { code: 'AR', name: 'Argentina', cities: ['Buenos Aires','Córdoba','Rosario','Mendoza','La Plata','Mar del Plata','San Miguel de Tucumán'] },
+          { code: 'CL', name: 'Chile', cities: ['Santiago','Valparaíso','Viña del Mar','Concepción','La Serena','Antofagasta'] },
+          { code: 'PE', name: 'Perú', cities: ['Lima','Arequipa','Trujillo','Cusco','Piura','Chiclayo'] },
+          { code: 'EC', name: 'Ecuador', cities: ['Quito','Guayaquil','Cuenca','Santo Domingo','Ambato'] },
+          { code: 'ES', name: 'España', cities: ['Madrid','Barcelona','Valencia','Sevilla','Zaragoza','Málaga','Bilbao'] },
+          { code: 'US', name: 'Estados Unidos', cities: ['New York','Los Angeles','Chicago','Houston','Miami','San Francisco','Seattle'] },
+          { code: 'VE', name: 'Venezuela', cities: ['Caracas','Maracaibo','Valencia','Barquisimeto','Maracay'] },
+          { code: 'UY', name: 'Uruguay', cities: ['Montevideo','Salto','Paysandú'] },
+          { code: 'PA', name: 'Panamá', cities: ['Ciudad de Panamá','Colón','David'] },
+          { code: 'CR', name: 'Costa Rica', cities: ['San José','Alajuela','Cartago'] },
+          { code: 'BR', name: 'Brasil', cities: ['São Paulo','Rio de Janeiro','Brasília','Belo Horizonte','Curitiba'] }
+        ];
+        function populateCountries(countrySel) {
+          if (!countrySel) return;
+            countrySel.innerHTML = '<option value="">País…</option>' + COUNTRY_CITY_DATA.map(c=>`<option value="${c.code}">${c.name}</option>`).join('');
+        }
+        function populateCities(countryCode, citySel, allowOther=true) {
+          if (!citySel) return;
+          if (!countryCode) { citySel.innerHTML = '<option value="">Ciudad…</option>'; return; }
+          const entry = COUNTRY_CITY_DATA.find(c=>c.code===countryCode);
+          if (!entry) { citySel.innerHTML = '<option value="">Ciudad…</option>'; return; }
+          const opts = entry.cities.map(ct=>`<option value="${ct}">${ct}</option>`).join('');
+          citySel.innerHTML = '<option value="">Ciudad…</option>' + opts + (allowOther ? '<option value="other">Otra…</option>' : '');
+        }
+        function wireCountryCityPair(countrySel, citySel, otherInput) {
+          if (!countrySel || !citySel) return;
+          populateCountries(countrySel);
+          countrySel.addEventListener('change', ()=>{
+            populateCities(countrySel.value, citySel, true);
+            if (otherInput) { otherInput.style.display = 'none'; otherInput.value=''; }
+          });
+          citySel.addEventListener('change', ()=>{
+            if (!otherInput) return;
+            const v = citySel.value;
+            if (v === 'other') { otherInput.style.display=''; otherInput.focus(); }
+            else { otherInput.style.display='none'; otherInput.value=''; }
+          });
+        }
         // Mobile drawer wiring
         (function(){
           const toggle = document.getElementById('menuToggle');
@@ -693,7 +735,12 @@
           window.location.href = '/';
         });
 
-        const petForm = document.getElementById('petForm');
+  const petForm = document.getElementById('petForm');
+  // Wire pet country/city selectors
+  const petCountrySel = document.getElementById('petCountrySel');
+  const petCitySel = document.getElementById('petCitySel');
+  const petCityOther = document.getElementById('petCityOther');
+  wireCountryCityPair(petCountrySel, petCitySel, petCityOther);
         const showPetFormBtn = document.getElementById('showPetFormBtn');
         const cancelPetFormBtn = document.getElementById('cancelPetFormBtn');
 
@@ -887,7 +934,13 @@
   const e_vaccine_card = document.getElementById('e_vaccine_card');
   const e_nfc = document.getElementById('e_nfc');
 
-        function openEditModal(p) {
+  // Edit country/city wiring
+  const e_country_sel = document.getElementById('e_country_sel');
+  const e_city_sel = document.getElementById('e_city_sel');
+  const e_city_other = document.getElementById('e_city_other');
+  wireCountryCityPair(e_country_sel, e_city_sel, e_city_other);
+
+  function openEditModal(p) {
           currentEditId = p.id;
           if (e_name) e_name.value = p.name || '';
           if (e_species) e_species.value = p.species || '';
@@ -912,13 +965,27 @@
           })();
           if (e_photo) e_photo.value = p.photo_url || '';
           (function(){
-            const sel = document.getElementById('e_city_sel');
-            const other = document.getElementById('e_city_other');
-            if (sel && other) {
-              const wanted = p.city || '';
-              const match = Array.from(sel.options).find(o => o.value === wanted);
-              if (match) { sel.value = wanted; other.style.display = 'none'; other.value = ''; }
-              else { sel.value = 'other'; other.style.display = ''; other.value = wanted; }
+            // Attempt heuristic: if pet.city matches one of all known cities, pre-select that country
+            const cityVal = p.city || '';
+            if (cityVal) {
+              let foundCountry = null;
+              for (const c of COUNTRY_CITY_DATA) {
+                if (c.cities.includes(cityVal)) { foundCountry = c.code; break; }
+              }
+              if (foundCountry && e_country_sel) {
+                e_country_sel.value = foundCountry;
+                populateCities(foundCountry, e_city_sel, true);
+                const match = Array.from(e_city_sel.options).find(o=>o.value===cityVal);
+                if (match) { e_city_sel.value = cityVal; e_city_other.style.display='none'; e_city_other.value=''; }
+                else { e_city_sel.value='other'; e_city_other.style.display=''; e_city_other.value = cityVal; }
+              } else if (e_city_sel) {
+                // No match: choose empty country, set other
+                if (e_country_sel) e_country_sel.value = '';
+                populateCities('', e_city_sel, true);
+                e_city_sel.value='other';
+                e_city_other.style.display='';
+                e_city_other.value = cityVal;
+              }
             }
           })();
           if (e_birthdate) e_birthdate.value = p.birthdate ? new Date(p.birthdate).toISOString().slice(0,10) : '';
