@@ -143,7 +143,7 @@
             <button class="button" id="showPetFormBtn" type="button">Agregar nueva mascota</button>
             <button class="button button-primary" id="openAdoptModal" type="button" style="margin-left:8px;">Dar en adopción</button>
             <a class="button" href="/classifieds" target="_blank" style="margin-left:8px;">Ver clasificados</a>
-            <button class="button" id="openSellModal" type="button" style="margin-left:8px;">Vender</button>
+            <!-- Botón de vender eliminado -->
           </p>
           <form id="petForm" style="display:none; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr));">
             <input type="text" id="petName" placeholder="Nombre de la mascota" required />
@@ -280,66 +280,7 @@
                 <div>
                   <label class="demo-label" for="pf_name">Nombre</label>
                   <input id="pf_name" class="input" type="text" />
-              <!-- Sell (Classified) Modal -->
-              <div id="sellModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sellTitle">
-                <div class="modal">
-                  <header>
-                    <h3 id="sellTitle" style="margin:0;">Publicar artículo en clasificados</h3>
-                    <button id="sellClose" class="button secondary" type="button" aria-label="Cerrar">Cerrar</button>
-                  </header>
-                  <div class="body">
-                    <form id="sellForm" class="grid">
-                      <div style="grid-column:1/-1">
-                        <label class="demo-label" for="s_title">Título</label>
-                        <input id="s_title" class="input" type="text" placeholder="Título del artículo" required />
-                      </div>
-                      <div>
-                        <label class="demo-label" for="s_price">Precio (COP)</label>
-                        <input id="s_price" class="input" type="number" min="0" step="1000" placeholder="50000" />
-                      </div>
-                      <div>
-                        <label class="demo-label" for="s_city">Ciudad</label>
-                        <input id="s_city" class="input" type="text" placeholder="Ciudad" />
-                      </div>
-                      <div>
-                        <label class="demo-label" for="s_category">Categoría</label>
-                        <select id="s_category" class="input">
-                          <option value="">—</option>
-                          <option>Juguetes</option>
-                          <option>Accesorios</option>
-                          <option>Alimentos</option>
-                          <option>Transporte</option>
-                          <option>Higiene</option>
-                          <option>Ropa</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label class="demo-label" for="s_condition">Condición</label>
-                        <select id="s_condition" class="input">
-                          <option value="buen_estado">Buen estado</option>
-                          <option value="como_nuevo">Como nuevo</option>
-                          <option value="nuevo">Nuevo</option>
-                          <option value="usado">Usado</option>
-                        </select>
-                      </div>
-                      <div style="grid-column:1/-1">
-                        <label class="demo-label" for="s_photo">Foto (URL)</label>
-                        <input id="s_photo" class="input" type="url" placeholder="https://…" />
-                      </div>
-                      <div style="grid-column:1/-1">
-                        <label class="demo-label" for="s_desc">Descripción</label>
-                        <textarea id="s_desc" class="input" rows="3" placeholder="Detalles del artículo"></textarea>
-                      </div>
-                    </form>
-                    <div id="sellMsg" class="demo-help" role="status" aria-live="polite" style="margin-top:8px"></div>
-                    <div id="myClassifieds" style="margin-top:12px"></div>
-                  </div>
-                  <div class="footer">
-                    <button id="sellCancel" class="button secondary" type="button">Cancelar</button>
-                    <button id="sellPublish" class="button" type="button">Publicar</button>
-                  </div>
-                </div>
-              </div>
+              <!-- Modal de vender eliminado -->
 
                 </div>
                 <div>
@@ -583,6 +524,50 @@
             else { otherInput.style.display='none'; otherInput.value=''; }
           });
         }
+        // --- Breed typeahead logic ---
+        const BREEDS = {
+          perro: [ 'Criollo','Labrador Retriever','Golden Retriever','Pastor Alemán','Poodle','Bulldog Francés','Bulldog Inglés','Beagle','Rottweiler','Pinscher','Dóberman','Chihuahua','Shih Tzu','Boxer','Husky Siberiano','Pug','Cocker Spaniel','Maltés','Weimaraner','Border Collie','Samoyedo','Dálmata','Akita','Gran Danés','Schnauzer','Bóxer','Pitbull','Galgo','Labradoodle','Cane Corso' ],
+          gato: [ 'Criollo','Siames','Persa','Maine Coon','Bengala','Azul Ruso','Sphynx','Angora Turco','British Shorthair','Ragdoll','Scottish Fold','Manx','Bombay','Himalayo','Savannah','Balinese','Cornish Rex','Devon Rex','American Shorthair' ]
+        };
+        function setupBreedTypeahead(inputEl, listEl, speciesGetter) {
+          if (!inputEl || !listEl) return;
+          function close(){ listEl.style.display='none'; inputEl.setAttribute('aria-expanded','false'); }
+          function open(){ listEl.style.display='block'; inputEl.setAttribute('aria-expanded','true'); }
+          function buildList(filter) {
+            const sp = (speciesGetter() || '').toLowerCase();
+            const arr = BREEDS[sp] || [];
+            const f = (filter||'').trim().toLowerCase();
+            const matched = f ? arr.filter(b=>b.toLowerCase().includes(f)) : arr.slice(0, Math.min(15, arr.length));
+            if (!matched.length) { listEl.innerHTML = '<li style="color:#6b7280; cursor:default;" tabindex="-1">Sin coincidencias</li>'; return; }
+            listEl.innerHTML = matched.map((b,i)=>`<li role="option" data-v="${b.replace(/"/g,'&quot;')}" tabindex="-1" ${i===0?'aria-selected="true"':''}>${b}</li>`).join('');
+          }
+          inputEl.addEventListener('input', ()=>{ buildList(inputEl.value); open(); });
+          inputEl.addEventListener('focus', ()=>{ buildList(inputEl.value); open(); });
+          inputEl.addEventListener('keydown', (e)=>{
+            if (e.key === 'Escape') { close(); return; }
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              const items = Array.from(listEl.querySelectorAll('li[data-v]'));
+              if (!items.length) return;
+              let idx = items.findIndex(li=>li.getAttribute('aria-selected')==='true');
+              if (e.key === 'ArrowDown') idx = (idx+1) % items.length; else idx = (idx-1+items.length)%items.length;
+              items.forEach(li=>li.removeAttribute('aria-selected'));
+              items[idx].setAttribute('aria-selected','true');
+              items[idx].scrollIntoView({ block:'nearest' });
+              e.preventDefault();
+            } else if (e.key === 'Enter') {
+              const sel = listEl.querySelector('li[aria-selected="true"]');
+              if (sel && sel.dataset.v) { inputEl.value = sel.dataset.v; close(); e.preventDefault(); }
+            }
+          });
+          listEl.addEventListener('mousedown', (e)=>{
+            const li = e.target.closest('li[data-v]');
+            if (!li) return;
+            inputEl.value = li.dataset.v;
+            close();
+            e.preventDefault();
+          });
+          document.addEventListener('click', (e)=>{ if (e.target !== inputEl && !listEl.contains(e.target)) close(); });
+        }
         // Mobile drawer wiring
         (function(){
           const toggle = document.getElementById('menuToggle');
@@ -741,6 +726,12 @@
   const petCitySel = document.getElementById('petCitySel');
   const petCityOther = document.getElementById('petCityOther');
   wireCountryCityPair(petCountrySel, petCitySel, petCityOther);
+  // Breed typeahead (create form)
+  setupBreedTypeahead(
+    document.getElementById('petBreed'),
+    document.getElementById('petBreedList'),
+    ()=> document.getElementById('petSpecies')?.value
+  );
         const showPetFormBtn = document.getElementById('showPetFormBtn');
         const cancelPetFormBtn = document.getElementById('cancelPetFormBtn');
 
@@ -939,6 +930,12 @@
   const e_city_sel = document.getElementById('e_city_sel');
   const e_city_other = document.getElementById('e_city_other');
   wireCountryCityPair(e_country_sel, e_city_sel, e_city_other);
+  // Breed typeahead (edit form)
+  setupBreedTypeahead(
+    document.getElementById('e_breed'),
+    document.getElementById('e_breedList'),
+    ()=> document.getElementById('e_species')?.value
+  );
 
   function openEditModal(p) {
           currentEditId = p.id;
@@ -1107,59 +1104,7 @@
           } catch (e) { adoptMsg.textContent = e.message || 'Error'; }
         });
 
-        // Sell (Classifieds) modal wiring
-        const sellModal = document.getElementById('sellModal');
-        const openSellModal = document.getElementById('openSellModal');
-        const sellClose = document.getElementById('sellClose');
-        const sellCancel = document.getElementById('sellCancel');
-        const sellPublish = document.getElementById('sellPublish');
-        const sellMsg = document.getElementById('sellMsg');
-        const s_title = document.getElementById('s_title');
-        const s_price = document.getElementById('s_price');
-        const s_city = document.getElementById('s_city');
-        const s_category = document.getElementById('s_category');
-        const s_condition = document.getElementById('s_condition');
-        const s_photo = document.getElementById('s_photo');
-        const s_desc = document.getElementById('s_desc');
-        const myClassifieds = document.getElementById('myClassifieds');
-
-        function openSell(){ sellMsg.textContent=''; sellModal.style.display='flex'; listMine(); setTimeout(()=>{ s_title?.focus(); },0); }
-        function closeSell(){ sellModal.style.display='none'; }
-        async function listMine(){
-          try{
-            const res = await fetch('/api/me/classifieds', { headers:{ 'Authorization':'Bearer ' + token } });
-            const data = await res.json().catch(()=>({classifieds:[]}));
-            const arr = data.classifieds || [];
-            if (!arr.length) { myClassifieds.innerHTML = '<div class="demo-help">Aún no tienes publicaciones.</div>'; return; }
-            myClassifieds.innerHTML = '<h4>Mis publicaciones</h4>' + arr.map(x=>`<div class="feature-item"><strong>${x.title}</strong> — $${(x.price_cents/100).toLocaleString('es-CO')} ${x.currency||'COP'} <span style="color:#6b7280">${x.status}</span></div>`).join('');
-          } catch{ myClassifieds.innerHTML = ''; }
-        }
-        openSellModal?.addEventListener('click', openSell);
-        sellClose?.addEventListener('click', closeSell);
-        sellCancel?.addEventListener('click', closeSell);
-        sellModal?.addEventListener('click', (e)=>{ if (e.target === sellModal) closeSell(); });
-        document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && sellModal.style.display==='flex') closeSell(); });
-        sellPublish?.addEventListener('click', async ()=>{
-          sellMsg.textContent='';
-          const payload = {
-            title: s_title?.value?.trim(),
-            price_cents: s_price?.value ? Math.round(Number(s_price.value)*100) : 0,
-            city: s_city?.value?.trim() || undefined,
-            category: s_category?.value || undefined,
-            condition: s_condition?.value || undefined,
-            photo_url: s_photo?.value?.trim() || undefined,
-            description: s_desc?.value?.trim() || undefined,
-            currency: 'COP'
-          };
-          if (!payload.title) { sellMsg.textContent = 'El título es obligatorio'; sellMsg.style.color = '#fca5a5'; return; }
-          try {
-            const res = await fetch('/api/classifieds', { method:'POST', headers:{ 'Authorization':'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-            const data = await res.json().catch(()=>({}));
-            if (!res.ok) throw new Error(data?.error || 'No se pudo publicar');
-            sellMsg.textContent = 'Publicado'; sellMsg.style.color = '#22c55e';
-            listMine();
-          } catch(e){ sellMsg.textContent = e.message || 'Error'; sellMsg.style.color = '#fca5a5'; }
-        });
+        // Lógica de vender eliminada
       })();
     </script>
   </body>
